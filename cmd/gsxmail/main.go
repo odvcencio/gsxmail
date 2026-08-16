@@ -1,0 +1,150 @@
+// Command gsxmail is the gsxmail CLI. WP1 ships one verb, render; dev,
+// check, and matrix land in later work packages (spec section 10, section
+// 15).
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"m31labs.dev/gsxmail"
+)
+
+func main() {
+	if err := run(os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, "gsxmail:", err)
+		os.Exit(1)
+	}
+}
+
+func run(args []string) error {
+	if len(args) == 0 {
+		return usageError()
+	}
+	switch args[0] {
+	case "render":
+		return runRender(args[1:])
+	case "-h", "--help", "help":
+		printUsage(os.Stdout)
+		return nil
+	default:
+		return fmt.Errorf("unknown verb %q\n\n%s", args[0], usageText())
+	}
+}
+
+func usageError() error {
+	return fmt.Errorf("%s", usageText())
+}
+
+func usageText() string {
+	return `usage: gsxmail <verb> [flags]
+
+verbs:
+  render <Template> --dir emails --props file.json [--out dir | --html - | --text -]
+      Renders one template with props decoded from JSON. Writes
+      <Template>.html and <Template>.txt under --out (default: the
+      current directory), or streams one part to stdout.
+
+  dev, check, matrix
+      Landing in a later gsxmail release.
+`
+}
+
+func printUsage(w *os.File) {
+	fmt.Fprint(w, usageText())
+}
+
+func runRender(args []string) error {
+	if len(args) == 0 || len(args[0]) > 0 && args[0][0] == '-' {
+		return fmt.Errorf("render requires the template name as its first argument\n\n%s", usageText())
+	}
+	name := args[0]
+
+	fs := flag.NewFlagSet("render", flag.ContinueOnError)
+	dir := fs.String("dir", "emails", "directory of *.gsx templates to load")
+	propsPath := fs.String("props", "", "path to a JSON file decoded into the template's props")
+	out := fs.String("out", ".", "directory to write <Template>.html and <Template>.txt into")
+	htmlOut := fs.String("html", "", "stream only the HTML part to this path (\"-\" for stdout)")
+	textOut := fs.String("text", "", "stream only the text part to this path (\"-\" for stdout)")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return fmt.Errorf("render takes one template name and flags only, got extra argument %q\n\n%s", fs.Arg(0), usageText())
+	}
+
+	props, err := loadProps(*propsPath)
+	if err != nil {
+		return err
+	}
+
+	set, err := gsxmail.Load(os.DirFS(*dir), gsxmail.Options{})
+	if err != nil {
+		return fmt.Errorf("loading %s: %w", *dir, err)
+	}
+
+	parts, err := set.Render(name, props)
+	if err != nil {
+		return fmt.Errorf("rendering %s: %w", name, err)
+	}
+
+	if *htmlOut != "" || *textOut != "" {
+		if *htmlOut != "" {
+			if err := writeOutput(*htmlOut, parts.HTML); err != nil {
+				return err
+			}
+		}
+		if *textOut != "" {
+			if err := writeOutput(*textOut, parts.Text); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	if err := os.MkdirAll(*out, 0o755); err != nil {
+		return err
+	}
+	htmlPath := filepath.Join(*out, name+".html")
+	textPath := filepath.Join(*out, name+".txt")
+	if err := os.WriteFile(htmlPath, []byte(parts.HTML), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(textPath, []byte(parts.Text), 0o644); err != nil {
+		return err
+	}
+	fmt.Println(htmlPath)
+	fmt.Println(textPath)
+	return nil
+}
+
+// loadProps decodes path's JSON object into a map[string]any. The CLI has
+// no static Go type for a template's declared props struct (that
+// resolution is WP2's typesafe/ package via go/types), so it renders
+// against the generic map path gsxmail.Set.Render also accepts from
+// library callers that pass a struct.
+func loadProps(path string) (map[string]any, error) {
+	if path == "" {
+		return map[string]any{}, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading %s: %w", path, err)
+	}
+	var props map[string]any
+	if err := json.Unmarshal(data, &props); err != nil {
+		return nil, fmt.Errorf("decoding %s: %w", path, err)
+	}
+	return props, nil
+}
+
+func writeOutput(path, content string) error {
+	if path == "-" {
+		_, err := fmt.Print(content)
+		return err
+	}
+	return os.WriteFile(path, []byte(content), 0o644)
+}
