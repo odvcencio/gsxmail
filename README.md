@@ -27,20 +27,24 @@ from one tree — so the text part can never drift from the HTML part.
 - No Word-engine emulation in preview. The dev preview approximates
   webmail; it does not emulate Outlook's Word rendering engine.
 
-## Status: WP5.2, dark mode, preheader, and Shell options
+## Status: WP5.3, new components, the template gallery, and named themes
 
 The stdlib now covers `Shell`, `Signal`, `Headline`, `Panel`/`PanelRow`,
-`CTA`, `PickList`/`Item`, `Footer`, `Note`, `Divider`, and
-`StatTable`/`StatRow`. Templates can loop over a slice with `<Each>` and
-branch on a bool with `<If>`; a raw-element `Custom` subtree stays
-available as an escape hatch for markup the stdlib does not express. It
-ships the `gsxmail render` and `gsxmail check` CLI verbs, `gsxmail matrix
-refresh`, and the full `Load`/`Render`/`Check` library API. `Render`'s
-HTML part is hardened, bulletproof markup by default, mechanically proven
-by a structural verification pass — see "Output contracts" below. A
-`Theme` can declare a dark-mode strategy, and a Shell can set a preheader
-and its own output-contract override — see "Dark mode", "Preheader", and
-"Shell options" below.
+`CTA`, `Button`, `Columns`/`Column`, `Hero`, `Spacer`, `Badge`,
+`PickList`/`Item`, `Footer`, `Note`, `Divider`, and `StatTable`/`StatRow`.
+Templates can loop over a slice with `<Each>` and branch on a bool with
+`<If>`; a raw-element `Custom` subtree stays available as an escape hatch
+for markup the stdlib does not express. It ships the `gsxmail render` and
+`gsxmail check` CLI verbs, `gsxmail matrix refresh`, and the full
+`Load`/`Render`/`Check` library API. `Render`'s HTML part is hardened,
+bulletproof markup by default, mechanically proven by a structural
+verification pass — see "Output contracts" below. A `Theme` can declare a
+dark-mode strategy, and a Shell can set a preheader and its own
+output-contract override — see "Dark mode", "Preheader", and "Shell
+options" below. Two named themes, `TerminalTheme()` and `LedgerTheme()`,
+ship alongside the neutral `DefaultTheme()` — see "Named themes" below.
+The [`examples/gallery`](examples/gallery) directory holds five complete,
+golden-tested templates — see "The template gallery" below.
 
 `Load` runs the full email lint catalog (EM001 through EM112) before it
 lowers anything. A missing props field, an expression outside the email
@@ -124,6 +128,43 @@ attributes/CSS on sized elements. Per component:
 
 `Signal`, `PickList`, and `Footer` needed no change: their WP1 markup
 already met the contract.
+
+### New components (WP5.3)
+
+- **`Button`** (`variant="primary"|"secondary"|"link"`, default
+  `"primary"`). `email.CTA` is `Button`'s `variant="primary"` alias: both
+  render byte-identically, in both output contracts, because
+  `renderhtml.writeButton` routes the primary variant through the same
+  `writeCTA` function `email.CTA` always used. `"secondary"` swaps the
+  solid accent face for a transparent one with a 1px accent border.
+  `"link"` uses goodemailcode's full-click glyph-spacing technique (an
+  MSO-only hidden run stretched with a negative `mso-font-width`, so
+  Outlook's whole box — not just the text — is clickable), with an
+  optional `width` attribute; unset, `Write` computes an approximate
+  width from the label's own length. A VML roundrect button is not
+  planned: MJML itself does not ship one, and dark-mode transforms
+  recolor VML fills unpredictably (pixel dossier section 4.4).
+- **`Columns`/`Column`** (fluid-hybrid, two to four columns). Each
+  `Column` is an `inline-block`, `max-width` div that stacks under a
+  480px viewport with no `<style>` dependency, wrapped in an
+  `"[if mso | IE]"` ghost table for Outlook, which never applies
+  `inline-block` at all. `Column` is a leaf component — an optional
+  image (`imgSrc`/`imgAlt`/`imgWidth`/`imgHeight`), an optional `title`,
+  an optional `text` — not a nested block container.
+- **`Hero`**. A full-width retina `<img>`: `src` at 2x pixels,
+  `width`/`height` at display size (both required), `alt` mandatory.
+  `srcset` is not supported (24.39% caniemail support).
+- **`Spacer`** (`height` in pixels, required). An exact-height gap row
+  (`font-size:0;line-height:0;mso-line-height-rule:exactly`).
+- **`Badge`** (`text`, optional `tone="neutral"|"positive"|"warning"|"critical"`,
+  default `"neutral"`). A small bordered status label: `"positive"`,
+  `"warning"`, and `"critical"` are fixed, theme-independent colors (green,
+  amber, red); `"neutral"` tracks the active theme's own muted token.
+
+Every new component renders one contract regardless of
+`Options.Outlook`: none of them carry a WP1 byte stream to protect, so
+there is nothing for parity mode to preserve. `Button`'s `"primary"`
+variant is the one exception, by construction — see above.
 
 Set `Options.Outlook: "off"` to render the exact WP1 byte stream instead
 — parity mode, for a consumer with its own byte- or DOM-equivalence test
@@ -231,6 +272,54 @@ contract is a structural, compile-time choice, not a per-render one.
     ...
 </email.Shell>
 ```
+
+## Named themes
+
+`DefaultTheme()` ("Paper") stays the neutral light default. Two more
+named themes ship alongside it (pixel dossier section 8.2, WP5.3):
+
+- **`TerminalTheme()`** — dark, mono-forward, green-on-near-black,
+  `DarkMode: "locked"`. Ground `#0C100D`, card `#101611`, panel
+  `#16201A`, border `#23402F`, accent `#33E68C`, ink `#E8F5EC`, muted
+  `#7FA28D`. It is not gridiron's own aqua/navy palette, which stays
+  unshipped.
+- **`LedgerTheme()`** — warm, print-like light, `DarkMode: "adaptive"`
+  with its own `Dark` palette. Ground `#FBF7EF`, card `#FFFFFF`, border
+  `#E7DECB`, accent `#B4451F`, ink `#26201A`, muted `#8A7E6C`.
+
+Terminal is dark-native by construction, so it needs no separate
+swapped-in presentation; Ledger is light-native, so it carries a real
+companion `Dark` palette instead. Together the two themes demonstrate
+both of gsxmail's non-trivial dark-mode strategies with real, shipped
+themes — see "Dark mode" above for what each strategy actually reaches.
+Both themes pass EM140-144.
+
+## The template gallery
+
+[`examples/gallery`](examples/gallery) holds five complete templates,
+each with typed props, a `.gsx` source, a fixture props JSON file, a
+byte-exact golden HTML/text pair, and its own README:
+
+| Template | Components | Theme |
+|---|---|---|
+| [`welcome`](examples/gallery/welcome) | Shell, Headline, PickList, Button, Footer | Paper |
+| [`magiclink`](examples/gallery/magiclink) | Shell, Headline, Panel, Note, Button | Paper |
+| [`receipt`](examples/gallery/receipt) | Shell, Badge, Headline, StatTable, Panel, Button, Footer | Paper |
+| [`digest`](examples/gallery/digest) | Shell, Hero, Columns, StatTable, Divider, PickList | Ledger |
+| [`alert`](examples/gallery/alert) | Shell, Signal, Badge, Note, Button | Terminal |
+
+`receipt` is the pixel dossier's own complete worked example (section
+8.3); `digest` and `alert` render under the two named themes above, so
+the gallery shows off both an adaptive dark-mode style layer and a
+dark-native one. `receipt/receipt.gsx` renders its `Badge` and `Button`
+like this (hardened mode, Paper theme):
+
+```html
+<span style="display:inline-block; padding:2px 8px; border:1px solid #2F9E44; border-radius:2px; color:#2F9E44; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:10px; letter-spacing:0.06em; text-transform:uppercase;">PAID</span>
+```
+
+and its text twin: `[PAID]`. See `examples/gallery/README.md` for the
+full table and a longer snippet.
 
 ## Size budget
 
@@ -367,7 +456,9 @@ func (s *Set) Check() []Diagnostic
 
 type Theme = renderhtml.Theme // gains DarkMode ("none"/"locked"/"adaptive") and Dark *DarkPalette (WP5.2)
 type DarkPalette = renderhtml.DarkPalette
-func DefaultTheme() Theme // DarkMode "none"
+func DefaultTheme() Theme  // "Paper": DarkMode "none"
+func TerminalTheme() Theme // dark, mono-forward: DarkMode "locked" (WP5.3)
+func LedgerTheme() Theme   // warm, print-like light: DarkMode "adaptive" (WP5.3)
 
 type SizeBudgetError struct{ Diagnostic Diagnostic } // Render's EM120
 ```

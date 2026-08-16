@@ -4,6 +4,18 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Documentation (WP5.3)
+
+- README: a new "New components (WP5.3)" section documents `Button`
+  (variants and the CTA-alias guarantee), `Columns`/`Column`, `Hero`,
+  `Spacer`, and `Badge`, alongside the existing WP5.1 component list. A
+  new "Named themes" section documents `TerminalTheme()` and
+  `LedgerTheme()`'s full palettes. A new "The template gallery" section
+  is the gallery's showcase: the five-template table and one rendered
+  `Badge`/`Button` snippet from `receipt/`, both linking to
+  `examples/gallery/README.md`. The "Status" line and "The library API"
+  section both gain the new theme constructors.
+
 ### Added (template gallery; WP5.3)
 
 - `examples/gallery/`: five complete templates (pixel dossier section
