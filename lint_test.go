@@ -59,6 +59,9 @@ func TestLintCatalog(t *testing.T) {
 		{"EM110", `href scheme "javascript" is not allowed; use https, http, or mailto`},
 		{"EM111", `img src must be an absolute https URL; mail clients cannot resolve relative paths`},
 		{"EM112", `img requires non-empty alt text; image blocking is a common default`},
+		{"EM170", `Shell has no preheader; clients will preview the first body text instead`},
+		{"EM171", `preheader is 157 characters; the limit is 150 (the emitted block pads to exactly 150)`},
+		{"EM172", `<email.Shell> outlook attribute must be a static "", "ghost-tables", or "off"; got "sideways"`},
 	}
 
 	for _, tc := range cases {
@@ -95,6 +98,46 @@ func TestCustomSubtreeLintReachesRawStyles(t *testing.T) {
 		}
 	}
 	t.Errorf("no EM101 diagnostic %q found; got:\n%s", want, diagnosticsList(lintErr.Diagnostics))
+}
+
+// TestEM143CustomBlockColor is WP5.2's regression check for
+// checkDarkPaletteCoverage (design spec section 15, WP5.2; pixel dossier
+// section 5.3, rule 3): a Custom element's literal color that matches
+// neither the light Theme's nor Theme.Dark's own tokens warns, but only
+// under DarkMode "adaptive" — the same fixture loaded under DefaultTheme
+// (DarkMode "none") must not report it at all.
+func TestEM143CustomBlockColor(t *testing.T) {
+	adaptive := gsxmail.DefaultTheme()
+	adaptive.DarkMode = "adaptive"
+	adaptive.Dark = &gsxmail.DarkPalette{
+		ColorGround: "#0A0A0D", ColorCard: "#101014", ColorPanel: "#17171C",
+		ColorBorder: "#2A2A33", ColorAccent: "#6E8CFF", ColorInk: "#F2F2F5",
+		ColorBody: "#D6D6DE", ColorMuted: "#9C9CA8", ColorFaint: "#6B6B76",
+	}
+	set, err := gsxmail.Load(os.DirFS("testdata/lint/darkcustom"), gsxmail.Options{Theme: adaptive})
+	if err != nil {
+		t.Fatalf("Load (adaptive): %v", err)
+	}
+	want := `Custom block color "#123456" has no dark-palette counterpart; forced transforms will recolor it unpredictably`
+	var found bool
+	for _, d := range set.Check() {
+		if d.Code == "EM143" && d.Message == want {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("no EM143 diagnostic %q found; got:\n%s", want, diagnosticsList(set.Check()))
+	}
+
+	noneSet, err := gsxmail.Load(os.DirFS("testdata/lint/darkcustom"), gsxmail.Options{})
+	if err != nil {
+		t.Fatalf("Load (none): %v", err)
+	}
+	for _, d := range noneSet.Check() {
+		if d.Code == "EM143" {
+			t.Errorf("DarkMode \"none\" reported EM143, want it to run only under \"adaptive\": %v", d)
+		}
+	}
 }
 
 func diagnosticsList(diags []gsxmail.Diagnostic) string {

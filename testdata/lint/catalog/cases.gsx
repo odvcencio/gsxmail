@@ -96,3 +96,23 @@ func CaseEM111() Node {
 func CaseEM112() Node {
     return <img src="https://example.com/pic.png" alt="" />
 }
+
+func CaseEM170() Node {
+    return <email.Shell wordmark="W" shortCode="S" tagline="T" title="Title" lang="en">
+        <email.Signal text="x" />
+    </email.Shell>
+}
+
+func CaseEM171() Node {
+    return <email.Shell wordmark="W" shortCode="S" tagline="T" title="Title" lang="en"
+        preheader="This preheader text is deliberately padded well past the one hundred fifty character cap gsxmail enforces at check time, so EM171 always fires here reliably.">
+        <email.Signal text="x" />
+    </email.Shell>
+}
+
+func CaseEM172() Node {
+    return <email.Shell wordmark="W" shortCode="S" tagline="T" title="Title" lang="en"
+        preheader="ok" outlook="sideways">
+        <email.Signal text="x" />
+    </email.Shell>
+}

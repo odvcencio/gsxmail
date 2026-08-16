@@ -95,6 +95,112 @@ func TestStructuralPassOnBlockCorpus(t *testing.T) {
 	}
 }
 
+// TestStructuralPreheaderStackCatchesMissingStyles is EM173's negative
+// case (design spec section 15, WP5.2): a first-child-of-body div that
+// looks like a preheader (display:none first) but is missing one of the
+// other five required suppression declarations must fail the pass, not
+// silently pass because it merely resembles react-email's shape.
+func TestStructuralPreheaderStackCatchesMissingStyles(t *testing.T) {
+	html := `<!DOCTYPE html>
+<html><head><title>x</title></head>
+<body>
+<div style="display:none; overflow:hidden; line-height:1px;">preview text</div>
+<table><tr><td>hi</td></tr></table>
+</body>
+</html>`
+	findings, err := structverify.Verify(html)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+	var found bool
+	for _, f := range findings {
+		if f.Code == "EM173" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("EM173 did not fire on a preheader div missing opacity/max-height/max-width:\n%s", joinFindings(findings))
+	}
+}
+
+// TestStructuralPreheaderStackIgnoresOrdinaryHiddenDiv proves EM173 only
+// judges a div that already looks like a preheader (display:none as its
+// first declared property): an ordinary hidden div elsewhere is not this
+// check's business, and a template with no preheader configured at all
+// (renderhtml.writePreheader's no-op case) must never trip it.
+func TestStructuralPreheaderStackIgnoresOrdinaryHiddenDiv(t *testing.T) {
+	html := `<!DOCTYPE html>
+<html><head><title>x</title></head>
+<body>
+<table><tr><td style="display:none;">not a preheader</td></tr></table>
+</body>
+</html>`
+	findings, err := structverify.Verify(html)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+	for _, f := range findings {
+		if f.Code == "EM173" {
+			t.Errorf("EM173 fired on a template with no preheader-shaped div: %s", f)
+		}
+	}
+}
+
+// TestStructuralDarkStyleLayerCatchesMissingHooks is EM174's negative case
+// (design spec section 15, WP5.2): a <style> block that declares
+// prefers-color-scheme but drops one of the [data-ogsc]/[data-ogsb]
+// Outlook-app hooks, or unbalances its braces, must fail the pass.
+func TestStructuralDarkStyleLayerCatchesMissingHooks(t *testing.T) {
+	html := `<!DOCTYPE html>
+<html><head><title>x</title>
+<style>
+@media (prefers-color-scheme: dark) {
+.gsx-card { background-color:#101014 !important; }
+}
+</style>
+</head>
+<body><table><tr><td>hi</td></tr></table></body>
+</html>`
+	findings, err := structverify.Verify(html)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+	var found bool
+	for _, f := range findings {
+		if f.Code == "EM174" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("EM174 did not fire on a dark style layer missing both [data-ogsc] and [data-ogsb]:\n%s", joinFindings(findings))
+	}
+}
+
+// TestStructuralDarkStyleLayerIgnoresLightStyle proves EM174 only judges
+// a <style> block that actually declares prefers-color-scheme: a "none"
+// or "locked" template's plain reset/media-query style block must never
+// trip it.
+func TestStructuralDarkStyleLayerIgnoresLightStyle(t *testing.T) {
+	html := `<!DOCTYPE html>
+<html><head><title>x</title>
+<style>
+body{margin:0;}
+@media only screen and (max-width:480px){.gsx-card{width:100% !important;}}
+</style>
+</head>
+<body><table><tr><td>hi</td></tr></table></body>
+</html>`
+	findings, err := structverify.Verify(html)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+	for _, f := range findings {
+		if f.Code == "EM174" {
+			t.Errorf("EM174 fired on a style block with no prefers-color-scheme declaration: %s", f)
+		}
+	}
+}
+
 // TestStructuralPassOnInviteAndRecapRenders re-parses InviteEmail (parity
 // mode, per its own DOM-parity guard) and DraftRecap (hardened) freshly
 // rendered through Set.Render, not just their golden files, so the pass

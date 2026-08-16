@@ -278,11 +278,24 @@ func tagName(tag *gts.Node, src []byte) string {
 
 // isElementNamed reports whether n is an "element" node whose start tag
 // name equals name.
+// isElementNamed reports whether n is an "element" node whose start tag
+// name equals name, OR one of the HTML grammar's two special-cased raw-text
+// element types ("style_element", "script_element") whose implied tag name
+// ("style", "script") equals name — the grammar tags <style> and <script>
+// distinctly from every other element (their content is raw text, not
+// nested markup), but both still carry the same start_tag/end_tag shape
+// startTag reads.
 func isElementNamed(n *gts.Node, src []byte, name string) bool {
-	if n.Type(htmlLang) != "element" {
+	switch n.Type(htmlLang) {
+	case "element":
+		return tagName(startTag(n), src) == name
+	case "style_element":
+		return name == "style"
+	case "script_element":
+		return name == "script"
+	default:
 		return false
 	}
-	return tagName(startTag(n), src) == name
 }
 
 // attrValue returns the named attribute's value and whether it is present

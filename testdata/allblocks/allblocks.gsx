@@ -9,7 +9,8 @@ func AllBlocks(props AllBlocksProps) Node {
         shortCode={props.ShortCode}
         tagline={props.Tagline}
         title={props.Title}
-        lang="en">
+        lang="en"
+        preheader={props.Preheader}>
         <email.Signal text={shout(props.ShoutName)} />
         <email.Headline title={props.HeadTitle} lede={props.HeadLede} />
         <email.Panel>

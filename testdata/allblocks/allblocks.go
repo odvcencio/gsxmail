@@ -10,6 +10,7 @@ type AllBlocksProps struct {
 	ShortCode  string
 	Tagline    string
 	Title      string
+	Preheader  string // rendered into the WP5.2 hidden inbox-preview div
 	ShoutName  string // rendered through the "shout" helper into the Signal
 	HeadTitle  string
 	HeadLede   string

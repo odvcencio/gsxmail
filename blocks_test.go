@@ -15,6 +15,7 @@ type AllBlocksProps struct {
 	ShortCode  string
 	Tagline    string
 	Title      string
+	Preheader  string
 	ShoutName  string
 	HeadTitle  string
 	HeadLede   string
@@ -56,6 +57,7 @@ func allBlocksFixtureProps() AllBlocksProps {
 		ShortCode:  "SNT",
 		Tagline:    "SENTINEL-TAGLINE",
 		Title:      "SENTINEL-TITLE",
+		Preheader:  "sentinel-preheader-text",
 		ShoutName:  "sentinel-shout",
 		HeadTitle:  "SENTINEL-HEAD-TITLE",
 		HeadLede:   "sentinel-head-lede",
@@ -105,6 +107,16 @@ func TestAllBlocksSentinelsAppearInBothParts(t *testing.T) {
 	// this both-parts loop.
 	if !strings.Contains(parts.HTML, "SNT") {
 		t.Error("HTML part is missing the shortCode sentinel")
+	}
+
+	// Preheader (design spec section 15, WP5.2) is HTML-only, like
+	// ShortCode: the hidden inbox-preview div has no plain-text
+	// equivalent, and rendertext never reads doc.ResolvedShell.Preheader.
+	if !strings.Contains(parts.HTML, "sentinel-preheader-text") {
+		t.Error("HTML part is missing the preheader sentinel")
+	}
+	if strings.Contains(parts.Text, "sentinel-preheader-text") {
+		t.Error("text part rendered the preheader; it is an HTML-only field")
 	}
 
 	sentinels := []string{
