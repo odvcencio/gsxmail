@@ -18,17 +18,23 @@ type Options struct {
 }
 
 // Result is Import's complete output: the generated .gsx source, the
-// generated props.go source, the sample props JSON fixture, and the
-// honest Report (task instructions, item 3 and item 5). The CLI's own
-// runImport is a thin wrapper that writes these four values to disk as
-// template.gsx, props.go, props.sample.json, and IMPORT-REPORT.md.
+// generated props.go source, the optional generated theme.go companion,
+// the sample props JSON fixture, and the honest Report (task instructions,
+// item 3 and item 5). The CLI's own runImport is a thin wrapper that
+// writes these five values to disk as template.gsx, props.go, theme.go,
+// props.sample.json, and IMPORT-REPORT.md.
 type Result struct {
 	// TemplateName is the generated component's own name ("WelcomeEmail"):
 	// Options.TemplateName when set, else derived from the source
 	// document's own <title>.
-	TemplateName    string
-	TemplateGSX     string
-	PropsGo         string
+	TemplateName string
+	TemplateGSX  string
+	PropsGo      string
+	// ThemeGo is theme.go's own generated source: ImportedTheme(), the one
+	// generated symbol that imports m31labs.dev/gsxmail, kept out of
+	// PropsGo so a template's props type stands alone (launch-gate B3,
+	// point 3; writeThemeGo's own doc comment).
+	ThemeGo         string
 	SamplePropsJSON string
 	Report          *Report
 

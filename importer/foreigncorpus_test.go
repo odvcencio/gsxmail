@@ -31,13 +31,15 @@ func corpusCases() []corpusCase {
 	}
 }
 
-// TestForeignCorpusGoldens pins Import's own four generated outputs
-// (template.gsx, props.go, props.sample.json, IMPORT-REPORT.md) against
-// this package's own checked-in golden files for each corpus fixture —
-// "whatever the importer produces" is the golden, exactly like every
-// other golden test in this repo (examples/gallery/gallery_test.go's own
-// convention): a deliberate mapper change that improves or changes the
-// output updates these files, reviewed like any other diff.
+// TestForeignCorpusGoldens pins Import's own five generated outputs
+// (template.gsx, props.go, theme.go, props.sample.json, IMPORT-REPORT.md)
+// against this package's own checked-in golden files for each corpus
+// fixture — "whatever the importer produces" is the golden, exactly like
+// every other golden test in this repo (examples/gallery/gallery_test.go's
+// own convention): a deliberate mapper change that improves or changes the
+// output updates these files, reviewed like any other diff. props.go and
+// theme.go are two separate goldens, not one (launch-gate B3, point 3):
+// theme.go is the one file that imports m31labs.dev/gsxmail.
 func TestForeignCorpusGoldens(t *testing.T) {
 	for _, tc := range corpusCases() {
 		t.Run(tc.name, func(t *testing.T) {
@@ -52,6 +54,7 @@ func TestForeignCorpusGoldens(t *testing.T) {
 
 			assertGolden(t, filepath.Join("testdata", "corpus", tc.golden, "template.gsx"), res.TemplateGSX)
 			assertGolden(t, filepath.Join("testdata", "corpus", tc.golden, "props.go"), res.PropsGo)
+			assertGolden(t, filepath.Join("testdata", "corpus", tc.golden, "theme.go"), res.ThemeGo)
 			assertGolden(t, filepath.Join("testdata", "corpus", tc.golden, "props.sample.json"), res.SamplePropsJSON)
 			assertGolden(t, filepath.Join("testdata", "corpus", tc.golden, "IMPORT-REPORT.md"), res.Report.WriteMarkdown())
 		})

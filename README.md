@@ -335,13 +335,14 @@ gsxmail import newsletter.html --out emails/ --name Newsletter
 
 It reads an existing email's rendered HTML — MJML's compiled output,
 react-email's rendered output, or a hand-written table-soup mail — and
-reverse-maps it onto the `email.*` components above. It writes four
+reverse-maps it onto the `email.*` components above. It writes five
 files into `--out`:
 
 | File | Contents |
 |---|---|
 | `template.gsx` | The best-effort `.gsx` source: every row it recognized becomes a named component; every row it does not recognize survives inside a raw `email.Custom` block instead of being dropped. |
-| `props.go` | The declared props struct, one field per piece of text the mapper judged likely to vary (a Panel value, a headline's lede, the Shell's own wordmark and preheader), plus an `ImportedTheme()` reproducing the source's own dominant colors. |
+| `props.go` | The declared props struct, one field per piece of text the mapper judged likely to vary (a Panel value, a headline's lede, the Shell's own wordmark and preheader). Imports nothing beyond the standard library, so it stands alone. |
+| `theme.go` | `ImportedTheme()`, reproducing the source's own dominant colors as a `gsxmail.Theme`. This is the one generated file that imports `m31labs.dev/gsxmail`; delete it (and the `gsxmail.Options{Theme: ImportedTheme()}` reference at your call site) if you do not want it, or are generating `props.go` outside a gsxmail module entirely. |
 | `props.sample.json` | The literal values the mapper harvested from the source HTML, so `template.gsx` renders correctly the moment you load it — no placeholder data to invent first. |
 | `IMPORT-REPORT.md` | The honest accounting: every mapping decision and its confidence, every unmapped node and why, every synthesized props field's own source snippet, what the theme extraction did and did not recover, and a next-steps list. |
 
@@ -498,8 +499,9 @@ gsxmail import newsletter.html --out emails/ --name Newsletter
 ```
 
 Reverse-maps an existing email's rendered HTML onto `email.*`
-components: writes `template.gsx`, `props.go`, `props.sample.json`, and
-`IMPORT-REPORT.md` into `--out`, and prints the report's own summary.
+components: writes `template.gsx`, `props.go`, `theme.go`,
+`props.sample.json`, and `IMPORT-REPORT.md` into `--out`, and prints the
+report's own summary.
 `--name` sets the generated component's name (`Newsletter` becomes
 `NewsletterEmail`; a name that already ends in `Email` is kept as-is);
 it defaults to a name derived from the source document's own `<title>`.
@@ -537,6 +539,7 @@ type Options struct {
     Helpers      map[string]any
     MaxHTMLBytes int
     Outlook      string // "" / "ghost-tables" (hardened, default) | "off" (parity); a Shell's own outlook="..." attribute overrides this per template
+    Dir          string // the real on-disk directory fsys is rooted at, when known — see "Props type resolution" below
 }
 
 func Load(fsys fs.FS, opts Options) (*Set, error)
@@ -573,6 +576,44 @@ gsxmail still fails closed at render time. An unknown props field, an
 unsupported expression, or a disallowed href scheme is a returned error.
 It is never a silently empty or unsafe value. See "Two layers, one
 guarantee" below for why both checks exist.
+
+### Props type resolution
+
+`Load` resolves a template's declared props struct by parsing and
+type-checking the `*.go` files beside it with `go/types`. When a props
+file imports another package — this module, a third-party dependency,
+even the standard library — that resolution needs to find the enclosing
+Go module. **Set `Options.Dir` to the same real, on-disk directory string
+you passed to `os.DirFS` to build `fsys`.** `gsxmail check` and `gsxmail
+render` always do this for you; a library caller using `os.DirFS`
+directly should do the same:
+
+```go
+dir := "emails"
+set, err := gsxmail.Load(os.DirFS(dir), gsxmail.Options{Dir: dir})
+```
+
+Without `Options.Dir`, resolution falls back to interpreting the props
+file's path as relative to the process's own current working directory —
+it works when that happens to be inside the owning module and fails,
+with a clear EM192 finding naming the real cause, everywhere else. This
+matters most for a template `gsxmail import` generated: its `theme.go`
+imports gsxmail itself, and checking that output from a directory outside
+its module (a CI job whose working directory is the CI root, not the
+generated package) needs `Options.Dir` to resolve correctly. `Options.Dir`
+makes resolution work regardless of the calling process's own working
+directory, for any import an ordinary `go build` from inside that module
+would also resolve. It does not add general module-graph awareness
+(`go/importer`'s source mode, not `go/packages`, is what resolves the
+import) — a props file reachable only through an unusual layout a plain
+`go build` also could not find would still fail, as EM192, never as a
+misleading EM012.
+
+An unresolvable props type is a Go-source or environment problem, not an
+email-dialect violation: `Load` reports it as EM192, once per template,
+with the real underlying error, and skips the per-field "no such field"
+checks (EM012) that type would otherwise drive — those would only be
+noise once the real cause is already known.
 
 ### The `importer` package
 

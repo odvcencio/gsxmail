@@ -17,8 +17,11 @@ import (
 	"go/token"
 	"go/types"
 	"io/fs"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
+	"sync"
 )
 
 // Kind is the resolved dialect type of a struct field or an expression, as
@@ -108,7 +111,12 @@ type Props struct {
 // most once. A Resolver is not safe for concurrent use; Load builds one per
 // call and discards it afterward.
 type Resolver struct {
-	fsys  fs.FS
+	fsys fs.FS
+	// root is the real, on-disk absolute directory fsys is rooted at, when
+	// known (NewResolverAt's own doc comment; launch-gate B3). Empty means
+	// "unknown" — buildPackage then falls back to the CWD-relative
+	// resolution every prior release used.
+	root  string
 	fset  *token.FileSet
 	cache map[string]*resolvedPackage
 }
@@ -118,9 +126,51 @@ type resolvedPackage struct {
 	err error
 }
 
-// NewResolver returns a Resolver that reads Go source from fsys.
+// NewResolver returns a Resolver that reads Go source from fsys, with no
+// known real directory backing it (NewResolverAt's own doc comment
+// explains what that costs). Prefer NewResolverAt whenever fsys is backed
+// by a real directory on disk — every gsxmail.Load caller that passes
+// os.DirFS(dir) should pass dir along too, through Options.Dir.
 func NewResolver(fsys fs.FS) *Resolver {
-	return &Resolver{fsys: fsys, fset: token.NewFileSet(), cache: make(map[string]*resolvedPackage)}
+	return NewResolverAt(fsys, "")
+}
+
+// NewResolverAt returns a Resolver that reads Go source from fsys, which
+// is rooted at the real, on-disk directory root (typically the same dir
+// string a caller passed to os.DirFS(dir) to build fsys in the first
+// place). root may be relative or absolute; NewResolverAt makes it
+// absolute internally.
+//
+// This is the launch-gate B3 fix's first half: a props.go file that
+// imports another package — the module gsxmail itself lives in, a
+// third-party dependency, even the standard library — needs go/types'
+// underlying source importer to resolve that import from a real
+// filesystem path. Package fs.FS's virtual paths carry no such thing, so
+// without root, that resolution falls back to interpreting the virtual
+// path as relative to the process's own current working directory: it
+// happens to work when CWD is the module root (or another directory a
+// relative walk-up reaches it from) and fails everywhere else, with no
+// clue why (this is exactly the failure mode `gsxmail check` on an
+// importer-generated template hit outside its own module — see
+// CHANGELOG's B3 entry). With root set, every parsed file's recorded
+// position carries its real absolute path instead, so resolution no
+// longer depends on the process's working directory at all.
+//
+// This does not make resolution fully module-aware — go/importer's
+// "source" mode still uses go/build's legacy, largely GOPATH-shaped
+// package-finding logic, not go/packages' go-list-backed one — so a
+// props.go importing a package that only a `replace` directive or a
+// non-standard module layout makes reachable can still fail to resolve
+// even with root set correctly. That residual case surfaces as EM192 (its
+// real cause included), never as a misleading EM012, and is documented in
+// the README's own "Props type resolution" section.
+func NewResolverAt(fsys fs.FS, root string) *Resolver {
+	if root != "" {
+		if abs, err := filepath.Abs(root); err == nil {
+			root = abs
+		}
+	}
+	return &Resolver{fsys: fsys, root: root, fset: token.NewFileSet(), cache: make(map[string]*resolvedPackage)}
 }
 
 // Resolve returns the struct type named typeName declared among the *.go
@@ -220,7 +270,17 @@ func (r *Resolver) buildPackage(dir string) *resolvedPackage {
 		if err != nil {
 			return &resolvedPackage{err: fmt.Errorf("gsxmail: reading %s: %w", full, err)}
 		}
-		f, err := parser.ParseFile(r.fset, full, src, 0)
+		// astFilename is what parser.ParseFile records as this file's own
+		// position: a real absolute path when root is known (so the
+		// source importer's own srcDir resolution, driven by that
+		// position, works regardless of the process's current directory —
+		// NewResolverAt's own doc comment), or full itself (the prior
+		// behavior, CWD-relative) when it is not.
+		astFilename := full
+		if r.root != "" {
+			astFilename = filepath.Join(r.root, filepath.FromSlash(full))
+		}
+		f, err := parser.ParseFile(r.fset, astFilename, src, 0)
 		if err != nil {
 			return &resolvedPackage{err: fmt.Errorf("gsxmail: parsing %s for props types: %w", full, err)}
 		}
@@ -239,11 +299,61 @@ func (r *Resolver) buildPackage(dir string) *resolvedPackage {
 		Error:    func(e error) { checkErrs = append(checkErrs, e) },
 	}
 	info := &types.Info{Defs: make(map[*ast.Ident]types.Object)}
+
+	restore := r.chdirForCheck()
 	pkg, _ := conf.Check(pkgName, r.fset, files, info)
+	restore()
+
 	if len(checkErrs) > 0 {
 		return &resolvedPackage{err: fmt.Errorf("gsxmail: type-checking %s: %w", dir, checkErrs[0])}
 	}
 	return &resolvedPackage{pkg: pkg}
+}
+
+// chdirMu serializes chdirForCheck across every Resolver in the process:
+// os.Chdir mutates global process state, so two Resolve calls racing on
+// different goroutines could otherwise stomp on each other's own working
+// directory mid-check.
+var chdirMu sync.Mutex
+
+// chdirForCheck temporarily changes the process's current working
+// directory to r.root for the duration of one types.Config.Check call, and
+// returns a func that changes it back. It is a no-op (an immediate,
+// harmless restore func) when r.root is unknown.
+//
+// This is the launch-gate B3 fix's second half, alongside astFilename in
+// buildPackage: go/importer's "source" mode resolves a module-path import
+// (m31labs.dev/gsxmail, a third-party dependency, even the standard
+// library once modules are involved) by discovering the enclosing
+// module's go.mod starting from the process's own current directory —
+// not from any per-file path go/parser recorded, astFilename included.
+// os.Chdir is the only public lever that reaches that: with it, `gsxmail
+// check` (and Load generally) resolves a props type's own imports the
+// same way regardless of where the calling process's shell happened to
+// start it from, matching every other gsxmail Load-time behavior's own
+// CWD-independence.
+//
+// A Resolver is already documented as not safe for concurrent use
+// (NewResolver's own doc comment); this makes that the same requirement
+// as every os.Chdir caller's, not a new one — a program calling
+// gsxmail.Load from multiple goroutines at once still needs its own
+// external synchronization around all of them together, since chdirMu
+// only protects one Resolver's own internal Check call, not two different
+// Resolvers' overlapping ones.
+func (r *Resolver) chdirForCheck() (restore func()) {
+	if r.root == "" {
+		return func() {}
+	}
+	chdirMu.Lock()
+	prev, err := os.Getwd()
+	if err != nil || os.Chdir(r.root) != nil {
+		chdirMu.Unlock()
+		return func() {}
+	}
+	return func() {
+		os.Chdir(prev)
+		chdirMu.Unlock()
+	}
 }
 
 func classifyField(t types.Type, qualifier types.Qualifier, depth int) Field {

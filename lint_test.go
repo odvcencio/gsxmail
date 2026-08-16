@@ -3,6 +3,7 @@ package gsxmail_test
 import (
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"m31labs.dev/gsxmail"
@@ -185,6 +186,40 @@ func TestNewcomerFixtureReportsEveryMistake(t *testing.T) {
 			}
 			t.Errorf("no diagnostic %s: %q found; got:\n%s", tc.code, tc.message, diagnosticsList(lintErr.Diagnostics))
 		})
+	}
+}
+
+// TestEM192PropsResolutionFailureSurfaces is the launch-gate B3, point 1
+// regression check: a props type whose own package fails to type-check
+// (here, because of an import path nothing can resolve) must report
+// EM192, with the real cause in its message, and must not also flood the
+// diagnostics list with a misleading EM012 "no such field" for every
+// props.field read in the template — checkComponent's own propsUnresolved
+// short-circuit.
+func TestEM192PropsResolutionFailureSurfaces(t *testing.T) {
+	_, err := gsxmail.Load(os.DirFS("testdata/lint/em192"), gsxmail.Options{})
+	if err == nil {
+		t.Fatal("Load succeeded; testdata/lint/em192's props package cannot type-check")
+	}
+	var lintErr *gsxmail.LintError
+	if !errors.As(err, &lintErr) {
+		t.Fatalf("Load's error is not a *gsxmail.LintError: %v", err)
+	}
+
+	var em192 *gsxmail.Diagnostic
+	for i, d := range lintErr.Diagnostics {
+		if d.Code == "EM012" {
+			t.Errorf("got a misleading EM012 alongside the resolution failure: %s", d.String())
+		}
+		if d.Code == "EM192" {
+			em192 = &lintErr.Diagnostics[i]
+		}
+	}
+	if em192 == nil {
+		t.Fatalf("no EM192 diagnostic found; got:\n%s", diagnosticsList(lintErr.Diagnostics))
+	}
+	if !strings.Contains(em192.Message, "props type BadProps could not be resolved") {
+		t.Errorf("EM192 message = %q, want it to name the props type and say it could not be resolved", em192.Message)
 	}
 }
 

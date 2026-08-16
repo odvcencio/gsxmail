@@ -3,8 +3,6 @@
 // HTML's own literal text, not a guarantee about your real data shape.
 package emails
 
-import "m31labs.dev/gsxmail"
-
 // MagicLinkProps fills the imported template.
 type MagicLinkProps struct {
 	Lede        string // the headline's own lede paragraph ("Use this code within the next 10 minutes to finish signin...")
@@ -13,26 +11,4 @@ type MagicLinkProps struct {
 	Title       string // the document's own <title> ("Sign in to Acme")
 	Wordmark    string // the Shell header's own wordmark text ("Sign")
 	Preheader   string // the hidden inbox-preview div's own text ("Your one-time code is ready")
-}
-
-// ImportedTheme reproduces the color palette gsxmail import extracted
-// from the source HTML's own literal colors (see IMPORT-REPORT.md's
-// "Theme extraction" section for exactly which tokens it read versus
-// defaulted). Pass it as gsxmail.Options{Theme: ImportedTheme()}, or
-// replace it with gsxmail.DefaultTheme() or your own Theme value.
-func ImportedTheme() gsxmail.Theme {
-	return gsxmail.Theme{
-		ColorGround: "#FFFFFF",
-		ColorCard:   "#FFFFFF",
-		ColorPanel:  "#F7F7F9",
-		ColorBorder: "#E2E2E8",
-		ColorAccent: "#5469D4",
-		ColorInk:    "#1A1A1A",
-		ColorBody:   "#3C3C46",
-		ColorMuted:  "#71717F",
-		ColorFaint:  "#9C9CA8",
-		FontSans:    "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
-		FontMono:    "'SFMono-Regular',Consolas,Menlo,monospace",
-		CardWidth:   600,
-	}
 }

@@ -23,7 +23,7 @@ func runImport(args []string) error {
 	inPath := args[0]
 
 	fs := flag.NewFlagSet("import", flag.ContinueOnError)
-	out := fs.String("out", ".", "directory to write template.gsx, props.go, props.sample.json, and IMPORT-REPORT.md into")
+	out := fs.String("out", ".", "directory to write template.gsx, props.go, theme.go, props.sample.json, and IMPORT-REPORT.md into")
 	name := fs.String("name", "", `template name ("Welcome" or "WelcomeEmail"); defaults to a name derived from the source <title>`)
 	pkg := fs.String("package", "emails", "generated Go package name")
 	if err := fs.Parse(args[1:]); err != nil {
@@ -56,10 +56,11 @@ func runImport(args []string) error {
 	files := map[string]string{
 		"template.gsx":      res.TemplateGSX,
 		"props.go":          res.PropsGo,
+		"theme.go":          res.ThemeGo,
 		"props.sample.json": res.SamplePropsJSON,
 		"IMPORT-REPORT.md":  res.Report.WriteMarkdown(),
 	}
-	names := []string{"template.gsx", "props.go", "props.sample.json", "IMPORT-REPORT.md"}
+	names := []string{"template.gsx", "props.go", "theme.go", "props.sample.json", "IMPORT-REPORT.md"}
 	for _, name := range names {
 		p := filepath.Join(*out, name)
 		if err := os.WriteFile(p, []byte(files[name]), 0o644); err != nil {

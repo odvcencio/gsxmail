@@ -75,6 +75,20 @@ type Options struct {
 	// Shell that leaves outlook unset keeps using this field, exactly as
 	// every WP5.1 consumer already does.
 	Outlook string
+
+	// Dir is the real, on-disk directory fsys is rooted at, when fsys is
+	// backed by one (typically the same dir string a caller passed to
+	// os.DirFS(dir) to build fsys). Set it whenever you can: without it, a
+	// template's declared props type that imports another package — this
+	// module, a third-party dependency, even the standard library — only
+	// resolves that import correctly when the process's current working
+	// directory happens to make a relative-path lookup land on the right
+	// place (typesafe.NewResolverAt's own doc comment has the full
+	// explanation; the launch-gate B3 finding). Leave it empty for an
+	// in-memory or embedded fs.FS with no corresponding real directory —
+	// Load then falls back to that CWD-relative resolution, exactly as
+	// every prior release.
+	Dir string
 }
 
 // defaultMaxHTMLBytes is Options.MaxHTMLBytes' zero-value default
@@ -187,7 +201,7 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 		return nil, walkErr
 	}
 
-	resolver := typesafe.NewResolver(fsys)
+	resolver := typesafe.NewResolverAt(fsys, opts.Dir)
 	lintOpts := lint.Options{Helpers: opts.Helpers, Theme: opts.Theme}
 	var diagnostics []Diagnostic
 	for _, cf := range files {

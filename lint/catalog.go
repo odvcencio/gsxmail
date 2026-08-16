@@ -84,6 +84,15 @@ type exprContext struct {
 	props        *typesafe.Props
 	helpers      map[string]any
 	bindings     map[string]typesafe.Binding
+	// propsUnresolved is true when this component declared a props type
+	// but Resolver.Resolve failed to resolve it (B3: most often an
+	// unresolvable import in the props file, not a genuine "no such
+	// type"). checkComponent already reports that failure once, as
+	// EM192, with the real cause; addExprViolation uses this flag to
+	// swallow the resulting flood of misleading EM012 "no such field"
+	// findings every props.field read in the template would otherwise
+	// also produce.
+	propsUnresolved bool
 }
 
 func (w *walker) add(n *ir.Node, code, severity, msg string) {
@@ -91,6 +100,20 @@ func (w *walker) add(n *ir.Node, code, severity, msg string) {
 		File: w.file, Line: n.Span.StartLine, Col: n.Span.StartCol,
 		Code: code, Severity: severity, Message: msg,
 	})
+}
+
+// addExprViolation reports v (typesafe's result for one checked
+// expression) unless it is the generic EM012 "no such field" finding for
+// a template whose props type itself failed to resolve — see
+// exprContext.propsUnresolved's own doc comment (launch-gate B3).
+func (w *walker) addExprViolation(n *ir.Node, ctx *exprContext, v *typesafe.Violation) {
+	if v == nil {
+		return
+	}
+	if ctx.propsUnresolved && v.Code == "EM012" {
+		return
+	}
+	w.add(n, v.Code, "error", v.Message)
 }
 
 func (w *walker) checkComponent(comp ir.Component, resolver *typesafe.Resolver, dir string) {
@@ -103,13 +126,21 @@ func (w *walker) checkComponent(comp ir.Component, resolver *typesafe.Resolver, 
 	}
 
 	var props *typesafe.Props
+	var propsUnresolved bool
 	if resolver != nil && comp.PropsType != "" {
-		// A resolution error (an undeclared or non-struct props type) is a
-		// Go-source problem outside the email dialect: it is left for
-		// gsxmail.Load's own compile-error path rather than an invented EM
-		// code. props stays nil, so every props.field read below reports
-		// EM012 instead — still fail-closed, just with the generic message.
-		if p, err := resolver.Resolve(dir, comp.PropsType); err == nil {
+		switch p, err := resolver.Resolve(dir, comp.PropsType); {
+		case err != nil:
+			// The resolver actually tried to resolve comp.PropsType and
+			// failed — most often an import the type-checker's importer
+			// cannot find (launch-gate B3), not an undeclared or
+			// non-struct type (Resolve itself reports those as its own
+			// %w-wrapped errors here too, so this still covers both).
+			// EM192 surfaces the real cause once, instead of letting
+			// every props.field read below invent a misleading EM012.
+			w.add(root, "EM192", "error", fmt.Sprintf(
+				"template %s: props type %s could not be resolved: %v", comp.Name, comp.PropsType, err))
+			propsUnresolved = true
+		case p != nil:
 			props = p
 		}
 	}
@@ -120,11 +151,12 @@ func (w *walker) checkComponent(comp ir.Component, resolver *typesafe.Resolver, 
 	}
 
 	ctx := &exprContext{
-		templateName: comp.Name,
-		propsName:    propsName,
-		props:        props,
-		helpers:      w.helpers,
-		bindings:     map[string]typesafe.Binding{},
+		templateName:    comp.Name,
+		propsName:       propsName,
+		props:           props,
+		helpers:         w.helpers,
+		bindings:        map[string]typesafe.Binding{},
+		propsUnresolved: propsUnresolved,
 	}
 	w.checkNode(comp.Root, ctx)
 }
@@ -137,9 +169,8 @@ func (w *walker) checkNode(id ir.NodeID, ctx *exprContext) {
 	case ir.NodeComponent:
 		w.checkComponentNode(n, ctx)
 	case ir.NodeExpr:
-		if v := typesafe.CheckInterpolation(n.Text, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings, ctx.helpers); v != nil {
-			w.add(n, v.Code, "error", v.Message)
-		}
+		v := typesafe.CheckInterpolation(n.Text, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings, ctx.helpers)
+		w.addExprViolation(n, ctx, v)
 	case ir.NodeFragment:
 		for _, c := range n.Children {
 			w.checkNode(c, ctx)
@@ -188,9 +219,8 @@ func (w *walker) checkElementAttr(n *ir.Node, a ir.Attr, ctx *exprContext) {
 		w.checkHrefScheme(n, a.Value)
 	}
 	if a.Kind == ir.AttrExpr {
-		if v := typesafe.CheckInterpolation(a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings, ctx.helpers); v != nil {
-			w.add(n, v.Code, "error", v.Message)
-		}
+		v := typesafe.CheckInterpolation(a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings, ctx.helpers)
+		w.addExprViolation(n, ctx, v)
 	}
 }
 
@@ -212,14 +242,12 @@ func (w *walker) checkComponentAttr(n *ir.Node, a ir.Attr, ctx *exprContext, sli
 	}
 	if slicePathAttrs[a.Name] {
 		label := n.Tag + " " + a.Name
-		if _, v := typesafe.CheckSlicePath(label, a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings); v != nil {
-			w.add(n, v.Code, "error", v.Message)
-		}
+		_, v := typesafe.CheckSlicePath(label, a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings)
+		w.addExprViolation(n, ctx, v)
 		return
 	}
-	if v := typesafe.CheckInterpolation(a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings, ctx.helpers); v != nil {
-		w.add(n, v.Code, "error", v.Message)
-	}
+	v := typesafe.CheckInterpolation(a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings, ctx.helpers)
+	w.addExprViolation(n, ctx, v)
 }
 
 // statTableSliceAttrs and statRowSliceAttrs name the one slice-valued
@@ -838,11 +866,11 @@ func (w *walker) checkEach(n *ir.Node, ctx *exprContext) {
 	case ofAttr == nil || ofAttr.Kind != ir.AttrExpr:
 		w.add(n, "EM032", "error", "<Each of={}> requires a slice or array props path; got the of attribute is required")
 	default:
-		if b, v := typesafe.CheckSlicePath("Each of", ofAttr.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings); v != nil {
-			w.add(n, v.Code, "error", v.Message)
-		} else {
+		b, v := typesafe.CheckSlicePath("Each of", ofAttr.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings)
+		if v == nil {
 			elemBinding = b
 		}
+		w.addExprViolation(n, ctx, v)
 	}
 
 	if asAttr == nil || asAttr.Kind != ir.AttrStatic || strings.TrimSpace(asAttr.Value) == "" {
@@ -859,6 +887,7 @@ func (w *walker) checkEach(n *ir.Node, ctx *exprContext) {
 		childCtx = &exprContext{
 			templateName: ctx.templateName, propsName: ctx.propsName,
 			props: ctx.props, helpers: ctx.helpers, bindings: bindings,
+			propsUnresolved: ctx.propsUnresolved,
 		}
 	}
 	for _, c := range n.Children {

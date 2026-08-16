@@ -4,6 +4,29 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Fixed (launch-gate B3: props resolution false EM012s, importer output outside its module)
+
+- A props type whose own package fails to resolve (most often an
+  unresolvable import) now reports EM192 once, with the real cause,
+  instead of silently falling through to a misleading EM012 "no such
+  field" for every `props.field` read in the template.
+- Added `Options.Dir`: the real on-disk directory `fsys` is rooted at.
+  Setting it (as `gsxmail check` and `gsxmail render` now always do) makes
+  props type resolution work regardless of the calling process's current
+  working directory, instead of only when that directory happened to be
+  inside the owning module. See the README's new "Props type resolution"
+  section for the residual case this does not cover.
+- `gsxmail import`'s generated `props.go` no longer imports
+  `m31labs.dev/gsxmail`. The extracted `ImportedTheme()` moves to a new,
+  optional `theme.go` companion file — the only generated file that still
+  imports gsxmail, and safe to delete. `gsxmail import` now writes five
+  files, not four. `importer/testdata/corpus/*/props.go` and the new
+  `theme.go` goldens are regenerated to match.
+- Before this fix, `gsxmail check` on the importer's own generated output
+  failed outside its own module. `importer/outsidemodule_test.go`'s
+  `TestCheckSucceedsOutsideModule` reproduces that case in a real, separate
+  consumer module on disk and pins that it now passes.
+
 ### Added (launch-gate B4: unknown/required attribute checks)
 
 - `lower.Schema` is the new single source of truth for every email.*

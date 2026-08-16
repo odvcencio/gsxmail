@@ -69,11 +69,13 @@ verbs:
       grammar parses even malformed markup to a best-effort tree, and
       the mapper never fails closed on a node it cannot place — it
       preserves it inside an email.Custom block instead. Writes
-      template.gsx, props.go, props.sample.json, and IMPORT-REPORT.md
-      under --out (default: the current directory), and prints the
-      report's own summary. This is the one gsxmail verb that imports
-      gotreesitter; see the README's "Import from existing HTML"
-      section.
+      template.gsx, props.go, theme.go, props.sample.json, and
+      IMPORT-REPORT.md under --out (default: the current directory), and
+      prints the report's own summary. props.go imports nothing beyond
+      the standard library; theme.go is the one generated file that
+      imports gsxmail itself, and is safe to delete. This is the one
+      gsxmail verb that imports gotreesitter; see the README's "Import
+      from existing HTML" section.
 
   matrix refresh [--out lint/snapshot.json]
       Downloads the caniemail dataset, rewrites the embedded snapshot
@@ -115,7 +117,7 @@ func runRender(args []string) error {
 		return err
 	}
 
-	set, err := gsxmail.Load(os.DirFS(*dir), gsxmail.Options{})
+	set, err := gsxmail.Load(os.DirFS(*dir), gsxmail.Options{Dir: *dir})
 	if err != nil {
 		return fmt.Errorf("loading %s: %w", *dir, err)
 	}

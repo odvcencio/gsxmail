@@ -36,7 +36,7 @@ func runCheck(args []string) error {
 		return fmt.Errorf("check: --format must be \"text\" or \"json\", got %q", *format)
 	}
 
-	set, loadErr := gsxmail.Load(os.DirFS(*dir), gsxmail.Options{})
+	set, loadErr := gsxmail.Load(os.DirFS(*dir), gsxmail.Options{Dir: *dir})
 
 	var diags []gsxmail.Diagnostic
 	var lintErr *gsxmail.LintError
