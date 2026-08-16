@@ -224,3 +224,88 @@ type CustomAttr struct {
 	Name  string
 	Value Expr
 }
+
+// Button is a call-to-action link rendered as a button-shaped element in
+// one of three variants (pixel dossier section 4.4, WP5.3): "primary"
+// (the default; a solid accent face, MJML's mso-padding-alt pattern —
+// byte-identical to email.CTA's own long-shipped hardened and parity
+// output, since lower.lowerBlock's "CTA" case and renderhtml's writeButton
+// both route the primary variant through the same, untouched writeCTA
+// function), "secondary" (a transparent face with a 1px accent border),
+// and "link" (goodemailcode's full-click glyph-spacing technique, R11).
+// email.CTA is documented as Button's variant="primary" alias; it is not
+// deprecated, and this release keeps it as its own doc.CTA type rather
+// than rewriting it in terms of Button, precisely so its bytes can never
+// move by construction.
+type Button struct {
+	Variant string // "primary" (default), "secondary", or "link"
+	Label   Expr
+	Href    Expr
+	// Width is a pixel width the "link" variant's click-area technique
+	// uses; every other variant ignores it. Empty selects
+	// renderhtml.linkButtonDefaultWidth's own computed default.
+	Width Expr
+}
+
+func (Button) isBlock() {}
+
+// Column is one email.Columns child: an optional image (imgSrc/imgAlt/
+// imgWidth/imgHeight, all four together or none), an optional title, and
+// an optional body text (email.Column). Column is deliberately a leaf
+// component, not a nested Block container: a fluid-hybrid column is
+// roughly 40% of the card's own width, so reusing a top-level block's
+// full-card padding and font sizes inside one would misrender; a richer
+// per-column layout is a later work package's scope, not WP5.3's.
+type Column struct {
+	ImgSrc, ImgAlt      Expr
+	ImgWidth, ImgHeight Expr
+	Title               Expr
+	Text                Expr
+}
+
+// Columns is a two-to-four-wide fluid-hybrid row (pixel dossier section
+// 4.9, email.Columns/email.Column): inline-block max-width divs stack
+// under a 480px viewport without depending on a surviving <style> block,
+// wrapped in an "[if mso | IE]" ghost table for Outlook, which never
+// applies inline-block at all (caniemail css-display).
+type Columns struct {
+	Columns []Column
+}
+
+func (Columns) isBlock() {}
+
+// Hero is a full-width retina image (pixel dossier section 4.10): Src is
+// served at 2x pixels; Width and Height are the display-size HTML
+// attributes the retina rule requires (both attributes, not srcset, which
+// the dossier rejects at 24.39% caniemail support). Alt is mandatory
+// (lint's checkHero reuses EM111/EM112, the existing raw-<img> rules) and
+// is the text twin's sole derived content.
+type Hero struct {
+	Src, Alt      Expr
+	Width, Height Expr
+}
+
+func (Hero) isBlock() {}
+
+// Spacer is a fixed-height vertical gap (pixel dossier section 4.8's
+// spacer-table technique): a td at Height pixels, with font-size:0,
+// line-height:0, and mso-line-height-rule:exactly pinning an exact-height
+// box across clients that a bare margin or empty div does not (caniemail
+// css-margin's own partial-support note).
+type Spacer struct {
+	Height Expr
+}
+
+func (Spacer) isBlock() {}
+
+// Badge is a small bordered status label (pixel dossier section 4.11):
+// Tone selects a fixed, theme-independent semantic color ("positive"
+// green, "warning" amber, "critical" red) or the active theme's own muted
+// token ("neutral", the default — the one tone with no status meaning of
+// its own to protect from a template's brand palette).
+type Badge struct {
+	Text Expr
+	Tone string // "neutral" (default), "positive", "warning", "critical"
+}
+
+func (Badge) isBlock() {}

@@ -108,3 +108,51 @@ type ResolvedCustomNode struct {
 }
 
 type ResolvedCustomAttr struct{ Name, Value string }
+
+// ResolvedButton is Button after every Expr has been evaluated. Variant is
+// always one of "primary", "secondary", "link" — resolveBlockInto defaults
+// an empty Variant to "primary" the same way lower.go's own "CTA" case
+// does, so a writer never has to repeat that default.
+type ResolvedButton struct {
+	Variant     string
+	Label, Href string
+	Width       string
+}
+
+func (ResolvedButton) isResolvedBlock() {}
+
+// ResolvedColumn is Column after every Expr has been evaluated.
+type ResolvedColumn struct {
+	ImgSrc, ImgAlt      string
+	ImgWidth, ImgHeight string
+	Title, Text         string
+}
+
+// ResolvedColumns is Columns after every Column has been resolved.
+type ResolvedColumns struct {
+	Columns []ResolvedColumn
+}
+
+func (ResolvedColumns) isResolvedBlock() {}
+
+// ResolvedHero is Hero after every Expr has been evaluated.
+type ResolvedHero struct {
+	Src, Alt      string
+	Width, Height string
+}
+
+func (ResolvedHero) isResolvedBlock() {}
+
+// ResolvedSpacer is Spacer after its Height has been evaluated.
+type ResolvedSpacer struct {
+	Height string
+}
+
+func (ResolvedSpacer) isResolvedBlock() {}
+
+// ResolvedBadge is Badge after its Text has been evaluated.
+type ResolvedBadge struct {
+	Text, Tone string
+}
+
+func (ResolvedBadge) isResolvedBlock() {}

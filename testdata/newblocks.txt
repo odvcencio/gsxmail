@@ -1,0 +1,24 @@
+SENTINEL-WORDMARK-NB // SENTINEL-TAGLINE-NB
+
+[sentinel-badge-neutral]
+
+[sentinel-badge-positive]
+
+[sentinel-badge-warning]
+
+[sentinel-badge-critical]
+
+[sentinel-hero-alt]
+
+[sentinel-col1-img-alt]
+sentinel-col1-title
+sentinel-col1-text
+
+sentinel-col2-title
+sentinel-col2-text
+
+  -> sentinel-primary-label: https://example.com/sentinel-primary
+
+  -> sentinel-secondary-label: https://example.com/sentinel-secondary
+
+  -> sentinel-link-label: https://example.com/sentinel-link

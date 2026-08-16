@@ -116,3 +116,36 @@ func CaseEM172() Node {
         <email.Signal text="x" />
     </email.Shell>
 }
+
+func CaseEM175() Node {
+    return <email.Button variant="diagonal" label="x" href="https://example.com" />
+}
+
+func CaseEM176TooFew() Node {
+    return <email.Columns>
+        <email.Column title="only one" text="x" />
+    </email.Columns>
+}
+
+func CaseEM176WrongChild() Node {
+    return <email.Columns>
+        <email.Column title="a" text="x" />
+        <email.Signal text="not a column" />
+    </email.Columns>
+}
+
+func CaseEM177() Node {
+    return <email.Column title="orphan" text="x" />
+}
+
+func CaseEM178() Node {
+    return <email.Hero src="https://example.com/hero@2x.png" alt="hero" />
+}
+
+func CaseEM179() Node {
+    return <email.Spacer />
+}
+
+func CaseEM180() Node {
+    return <email.Badge text="x" tone="sideways" />
+}

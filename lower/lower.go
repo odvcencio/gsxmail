@@ -173,6 +173,12 @@ func lowerBlock(prog *ir.Program, local string, n *ir.Node, propsName string, bi
 		}
 		return doc.Panel{Rows: rows}, nil
 	case "CTA":
+		// email.CTA is Button's variant="primary" alias (pixel dossier
+		// section 4.4, WP5.3): it lowers to its own doc.CTA type, unchanged
+		// from every prior release, so its hardened and parity bytes can
+		// never move. renderhtml's writeButton independently routes
+		// Button's own "primary" variant through the very same writeCTA
+		// function this lowers to.
 		label, err := attrExpr(n.Attrs, "label", propsName, bindings)
 		if err != nil {
 			return nil, err
@@ -182,6 +188,65 @@ func lowerBlock(prog *ir.Program, local string, n *ir.Node, propsName string, bi
 			return nil, err
 		}
 		return doc.CTA{Label: label, Href: href}, nil
+	case "Button":
+		// variant is a plain static string, like Shell's outlook attribute
+		// (doc.Button's own doc comment): the button technique is a
+		// structural, compile-time choice, never a props-dependent one.
+		// EM175 already rejects anything but "", "primary", "secondary", or
+		// "link" at Load time.
+		variant := staticAttrValue(n.Attrs, "variant")
+		if variant == "" {
+			variant = "primary"
+		}
+		label, err := attrExpr(n.Attrs, "label", propsName, bindings)
+		if err != nil {
+			return nil, err
+		}
+		href, err := attrExpr(n.Attrs, "href", propsName, bindings)
+		if err != nil {
+			return nil, err
+		}
+		width, err := attrExpr(n.Attrs, "width", propsName, bindings)
+		if err != nil {
+			return nil, err
+		}
+		return doc.Button{Variant: variant, Label: label, Href: href, Width: width}, nil
+	case "Columns":
+		return lowerColumns(prog, n.Children, propsName, bindings)
+	case "Hero":
+		src, err := attrExpr(n.Attrs, "src", propsName, bindings)
+		if err != nil {
+			return nil, err
+		}
+		alt, err := attrExpr(n.Attrs, "alt", propsName, bindings)
+		if err != nil {
+			return nil, err
+		}
+		width, err := attrExpr(n.Attrs, "width", propsName, bindings)
+		if err != nil {
+			return nil, err
+		}
+		height, err := attrExpr(n.Attrs, "height", propsName, bindings)
+		if err != nil {
+			return nil, err
+		}
+		return doc.Hero{Src: src, Alt: alt, Width: width, Height: height}, nil
+	case "Spacer":
+		height, err := attrExpr(n.Attrs, "height", propsName, bindings)
+		if err != nil {
+			return nil, err
+		}
+		return doc.Spacer{Height: height}, nil
+	case "Badge":
+		text, err := attrExpr(n.Attrs, "text", propsName, bindings)
+		if err != nil {
+			return nil, err
+		}
+		tone := staticAttrValue(n.Attrs, "tone")
+		if tone == "" {
+			tone = "neutral"
+		}
+		return doc.Badge{Text: text, Tone: tone}, nil
 	case "PickList":
 		title, err := attrExpr(n.Attrs, "title", propsName, bindings)
 		if err != nil {
@@ -213,8 +278,59 @@ func lowerBlock(prog *ir.Program, local string, n *ir.Node, propsName string, bi
 	case "StatTable":
 		return lowerStatTable(prog, n, propsName, bindings)
 	default:
-		return nil, fmt.Errorf("component <email.%s> is not on the email.* component list (Shell, Signal, Headline, Panel/PanelRow, CTA, PickList/Item, Footer, Note, Divider, StatTable/StatRow)", local)
+		return nil, fmt.Errorf("component <email.%s> is not on the email.* component list (Shell, Signal, Headline, Panel/PanelRow, CTA, Button, Columns/Column, Hero, Spacer, Badge, PickList/Item, Footer, Note, Divider, StatTable/StatRow)", local)
 	}
+}
+
+// lowerColumns lowers <email.Columns>: every child must be an
+// <email.Column> leaf component (pixel dossier section 4.9's fluid-hybrid
+// contract; EM176 already rejects the wrong child type or a count outside
+// [2,4] at Load time). Lower stays defensive here, re-deriving only the
+// shape it needs to render.
+func lowerColumns(prog *ir.Program, children []ir.NodeID, propsName string, bindings map[string]bool) (doc.Block, error) {
+	var cols []doc.Column
+	for _, id := range children {
+		n := prog.NodeAt(id)
+		if isBlankText(n) {
+			continue
+		}
+		if n.Kind != ir.NodeComponent || n.Tag != "email.Column" {
+			return nil, fmt.Errorf("<email.Columns> children must be <email.Column>, got %q", n.Tag)
+		}
+		col, err := lowerColumn(n, propsName, bindings)
+		if err != nil {
+			return nil, err
+		}
+		cols = append(cols, col)
+	}
+	return doc.Columns{Columns: cols}, nil
+}
+
+// lowerColumn lowers one <email.Column> leaf: an optional image
+// (imgSrc/imgAlt/imgWidth/imgHeight), an optional title, and an optional
+// body text.
+func lowerColumn(n *ir.Node, propsName string, bindings map[string]bool) (doc.Column, error) {
+	var c doc.Column
+	var err error
+	if c.ImgSrc, err = attrExpr(n.Attrs, "imgSrc", propsName, bindings); err != nil {
+		return c, err
+	}
+	if c.ImgAlt, err = attrExpr(n.Attrs, "imgAlt", propsName, bindings); err != nil {
+		return c, err
+	}
+	if c.ImgWidth, err = attrExpr(n.Attrs, "imgWidth", propsName, bindings); err != nil {
+		return c, err
+	}
+	if c.ImgHeight, err = attrExpr(n.Attrs, "imgHeight", propsName, bindings); err != nil {
+		return c, err
+	}
+	if c.Title, err = attrExpr(n.Attrs, "title", propsName, bindings); err != nil {
+		return c, err
+	}
+	if c.Text, err = attrExpr(n.Attrs, "text", propsName, bindings); err != nil {
+		return c, err
+	}
+	return c, nil
 }
 
 func lowerPanelRows(prog *ir.Program, children []ir.NodeID, propsName string, bindings map[string]bool) ([]doc.PanelRow, error) {

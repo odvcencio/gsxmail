@@ -62,6 +62,13 @@ func TestLintCatalog(t *testing.T) {
 		{"EM170", `Shell has no preheader; clients will preview the first body text instead`},
 		{"EM171", `preheader is 157 characters; the limit is 150 (the emitted block pads to exactly 150)`},
 		{"EM172", `<email.Shell> outlook attribute must be a static "", "ghost-tables", or "off"; got "sideways"`},
+		{"EM175", `<email.Button> variant attribute must be a static "primary", "secondary", or "link"; got "diagonal"`},
+		{"EM176", `<email.Columns> must contain between 2 and 4 <email.Column> children, got 1`},
+		{"EM176", `<email.Columns> children must be <email.Column>, got "email.Signal"`},
+		{"EM177", `<email.Column> must be a direct child of <email.Columns>`},
+		{"EM178", `<email.Hero> requires width and height attributes at display size; retina assets render at intrinsic size without them`},
+		{"EM179", `<email.Spacer> requires a height attribute (a positive pixel integer)`},
+		{"EM180", `<email.Badge> tone attribute must be a static "neutral", "positive", "warning", or "critical"; got "sideways"`},
 	}
 
 	for _, tc := range cases {

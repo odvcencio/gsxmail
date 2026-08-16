@@ -447,6 +447,16 @@ func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard, 
 		writeStatTable(b, theme, v, hard)
 	case doc.ResolvedCustom:
 		writeCustomNode(b, v.Root)
+	case doc.ResolvedButton:
+		writeButton(b, theme, v, hard)
+	case doc.ResolvedColumns:
+		writeColumns(b, theme, v, hard, adaptive)
+	case doc.ResolvedHero:
+		writeHero(b, v)
+	case doc.ResolvedSpacer:
+		writeSpacer(b, v)
+	case doc.ResolvedBadge:
+		writeBadge(b, theme, v)
 	}
 }
 
@@ -622,6 +632,327 @@ func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard bool) {
 	b.WriteString(`</td>
 </tr>
 </table>
+</td>
+</tr>
+`)
+}
+
+// writeButton writes email.Button (WP5.3; pixel dossier section 4.4). The
+// "primary" variant (the default) calls straight through to writeCTA,
+// unchanged above, so email.CTA and email.Button variant="primary" are
+// byte-identical in both output contracts by construction — CTA's own
+// alias, not a parallel reimplementation that could drift. "secondary" and
+// "link" are new WP5.3 shapes with no WP1 byte stream to protect, so both
+// render one contract regardless of hard.
+func writeButton(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard bool) {
+	switch v.Variant {
+	case "secondary":
+		writeButtonSecondary(b, theme, v, hard)
+	case "link":
+		writeButtonLink(b, theme, v)
+	default: // "primary", and "" defensively (resolve.go already defaults it)
+		writeCTA(b, theme, doc.ResolvedCTA{Label: v.Label, Href: v.Href}, hard)
+	}
+}
+
+// writeButtonSecondary writes the "secondary" variant (pixel dossier
+// section 4.4): a transparent face with a 1px accent border, instead of
+// primary's solid accent fill. It mirrors writeCTA's own hard/parity split
+// (mso-padding-alt only under the hardened contract) for the same reason:
+// Outlook needs the td's own border to draw the visual box a border-only
+// <a> cannot give it.
+func writeButtonSecondary(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard bool) {
+	b.WriteString(`<tr>
+<td align="center" style="padding:28px 32px 0 32px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="border-radius:2px; border:1px solid `)
+	b.WriteString(theme.ColorAccent)
+	if hard {
+		b.WriteString(`; mso-padding-alt:13px 29px;">
+`)
+	} else {
+		b.WriteString(`;">
+`)
+	}
+	faceStyle := "display:inline-block; padding:13px 29px; "
+	if hard {
+		faceStyle += "mso-padding-alt:0; "
+	}
+	faceStyle += "color:" + theme.ColorAccent +
+		"; font-family:" + theme.FontSans +
+		"; font-size:14px; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; text-decoration:none; border-radius:2px;"
+	if hasSafeHrefScheme(v.Href) {
+		b.WriteString(`<a href="`)
+		b.WriteString(escapeAttr(v.Href))
+		b.WriteString(`" style="`)
+		b.WriteString(faceStyle)
+		b.WriteString(`">`)
+		b.WriteString(escapeText(v.Label))
+		b.WriteString(`</a>
+`)
+	} else {
+		b.WriteString(`<span style="`)
+		b.WriteString(faceStyle)
+		b.WriteString(`">`)
+		b.WriteString(escapeText(v.Label))
+		b.WriteString(`</span>
+`)
+	}
+	b.WriteString(`</td>
+</tr>
+</table>
+</td>
+</tr>
+`)
+}
+
+// linkButtonDefaultWidth estimates the "link" variant's clickable width in
+// pixels from its label's rune count, when a template does not set
+// Button's own width attribute. gsxmail cannot measure real glyph widths
+// without a font-metrics dependency the render path does not carry, so
+// this is a documented approximation (README's Button section states the
+// same caveat) — set width="..." explicitly for an exact click target.
+func linkButtonDefaultWidth(label string) int {
+	n := utf8.RuneCountInString(label)
+	w := n*9 + 60
+	if w < 120 {
+		return 120
+	}
+	return w
+}
+
+// writeButtonLink writes the "link" variant: goodemailcode's full-click
+// glyph-spacing technique (pixel dossier section 4.4, R11). Unlike
+// primary/secondary, there is no wrapping table-cell background to give
+// Outlook a clickable box; instead, an MSO-only hidden run stretched with
+// a negative mso-font-width fakes the anchor's own minimum width, so the
+// whole box — not just the text — is clickable there too. New in WP5.3,
+// one contract regardless of hard: the technique is inert everywhere
+// outside Outlook (the <i> runs sit inside "[if mso]" conditional
+// comments), so there is nothing for a parity mode to strip.
+func writeButtonLink(b *strings.Builder, theme Theme, v doc.ResolvedButton) {
+	width := strings.TrimSpace(v.Width)
+	if width == "" {
+		width = strconv.Itoa(linkButtonDefaultWidth(v.Label))
+	}
+	b.WriteString(`<tr>
+<td align="center" style="padding:28px 32px 0 32px;">
+`)
+	if !hasSafeHrefScheme(v.Href) {
+		b.WriteString(`<span style="background-color:`)
+		b.WriteString(theme.ColorAccent)
+		b.WriteString(`; border-radius:2px; color:`)
+		b.WriteString(theme.ColorGround)
+		b.WriteString(`; display:inline-block; padding:14px 30px; font-family:`)
+		b.WriteString(theme.FontSans)
+		b.WriteString(`; font-size:14px; font-weight:800; letter-spacing:0.04em; text-transform:uppercase;">`)
+		b.WriteString(escapeText(v.Label))
+		b.WriteString(`</span>
+</td>
+</tr>
+`)
+		return
+	}
+	b.WriteString(`<a href="`)
+	b.WriteString(escapeAttr(v.Href))
+	b.WriteString(`" style="background-color:`)
+	b.WriteString(theme.ColorAccent)
+	b.WriteString(`; border-radius:2px; color:`)
+	b.WriteString(theme.ColorGround)
+	b.WriteString(`; display:inline-block; font-family:`)
+	b.WriteString(theme.FontSans)
+	b.WriteString(`; font-size:14px; font-weight:800; letter-spacing:0.04em; line-height:44px; text-align:center; text-decoration:none; text-transform:uppercase; width:`)
+	b.WriteString(width)
+	b.WriteString(`px; -webkit-text-size-adjust:none;">
+<!--[if mso]><i style="letter-spacing:`)
+	b.WriteString(width)
+	b.WriteString(`px; mso-font-width:-100%; mso-text-raise:22pt;" hidden>&nbsp;</i><![endif]-->
+<span style="mso-text-raise:15pt;">`)
+	b.WriteString(escapeText(v.Label))
+	b.WriteString(`</span>
+<!--[if mso]><i style="letter-spacing:`)
+	b.WriteString(width)
+	b.WriteString(`px; mso-font-width:-100%;" hidden>&nbsp;</i><![endif]-->
+</a>
+</td>
+</tr>
+`)
+}
+
+// writeColumns writes email.Columns: the fluid-hybrid contract (pixel
+// dossier section 4.9) — inline-block max-width divs that stack under a
+// 480px viewport with no <style> dependency, wrapped in an
+// "[if mso | IE]" ghost table so Outlook, which never applies
+// inline-block (caniemail css-display), gets an equivalent td-per-column
+// row instead. maxWidth scales from theme.CardWidth for a two-to-four
+// column row (EM176 already caps the count at Load time); the dossier's
+// own worked numbers (268px per column, on a 600px card, two columns)
+// fall out of this formula unchanged.
+func writeColumns(b *strings.Builder, theme Theme, v doc.ResolvedColumns, hard, adaptive bool) {
+	n := len(v.Columns)
+	if n == 0 {
+		return
+	}
+	maxWidth := (theme.CardWidth - 64) / n
+	widthStr := strconv.Itoa(maxWidth)
+
+	b.WriteString(`<tr>
+<td style="padding:24px 32px 0 32px; font-size:0; text-align:center;">
+`)
+	for i, col := range v.Columns {
+		if i == 0 {
+			b.WriteString(`<!--[if mso | IE]><table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0"><tr><td width="`)
+			b.WriteString(widthStr)
+			b.WriteString(`" valign="top"><![endif]-->
+`)
+		} else {
+			b.WriteString(`<!--[if mso | IE]></td><td width="`)
+			b.WriteString(widthStr)
+			b.WriteString(`" valign="top"><![endif]-->
+`)
+		}
+		b.WriteString(`<div class="gsx-col" style="display:inline-block; width:100%; max-width:`)
+		b.WriteString(widthStr)
+		b.WriteString(`px; vertical-align:top; text-align:left; font-size:14px;">
+`)
+		writeColumnContent(b, theme, col, hard, adaptive)
+		b.WriteString(`</div>
+`)
+	}
+	b.WriteString(`<!--[if mso | IE]></td></tr></table><![endif]-->
+</td>
+</tr>
+`)
+}
+
+// writeColumnContent writes one Column's own content: an optional image,
+// an optional title, and an optional body text, each sized for a fluid-
+// hybrid column's own narrower width rather than the full card (design
+// note: doc.Column's own doc comment on why Column stays a leaf). The
+// title carries the gsx-ink adaptive class hook under DarkMode "adaptive"
+// (pixel dossier section 5.2), the same hook every other ink-colored
+// heading in the card carries — Columns nests ordinary card content, so
+// WP5.2's dark-mode coverage extends into it for free.
+func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn, hard, adaptive bool) {
+	_ = hard
+	if col.ImgSrc != "" {
+		b.WriteString(`<img src="`)
+		b.WriteString(escapeAttr(col.ImgSrc))
+		b.WriteString(`" width="`)
+		b.WriteString(col.ImgWidth)
+		b.WriteString(`" height="`)
+		b.WriteString(col.ImgHeight)
+		b.WriteString(`" alt="`)
+		b.WriteString(escapeAttr(col.ImgAlt))
+		b.WriteString(`" style="display:block; width:100%; max-width:`)
+		b.WriteString(col.ImgWidth)
+		b.WriteString(`px; height:auto; border:0; margin-bottom:12px;">
+`)
+	}
+	if col.Title != "" {
+		b.WriteString(`<div`)
+		b.WriteString(classAttrIf(adaptive, "gsx-ink"))
+		b.WriteString(` style="color:`)
+		b.WriteString(theme.ColorInk)
+		b.WriteString(`; font-family:`)
+		b.WriteString(theme.FontSans)
+		b.WriteString(`; font-size:15px; font-weight:800; letter-spacing:-0.01em;">`)
+		b.WriteString(escapeText(col.Title))
+		b.WriteString(`</div>
+`)
+	}
+	if col.Text != "" {
+		topMargin := ""
+		if col.Title != "" {
+			topMargin = " margin-top:6px;"
+		}
+		b.WriteString(`<div style="color:`)
+		b.WriteString(theme.ColorBody)
+		b.WriteString(`; font-family:`)
+		b.WriteString(theme.FontSans)
+		b.WriteString(`; font-size:13px; line-height:1.5;`)
+		b.WriteString(topMargin)
+		b.WriteString(`">`)
+		b.WriteString(escapeText(col.Text))
+		b.WriteString(`</div>
+`)
+	}
+}
+
+// writeHero writes email.Hero: a single retina <img> at 2x asset
+// resolution with display-size width/height attributes plus the
+// max-width/height:auto Outlook workaround (pixel dossier section 4.10;
+// R15). Hero is new in WP5.3 — there is no WP1 byte stream to protect —
+// so it renders one contract regardless of the hard flag.
+func writeHero(b *strings.Builder, v doc.ResolvedHero) {
+	b.WriteString(`<tr>
+<td style="padding:0;">
+<img src="`)
+	b.WriteString(escapeAttr(v.Src))
+	b.WriteString(`" width="`)
+	b.WriteString(v.Width)
+	b.WriteString(`" height="`)
+	b.WriteString(v.Height)
+	b.WriteString(`" alt="`)
+	b.WriteString(escapeAttr(v.Alt))
+	b.WriteString(`" style="display:block; width:100%; max-width:`)
+	b.WriteString(v.Width)
+	b.WriteString(`px; height:auto; border:0;">
+</td>
+</tr>
+`)
+}
+
+// writeSpacer writes email.Spacer: an exact-height gap row (pixel dossier
+// section 4.8's spacer-table technique — font-size:0, line-height:0, and
+// mso-line-height-rule:exactly pin the box everywhere a bare margin or an
+// empty div does not). New in WP5.3, one contract regardless of hard.
+func writeSpacer(b *strings.Builder, v doc.ResolvedSpacer) {
+	b.WriteString(`<tr><td height="`)
+	b.WriteString(v.Height)
+	b.WriteString(`" style="height:`)
+	b.WriteString(v.Height)
+	b.WriteString(`px; font-size:0; line-height:0; mso-line-height-rule:exactly;">&nbsp;</td></tr>
+`)
+}
+
+// badgeToneColor gives each Badge tone a fixed, theme-independent color
+// (pixel dossier section 4.11's own worked example: a green "PAID" badge
+// against the neutral Paper theme's blue accent). Status semantics should
+// read the same green/amber/red regardless of a template's brand palette.
+// "neutral" is the one tone that does track the active theme, using its
+// muted token, since it carries no status meaning of its own to protect.
+func badgeToneColor(theme Theme, tone string) string {
+	switch tone {
+	case "positive":
+		return "#2F9E44"
+	case "warning":
+		return "#B76E00"
+	case "critical":
+		return "#C92A2A"
+	default: // "neutral"
+		return theme.ColorMuted
+	}
+}
+
+// writeBadge writes email.Badge (pixel dossier section 4.11): a bordered,
+// inline status label. Outlook drops border-radius and inline-block; the
+// degrade is bordered inline text, still legible. New in WP5.3, one
+// contract regardless of hard.
+func writeBadge(b *strings.Builder, theme Theme, v doc.ResolvedBadge) {
+	color := badgeToneColor(theme, v.Tone)
+	b.WriteString(`<tr>
+<td style="padding:20px 32px 0 32px;">
+<span style="display:inline-block; padding:2px 8px; border:1px solid `)
+	b.WriteString(color)
+	b.WriteString(`; border-radius:2px; color:`)
+	b.WriteString(color)
+	b.WriteString(`; font-family:`)
+	b.WriteString(theme.FontMono)
+	b.WriteString(`; font-size:10px; letter-spacing:0.06em; text-transform:uppercase;">`)
+	b.WriteString(escapeText(v.Text))
+	b.WriteString(`</span>
 </td>
 </tr>
 `)

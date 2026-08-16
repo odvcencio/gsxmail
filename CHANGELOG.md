@@ -4,6 +4,63 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (new components; WP5.3)
+
+- `email.Button` (variants `"primary"`, `"secondary"`, `"link"`; pixel
+  dossier section 4.4). `"primary"` (the default) is byte-identical to
+  `email.CTA` in both output contracts: `email.CTA` is documented as
+  `Button`'s `variant="primary"` alias, and `renderhtml.writeButton`
+  routes that variant straight through the existing, untouched `writeCTA`
+  function, so no CTA byte ever moves. `"secondary"` adds a
+  transparent-face, accent-bordered variant; `"link"` adds
+  goodemailcode's full-click glyph-spacing technique (an MSO-only hidden
+  run stretched with a negative `mso-font-width`, so the whole box —
+  not just the text — is clickable in Outlook), with an optional `width`
+  attribute and a documented, approximate default width when unset. A VML
+  roundrect button variant is explicitly out of scope (pixel dossier
+  section 4.4's own rejection: MJML itself does not ship one, and dark-mode
+  transforms recolor VML fills unpredictably).
+- `email.Columns`/`email.Column` (pixel dossier section 4.9): a
+  two-to-four-wide fluid-hybrid row. Each column is an `inline-block`
+  `max-width` div that stacks under a 480px viewport with no `<style>`
+  dependency, wrapped in an `"[if mso | IE]"` ghost table for Outlook,
+  which never applies `inline-block` at all. `email.Column` is a leaf
+  component (an optional image, title, and text) rather than a nested
+  block container — a column is too narrow for a full-card block's own
+  padding and font sizes.
+- `email.Hero` (pixel dossier section 4.10): a full-width retina `<img>`.
+  `src` is served at 2x pixels; `width`/`height` are the display-size HTML
+  attributes the retina rule requires, plus the `max-width`/`height:auto`
+  Outlook workaround. `srcset` is rejected (24.39% caniemail support).
+  `alt` is mandatory; lint's `checkHero` reuses EM111/EM112 verbatim
+  (extended from the existing raw-`<img>` rules to this new component)
+  rather than inventing parallel codes.
+- `email.Spacer` (pixel dossier section 4.8): a fixed-height gap row
+  (`font-size:0; line-height:0; mso-line-height-rule:exactly`). Its text
+  twin is one blank line: like `email.Divider`, it is skipped in
+  `rendertext.Write`'s own loop, so the ambient single blank-line
+  separator between its neighbors is its entire derivation — text has no
+  concept of a variable-height gap, so every Spacer height folds to the
+  same one blank line.
+- `email.Badge` (pixel dossier section 4.11): a small bordered status
+  label. `tone` selects a fixed, theme-independent color (`"positive"`
+  green, `"warning"` amber, `"critical"` red) or the active theme's own
+  muted token (`"neutral"`, the default). Its text twin is its label in
+  brackets (`[PAID]`), regardless of tone.
+- New lint rules (design spec section 15, WP5.3; pixel dossier section
+  10, continued): EM175 (`Button`'s `variant` attribute is not a static
+  `"primary"`/`"secondary"`/`"link"`), EM176 (`Columns`' children are not
+  all `Column`, or there are not 2-4 of them), EM177 (a `Column` outside
+  `Columns`), EM178 (`Hero` missing `width` or `height`), EM179 (`Spacer`
+  missing `height`), EM180 (`Badge`'s `tone` attribute is not one of the
+  four allowed values).
+- New goldens under `testdata/`, rendered from a new
+  `testdata/newblocks/NewBlocks` fixture exercising every new component
+  and Button variant: `newblocks.html`/`newblocks.txt` (hardened) and
+  `newblocks_parity.html` (parity/`Outlook:"off"`). No existing golden's
+  bytes changed; `TestInvitePartyWithAdmin` and `TestRecapGolden` are
+  unmoved.
+
 ### Added (dark mode, preheader, Shell options; WP5.2)
 
 - `Theme.DarkMode` (`"none"` default, `"locked"`, `"adaptive"`) and

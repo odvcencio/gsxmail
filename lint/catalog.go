@@ -525,6 +525,13 @@ func (w *walker) checkComponentNode(n *ir.Node, ctx *exprContext) {
 		w.checkIf(n, ctx)
 	case n.Tag == "Each":
 		w.checkEach(n, ctx)
+	case n.Tag == "email.Columns":
+		// Columns is special-cased ahead of the generic ns == "email"
+		// branch below (WP5.3; pixel dossier section 4.9): it validates and
+		// recurses into its own <email.Column> children itself, rather than
+		// letting the generic per-node dispatch reach them — see
+		// checkColumns and EM177's own doc comment for why.
+		w.checkColumns(n, ctx)
 	case ns == "email":
 		// A recognized stdlib namespace. Which email.* member it names, and
 		// whether that member exists at all, is package lower's job
@@ -534,14 +541,155 @@ func (w *walker) checkComponentNode(n *ir.Node, ctx *exprContext) {
 		for _, a := range n.Attrs {
 			w.checkComponentAttr(n, a, ctx, slicePathAttrs)
 		}
-		if local == "Shell" {
+		switch local {
+		case "Shell":
 			w.checkShell(n)
+		case "Button":
+			w.checkButton(n)
+		case "Column":
+			// A <email.Column> reached through this generic dispatch was
+			// not consumed by checkColumns above, so it is not a direct
+			// child of <email.Columns> (design spec section 15, WP5.3).
+			w.add(n, "EM177", "error", `<email.Column> must be a direct child of <email.Columns>`)
+		case "Hero":
+			w.checkHero(n)
+		case "Spacer":
+			w.checkSpacer(n)
+		case "Badge":
+			w.checkBadge(n)
 		}
 		for _, c := range n.Children {
 			w.checkNode(c, ctx)
 		}
 	default:
 		w.add(n, "EM020", "error", fmt.Sprintf("component <%s> is not an email.* component and is not declared in this template set", n.Tag))
+	}
+}
+
+// isBlankNode reports whether n is a whitespace-only text node, mirroring
+// package lower's own isBlankText — the lint walker keeps its own copy
+// rather than importing package lower, which itself would create an
+// import cycle (lower already depends on nothing lint-shaped, and should
+// stay that way).
+func isBlankNode(n *ir.Node) bool {
+	return n.Kind == ir.NodeText && strings.TrimSpace(n.Text) == ""
+}
+
+// checkButton implements EM175 (design spec section 15, WP5.3; pixel
+// dossier section 4.4): <email.Button>'s variant attribute, when present,
+// must be a static "primary", "secondary", or "link" — the button
+// technique is a structural, compile-time choice, the same reasoning
+// checkShell's own outlook attribute (EM172) already applies.
+func (w *walker) checkButton(n *ir.Node) {
+	a := findAttr(n.Attrs, "variant")
+	if a == nil {
+		return // defaults to "primary"
+	}
+	got := a.Value
+	valid := a.Kind == ir.AttrStatic
+	if valid {
+		switch a.Value {
+		case "", "primary", "secondary", "link":
+		default:
+			valid = false
+		}
+	} else {
+		got = "{" + a.Expr + "}"
+	}
+	if !valid {
+		w.add(n, "EM175", "error", fmt.Sprintf(
+			`<email.Button> variant attribute must be a static "primary", "secondary", or "link"; got %q`, got))
+	}
+}
+
+// checkColumns implements EM176 (design spec section 15, WP5.3; pixel
+// dossier section 4.9): every child of <email.Columns> must be an
+// <email.Column>, and there must be between two and four of them — narrow
+// enough that each column's own max-width formula
+// (renderhtml.writeColumns) stays legible on a 600px card, wide enough
+// that "Columns" means something. checkColumns is reached before the
+// generic per-node dispatch (checkComponentNode's own switch), so it
+// handles its own children's attribute checks directly rather than
+// recursing back through checkNode/checkComponentNode — a Column reached
+// any other way trips EM177 instead (checkComponentNode's own "Column"
+// case).
+func (w *walker) checkColumns(n *ir.Node, ctx *exprContext) {
+	var kids []*ir.Node
+	for _, id := range n.Children {
+		c := w.prog.NodeAt(id)
+		if isBlankNode(c) {
+			continue
+		}
+		if c.Kind != ir.NodeComponent || c.Tag != "email.Column" {
+			w.add(n, "EM176", "error", fmt.Sprintf(`<email.Columns> children must be <email.Column>, got %q`, c.Tag))
+			continue
+		}
+		kids = append(kids, c)
+	}
+	if len(kids) < 2 || len(kids) > 4 {
+		w.add(n, "EM176", "error", fmt.Sprintf(
+			`<email.Columns> must contain between 2 and 4 <email.Column> children, got %d`, len(kids)))
+	}
+	for _, c := range kids {
+		for _, a := range c.Attrs {
+			w.checkComponentAttr(c, a, ctx, nil)
+		}
+	}
+}
+
+// checkHero implements Hero's own attribute checks (design spec section
+// 15, WP5.3; pixel dossier section 4.10). It reuses checkImg verbatim for
+// src/alt — EM111 (an absolute https src) and EM112 (non-empty alt) apply
+// to Hero exactly as they already do to a raw <img>, since checkImg reads
+// n.Attrs generically regardless of whether n is an element or a
+// component node. EM178 is the one WP5.3-specific addition: both width
+// and height are required, the retina display-size attributes the pixel
+// dossier's own retina rule (section 6.2) states.
+func (w *walker) checkHero(n *ir.Node) {
+	w.checkImg(n)
+	for _, name := range []string{"width", "height"} {
+		a := findAttr(n.Attrs, name)
+		if a == nil || (a.Kind == ir.AttrStatic && strings.TrimSpace(a.Value) == "") {
+			w.add(n, "EM178", "error", `<email.Hero> requires width and height attributes at display size; retina assets render at intrinsic size without them`)
+			return
+		}
+	}
+}
+
+// checkSpacer implements EM179 (design spec section 15, WP5.3; pixel
+// dossier section 4.8): <email.Spacer> requires a height attribute — the
+// one thing that gives the spacer table its exact-height contract any
+// meaning.
+func (w *walker) checkSpacer(n *ir.Node) {
+	a := findAttr(n.Attrs, "height")
+	if a == nil || (a.Kind == ir.AttrStatic && strings.TrimSpace(a.Value) == "") {
+		w.add(n, "EM179", "error", `<email.Spacer> requires a height attribute (a positive pixel integer)`)
+	}
+}
+
+// checkBadge implements EM180 (design spec section 15, WP5.3; pixel
+// dossier section 4.11): <email.Badge>'s tone attribute, when present,
+// must be a static "neutral", "positive", "warning", or "critical" —
+// renderhtml.badgeToneColor's own closed set.
+func (w *walker) checkBadge(n *ir.Node) {
+	a := findAttr(n.Attrs, "tone")
+	if a == nil {
+		return // defaults to "neutral"
+	}
+	got := a.Value
+	valid := a.Kind == ir.AttrStatic
+	if valid {
+		switch a.Value {
+		case "", "neutral", "positive", "warning", "critical":
+		default:
+			valid = false
+		}
+	} else {
+		got = "{" + a.Expr + "}"
+	}
+	if !valid {
+		w.add(n, "EM180", "error", fmt.Sprintf(
+			`<email.Badge> tone attribute must be a static "neutral", "positive", "warning", or "critical"; got %q`, got))
 	}
 }
 

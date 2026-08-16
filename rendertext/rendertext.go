@@ -26,7 +26,16 @@ func Write(resolved *doc.Resolved) string {
 		// nothing for it. Without this, the "\n\n" written here plus the
 		// next block's own leading "\n\n" would stack into three blank
 		// lines instead of the spec's one.
-		if _, isDivider := block.(doc.ResolvedDivider); isDivider {
+		//
+		// Spacer (WP5.3; pixel dossier section 4.8) skips the same way and
+		// for the same arithmetic reason: text has no concept of a
+		// variable-height gap, so every Spacer height folds to the one
+		// blank line the ambient separator already provides — a 24px
+		// Spacer and a 48px Spacer render identical text. This is also
+		// why Spacer's own writeBlock case below is empty, the same shape
+		// Divider's is.
+		switch block.(type) {
+		case doc.ResolvedDivider, doc.ResolvedSpacer:
 			continue
 		}
 		b.WriteString("\n\n")
@@ -57,6 +66,23 @@ func writeBlock(b *strings.Builder, block doc.ResolvedBlock) {
 		writeStatTable(b, v)
 	case doc.ResolvedCustom:
 		writeCustom(b, v.Root)
+	case doc.ResolvedButton:
+		writeButton(b, v)
+	case doc.ResolvedColumns:
+		writeColumns(b, v)
+	case doc.ResolvedHero:
+		writeHero(b, v)
+	case doc.ResolvedSpacer:
+		// No output of its own; Write's own loop skips Spacer the same way
+		// it skips Divider, so the ambient single "\n\n" between its
+		// neighbors is Spacer's entire text-twin derivation ("Spacer
+		// renders one blank line" — pixel dossier section 4.8's own
+		// framing, WP5.3). See Write's own doc comment for the arithmetic:
+		// without the skip, Spacer's own leading "\n\n" plus the next
+		// block's leading "\n\n" would stack into three blank lines
+		// instead of one.
+	case doc.ResolvedBadge:
+		writeBadge(b, v)
 	}
 }
 
@@ -111,6 +137,82 @@ func writeCTA(b *strings.Builder, c doc.ResolvedCTA) {
 		b.WriteString(": ")
 		b.WriteString(c.Href)
 	}
+}
+
+// writeButton derives email.Button's text form identically for every
+// variant (design note: a button's variant is a visual/clickable-area
+// choice only; the text twin has no visual axis to encode it in). Every
+// variant renders "-> LABEL: URL" — the same shape email.CTA's own
+// writeCTA below already used, since Button variant="primary" is CTA's
+// alias.
+func writeButton(b *strings.Builder, v doc.ResolvedButton) {
+	label := strings.TrimSuffix(v.Label, " →")
+	b.WriteString("  -> ")
+	b.WriteString(label)
+	if hasSafeHrefScheme(v.Href) {
+		b.WriteString(": ")
+		b.WriteString(v.Href)
+	}
+}
+
+// writeColumns derives email.Columns' text form (pixel dossier section
+// 4.9): columns stack in source order as sequential text, each its own
+// block, separated by a blank line — never side-by-side ASCII columns,
+// since a fixed 72-column width leaves no room for a genuine multi-column
+// layout.
+func writeColumns(b *strings.Builder, v doc.ResolvedColumns) {
+	var blocks []string
+	for _, col := range v.Columns {
+		if t := columnText(col); t != "" {
+			blocks = append(blocks, t)
+		}
+	}
+	b.WriteString(strings.Join(blocks, "\n\n"))
+}
+
+// columnText derives one Column's own text: its image's alt text in
+// brackets (when set), its title, then its wrapped body text — the same
+// "[alt]" convention a Custom <img> already uses (rendertext/custom.go).
+func columnText(col doc.ResolvedColumn) string {
+	var parts []string
+	if col.ImgAlt != "" {
+		parts = append(parts, "["+col.ImgAlt+"]")
+	}
+	if col.Title != "" {
+		parts = append(parts, col.Title)
+	}
+	if col.Text != "" {
+		parts = append(parts, strings.Join(wrapText(col.Text, WrapWidth), "\n"))
+	}
+	return strings.Join(parts, "\n")
+}
+
+// writeHero derives email.Hero's text form: its alt text in brackets (the
+// same "[alt]" convention a Custom <img> already uses), or nothing when
+// Alt is empty. Lint's checkHero reuses EM112 to require Alt non-empty at
+// Load time, so the empty case is unreachable through Load; the writer
+// stays defensive about it rather than assuming that guarantee holds for
+// every possible caller of doc.Resolve directly.
+func writeHero(b *strings.Builder, v doc.ResolvedHero) {
+	if v.Alt == "" {
+		return
+	}
+	b.WriteString("[")
+	b.WriteString(v.Alt)
+	b.WriteString("]")
+}
+
+// writeBadge derives email.Badge's text form: its label in brackets
+// (pixel dossier section 4.11's own worked example states this exact
+// shape: "the text twin renders [PAID]"), regardless of tone — tone is a
+// color/structural cue with no separate text-safe encoding beyond the
+// label itself; the brackets alone already carry "this is a marked
+// status," matching the img-alt and StatTable-mark conventions elsewhere
+// in the text writer.
+func writeBadge(b *strings.Builder, v doc.ResolvedBadge) {
+	b.WriteString("[")
+	b.WriteString(v.Text)
+	b.WriteString("]")
 }
 
 func writePickList(b *strings.Builder, p doc.ResolvedPickList) {

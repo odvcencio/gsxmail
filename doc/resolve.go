@@ -171,6 +171,68 @@ func (sc *scope) resolveBlockInto(block Block, out *[]ResolvedBlock) error {
 			return err
 		}
 		*out = append(*out, ResolvedCustom{Root: root})
+	case Button:
+		label, err := sc.resolveText(b.Label)
+		if err != nil {
+			return err
+		}
+		href, err := sc.resolveText(b.Href)
+		if err != nil {
+			return err
+		}
+		width, err := sc.resolveText(b.Width)
+		if err != nil {
+			return err
+		}
+		variant := b.Variant
+		if variant == "" {
+			variant = "primary"
+		}
+		*out = append(*out, ResolvedButton{Variant: variant, Label: label, Href: href, Width: width})
+	case Columns:
+		cols := make([]ResolvedColumn, 0, len(b.Columns))
+		for _, col := range b.Columns {
+			rc, err := sc.resolveColumn(col)
+			if err != nil {
+				return err
+			}
+			cols = append(cols, rc)
+		}
+		*out = append(*out, ResolvedColumns{Columns: cols})
+	case Hero:
+		src, err := sc.resolveText(b.Src)
+		if err != nil {
+			return err
+		}
+		alt, err := sc.resolveText(b.Alt)
+		if err != nil {
+			return err
+		}
+		width, err := sc.resolveText(b.Width)
+		if err != nil {
+			return err
+		}
+		height, err := sc.resolveText(b.Height)
+		if err != nil {
+			return err
+		}
+		*out = append(*out, ResolvedHero{Src: src, Alt: alt, Width: width, Height: height})
+	case Spacer:
+		height, err := sc.resolveText(b.Height)
+		if err != nil {
+			return err
+		}
+		*out = append(*out, ResolvedSpacer{Height: height})
+	case Badge:
+		text, err := sc.resolveText(b.Text)
+		if err != nil {
+			return err
+		}
+		tone := b.Tone
+		if tone == "" {
+			tone = "neutral"
+		}
+		*out = append(*out, ResolvedBadge{Text: text, Tone: tone})
 	case Each:
 		// design spec section 6.5 / section 15 WP3: Of must resolve to a
 		// slice; an empty slice contributes nothing. Every element gets
@@ -267,6 +329,32 @@ func (sc *scope) resolveStatRow(row StatRow) (ResolvedStatRow, error) {
 		return ResolvedStatRow{}, err
 	}
 	return ResolvedStatRow{Cells: cells, Mark: mark}, nil
+}
+
+// resolveColumn resolves one email.Columns child (design note: doc.go's
+// Column doc comment explains why Column is a leaf, not a nested Block).
+func (sc *scope) resolveColumn(col Column) (ResolvedColumn, error) {
+	var rc ResolvedColumn
+	var err error
+	if rc.ImgSrc, err = sc.resolveText(col.ImgSrc); err != nil {
+		return rc, err
+	}
+	if rc.ImgAlt, err = sc.resolveText(col.ImgAlt); err != nil {
+		return rc, err
+	}
+	if rc.ImgWidth, err = sc.resolveText(col.ImgWidth); err != nil {
+		return rc, err
+	}
+	if rc.ImgHeight, err = sc.resolveText(col.ImgHeight); err != nil {
+		return rc, err
+	}
+	if rc.Title, err = sc.resolveText(col.Title); err != nil {
+		return rc, err
+	}
+	if rc.Text, err = sc.resolveText(col.Text); err != nil {
+		return rc, err
+	}
+	return rc, nil
 }
 
 func (sc *scope) resolveCustomNode(n CustomNode) (ResolvedCustomNode, error) {
