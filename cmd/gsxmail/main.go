@@ -29,6 +29,8 @@ func run(args []string) error {
 		return runRender(args[1:])
 	case "check":
 		return runCheck(args[1:])
+	case "import":
+		return runImport(args[1:])
 	case "matrix":
 		return runMatrix(args[1:])
 	case "-h", "--help", "help":
@@ -59,6 +61,19 @@ verbs:
       consumer's registered helpers, so EM014/EM015 findings here mean
       only "the CLI cannot verify this," not "this helper is missing" —
       validate helper bindings with Set.Check() in your own test instead.
+
+  import <in.html> --out <dir> [--name Welcome] [--package emails]
+      Reverse-maps an existing email HTML file (MJML compiled output,
+      react-email output, or hand-written table soup) onto gsxmail's
+      shipped email.* components: gotreesitter's error-tolerant HTML
+      grammar parses even malformed markup to a best-effort tree, and
+      the mapper never fails closed on a node it cannot place — it
+      preserves it inside an email.Custom block instead. Writes
+      template.gsx, props.go, props.sample.json, and IMPORT-REPORT.md
+      under --out (default: the current directory), and prints the
+      report's own summary. This is the one gsxmail verb that imports
+      gotreesitter; see the README's "Import from existing HTML"
+      section.
 
   matrix refresh [--out lint/snapshot.json]
       Downloads the caniemail dataset, rewrites the embedded snapshot
