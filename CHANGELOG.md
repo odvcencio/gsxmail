@@ -4,6 +4,14 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Changed
+
+- `[bytes]` `testdata/recap.html` is regenerated for the WP5.1 hardened
+  output contract: `DraftRecap` renders through `Shell`, `Headline`,
+  `StatTable`, `Note`, and `CTA`, all now hardened by default. The golden
+  grows from 17,176 to 18,730 bytes (+1,554). `testdata/recap.txt` is
+  byte-identical: the text writer is untouched by WP5.1.
+
 ### Added
 
 - WP5.1 bulletproof output contracts (design spec section 15; pixel
