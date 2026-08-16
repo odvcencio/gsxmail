@@ -4,6 +4,22 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (launch-gate B4: unknown/required attribute checks)
+
+- `lower.Schema` is the new single source of truth for every email.*
+  component's attribute surface, hand-derived from package lower's own
+  lowering switch. Package lint now checks every email.* node against it:
+  EM190 flags an attribute name the component does not accept; EM191
+  flags a required attribute that is absent (`Shell.wordmark`/`title`,
+  `Signal.text`, `Headline.title`, `PanelRow.label`/`value`,
+  `CTA.label`/`href`, `Button.label`/`href`, `Note.text`, `Badge.text`,
+  `Item` non-blank content, `Footer.signoff`).
+- Before this fix, `heading=` for `title=`, a missing `href`, and
+  case-mismatched attribute names (`Label`/`HREF` for `label`/`href`) all
+  passed `gsxmail check` silently and rendered an empty or dead element.
+  `testdata/lint/newcomer` reproduces the examiner's own probe template
+  and pins that every one of those mistakes now reports.
+
 ### Fixed (launch-gate B1: numeric attribute injection)
 
 - `email.Hero`'s width/height, `email.Spacer`'s height, `email.Column`'s

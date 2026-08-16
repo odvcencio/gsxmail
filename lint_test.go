@@ -70,6 +70,8 @@ func TestLintCatalog(t *testing.T) {
 		{"EM179", `<email.Spacer> requires a height attribute (a positive pixel integer)`},
 		{"EM180", `<email.Badge> tone attribute must be a static "neutral", "positive", "warning", or "critical"; got "sideways"`},
 		{"EM181", `email.Spacer height must be a positive decimal integer (a pixel count), got "20px"`},
+		{"EM190", `<email.Signal> has no "bogus" attribute`},
+		{"EM191", `<email.CTA> requires a "href" attribute`},
 	}
 
 	for _, tc := range cases {
@@ -145,6 +147,44 @@ func TestEM143CustomBlockColor(t *testing.T) {
 		if d.Code == "EM143" {
 			t.Errorf("DarkMode \"none\" reported EM143, want it to run only under \"adaptive\": %v", d)
 		}
+	}
+}
+
+// TestNewcomerFixtureReportsEveryMistake reproduces probes-gsxmail/
+// newcomer/brk's own template verbatim (testdata/lint/newcomer): the
+// launch-gate B4 finding's four attribute mistakes a newcomer's first
+// template made — heading= for title=, a CTA missing href entirely, and a
+// Button whose label/href are spelled Label/HREF. Before B4's schema-based
+// EM190/EM191 checks, gsxmail check passed this template with zero
+// diagnostics. It must now report all four.
+func TestNewcomerFixtureReportsEveryMistake(t *testing.T) {
+	_, err := gsxmail.Load(os.DirFS("testdata/lint/newcomer"), gsxmail.Options{})
+	if err == nil {
+		t.Fatal("Load succeeded; every mistake in testdata/lint/newcomer is supposed to fail closed")
+	}
+	var lintErr *gsxmail.LintError
+	if !errors.As(err, &lintErr) {
+		t.Fatalf("Load's error is not a *gsxmail.LintError: %v", err)
+	}
+
+	want := []struct{ code, message string }{
+		{"EM190", `<email.Headline> has no "heading" attribute`},
+		{"EM191", `<email.Headline> requires a "title" attribute`},
+		{"EM191", `<email.CTA> requires a "href" attribute`},
+		{"EM190", `<email.Button> has no "Label" attribute`},
+		{"EM190", `<email.Button> has no "HREF" attribute`},
+		{"EM191", `<email.Button> requires a "label" attribute`},
+		{"EM191", `<email.Button> requires a "href" attribute`},
+	}
+	for _, tc := range want {
+		t.Run(tc.code+"_"+tc.message, func(t *testing.T) {
+			for _, d := range lintErr.Diagnostics {
+				if d.Code == tc.code && d.Message == tc.message {
+					return
+				}
+			}
+			t.Errorf("no diagnostic %s: %q found; got:\n%s", tc.code, tc.message, diagnosticsList(lintErr.Diagnostics))
+		})
 	}
 }
 

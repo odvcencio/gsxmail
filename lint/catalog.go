@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"m31labs.dev/gosx/ir"
+	"m31labs.dev/gsxmail/lower"
 	"m31labs.dev/gsxmail/renderhtml"
 	"m31labs.dev/gsxmail/typesafe"
 )
@@ -542,6 +543,13 @@ func (w *walker) checkComponentNode(n *ir.Node, ctx *exprContext) {
 		for _, a := range n.Attrs {
 			w.checkComponentAttr(n, a, ctx, slicePathAttrs)
 		}
+		if local != "Column" {
+			// A <email.Column> reached through this generic dispatch is an
+			// orphan (not a direct child of <email.Columns>) and already
+			// reports EM177 below; running the schema check on it too
+			// would only duplicate that one finding under a second code.
+			w.checkAttrSchema(n, local)
+		}
 		switch local {
 		case "Shell":
 			w.checkShell(n)
@@ -558,6 +566,8 @@ func (w *walker) checkComponentNode(n *ir.Node, ctx *exprContext) {
 			w.checkSpacer(n)
 		case "Badge":
 			w.checkBadge(n)
+		case "Item":
+			w.checkItem(n)
 		}
 		for _, c := range n.Children {
 			w.checkNode(c, ctx)
@@ -676,7 +686,56 @@ func (w *walker) checkColumns(n *ir.Node, ctx *exprContext) {
 		}
 		w.checkPositiveIntAttr(c, "email.Column", "imgWidth")
 		w.checkPositiveIntAttr(c, "email.Column", "imgHeight")
+		w.checkAttrSchema(c, "Column")
 	}
+}
+
+// checkAttrSchema implements EM190 (unknown attribute) and EM191 (required
+// attribute absent), the launch-gate B4 finding: local's attribute surface
+// comes from lower.Schema — package lower's own single source of truth for
+// what its lowerBlock/lowerShell/lowerColumn/lowerStatRow switch reads —
+// so lint never invents its own, possibly drifting, copy of that list. A
+// local name with no Schema entry (there is none today; every email.*
+// member Lower recognizes has one) is silently skipped, since an unknown
+// component name is package lower's own concern to reject at Load time,
+// not this check's.
+func (w *walker) checkAttrSchema(n *ir.Node, local string) {
+	schema, ok := lower.Schema[local]
+	if !ok {
+		return
+	}
+	allowed := make(map[string]bool, len(schema.Attrs))
+	for _, name := range schema.Attrs {
+		allowed[name] = true
+	}
+	for _, a := range n.Attrs {
+		if !allowed[a.Name] {
+			w.add(n, "EM190", "error", fmt.Sprintf(
+				"<email.%s> has no %q attribute", local, a.Name))
+		}
+	}
+	for _, name := range schema.Required {
+		if findAttr(n.Attrs, name) == nil {
+			w.add(n, "EM191", "error", fmt.Sprintf(
+				"<email.%s> requires a %q attribute", local, name))
+		}
+	}
+}
+
+// checkItem implements email.Item's own EM191 case (design spec section
+// 15, WP1): unlike every other required field in the launch-gate B4
+// finding's list, an Item's text is its inline text/expression content
+// (lower.lowerItems' own inlineContent), not an attribute — so
+// checkAttrSchema's attribute-table check cannot see it, and this small,
+// dedicated check stands in for it instead.
+func (w *walker) checkItem(n *ir.Node) {
+	for _, id := range n.Children {
+		c := w.prog.NodeAt(id)
+		if !isBlankNode(c) {
+			return
+		}
+	}
+	w.add(n, "EM191", "error", `<email.Item> requires non-blank text content`)
 }
 
 // checkHero implements Hero's own attribute checks (design spec section

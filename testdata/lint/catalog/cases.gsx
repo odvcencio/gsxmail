@@ -153,3 +153,11 @@ func CaseEM180() Node {
 func CaseEM181() Node {
     return <email.Spacer height="20px" />
 }
+
+func CaseEM190() Node {
+    return <email.Signal bogus="x" text="ok" />
+}
+
+func CaseEM191() Node {
+    return <email.CTA label="click here" />
+}
