@@ -26,6 +26,14 @@ import (
 type Parts struct {
 	HTML string
 	Text string
+
+	// Diagnostics carries any warning Render itself produced for this one
+	// call — today, only EM121 (the HTML part crossed the 90,000-byte
+	// warning line but stayed under budget; design spec section 8). It is
+	// empty on every Render call that has nothing to report. An
+	// error-severity finding never lands here: it makes Render return an
+	// error instead (see SizeBudgetError), with a zero Parts.
+	Diagnostics []Diagnostic
 }
 
 // Options configures a Set.
@@ -37,16 +45,41 @@ type Options struct {
 	// Helpers registers pure functions callable from templates. Load's
 	// lint pass validates every helper call against this map: an
 	// unregistered name is EM014, and a registered helper called with the
-	// wrong number of arguments is EM015. Runtime helper invocation is a
-	// later work package; a template that calls a helper cannot render
-	// yet even once it passes the lint (spec section 15, WP3).
+	// wrong number of arguments is EM015. Render invokes the same map by
+	// reflection for every ExprCall hole a template's Load already proved
+	// registered and arity-checked (spec section 15, WP3).
 	Helpers map[string]any
 
-	// MaxHTMLBytes is the Gmail-clip size budget: 0 selects the default
-	// 100,000 bytes; -1 disables the check. WP1 stores this value but
-	// does not enforce it; the EM120/EM121 budget check is a later work
-	// package (spec section 8, section 15 WP3).
+	// MaxHTMLBytes is the Gmail-clip size budget (EM120/EM121, design spec
+	// section 8): 0 selects the default 100,000 bytes; -1 disables both
+	// the error and the warning check. Render enforces it on every call's
+	// rendered HTML part: over budget is a returned *SizeBudgetError with
+	// no Parts; over the fixed 90,000-byte warning line but still within
+	// budget is a returned Parts with one EM121 entry in Diagnostics.
 	MaxHTMLBytes int
+}
+
+// defaultMaxHTMLBytes is Options.MaxHTMLBytes' zero-value default
+// (Gmail's clip point is folklore-documented near 102,400 bytes; the
+// design spec's budget leaves it margin — section 16, open question 1).
+const defaultMaxHTMLBytes = 100_000
+
+// warnHTMLBytes is EM121's fixed warning line (design spec section 8's
+// message pins this as a literal, not a fraction of MaxHTMLBytes: a
+// consumer that raises MaxHTMLBytes still gets warned at the same
+// absolute size).
+const warnHTMLBytes = 90_000
+
+// SizeBudgetError is the error Render returns when the rendered HTML part
+// exceeds Options.MaxHTMLBytes (EM120). Unlike a Load-time LintError
+// finding, Diagnostic carries no source position: the budget is a
+// property of one Render call's resolved output, not of template source.
+type SizeBudgetError struct {
+	Diagnostic Diagnostic
+}
+
+func (e *SizeBudgetError) Error() string {
+	return "gsxmail: " + e.Diagnostic.Code + ": " + e.Diagnostic.Message
 }
 
 // Diagnostic is one check-time finding (design spec section 8). It is a
@@ -106,7 +139,7 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 		opts.Theme = DefaultTheme()
 	}
 	if opts.MaxHTMLBytes == 0 {
-		opts.MaxHTMLBytes = 100_000
+		opts.MaxHTMLBytes = defaultMaxHTMLBytes
 	}
 
 	type compiledFile struct {
@@ -182,6 +215,12 @@ func hasErrorDiagnostic(diags []Diagnostic) bool {
 // template's declared props type; a mismatch is an error, never a zero.
 // Rendering is pure: no clock, no network, no maps iterated in order. Same
 // Set + same props => same bytes.
+//
+// Render also enforces the Gmail-clip size budget on the rendered HTML
+// part (Options.MaxHTMLBytes; EM120/EM121, design spec section 8): over
+// budget returns a zero Parts and a *SizeBudgetError; over the fixed
+// 90,000-byte warning line but still within budget returns the rendered
+// Parts with one EM121 entry in Parts.Diagnostics.
 func (s *Set) Render(name string, props any) (Parts, error) {
 	tmpl, ok := s.templates[name]
 	if !ok {
@@ -192,14 +231,54 @@ func (s *Set) Render(name string, props any) (Parts, error) {
 			return Parts{}, err
 		}
 	}
-	resolved, err := tmpl.doc.Resolve(props)
+	resolved, err := tmpl.doc.ResolveWithHelpers(props, s.opts.Helpers)
 	if err != nil {
 		return Parts{}, err
 	}
-	return Parts{
+	parts := Parts{
 		HTML: renderhtml.Write(resolved, s.opts.Theme),
 		Text: rendertext.Write(resolved),
-	}, nil
+	}
+	diag, sizeErr := checkHTMLBudget(name, parts.HTML, s.opts.MaxHTMLBytes)
+	if sizeErr != nil {
+		return Parts{}, sizeErr
+	}
+	if diag != nil {
+		parts.Diagnostics = append(parts.Diagnostics, *diag)
+	}
+	return parts, nil
+}
+
+// checkHTMLBudget implements EM120 (error, over Options.MaxHTMLBytes) and
+// EM121 (warn, over the fixed 90,000-byte line but still within budget),
+// with the design spec's exact message text (section 8). maxBytes == -1
+// disables both checks. name (the template's own name — Render has no
+// "fixture" file the way `gsxmail check`'s CLI-level EM120/EM121 does)
+// fills the messages' "%s" fixture placeholder.
+func checkHTMLBudget(name, html string, maxBytes int) (*Diagnostic, error) {
+	if maxBytes == -1 {
+		return nil, nil
+	}
+	n := len(html)
+	if n > maxBytes {
+		return nil, &SizeBudgetError{Diagnostic: Diagnostic{
+			Code:     "EM120",
+			Severity: "error",
+			Message: fmt.Sprintf(
+				"rendered HTML is %d bytes with fixture %s; the budget is %d bytes (Gmail clips near 102400)",
+				n, name, maxBytes),
+		}}
+	}
+	if n > warnHTMLBytes {
+		return &Diagnostic{
+			Code:     "EM121",
+			Severity: "warn",
+			Message: fmt.Sprintf(
+				"rendered HTML is %d bytes with fixture %s; within budget but above the 90000-byte warning line",
+				n, name),
+		}, nil
+	}
+	return nil, nil
 }
 
 // Names lists every loaded template name, sorted.

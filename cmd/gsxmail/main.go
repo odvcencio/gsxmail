@@ -109,6 +109,14 @@ func runRender(args []string) error {
 	if err != nil {
 		return fmt.Errorf("rendering %s: %w", name, err)
 	}
+	// A render-time diagnostic (today, only EM121) has no source position
+	// to format the way gsxmail check's Load-time findings do — it is a
+	// property of this one render's output, not of template source — so
+	// it prints as "gsxmail: CODE: message" instead of Diagnostic.String's
+	// "file:line:col: CODE: message" shape.
+	for _, d := range parts.Diagnostics {
+		fmt.Fprintf(os.Stderr, "gsxmail: %s: %s\n", d.Code, d.Message)
+	}
 
 	if *htmlOut != "" || *textOut != "" {
 		if *htmlOut != "" {
