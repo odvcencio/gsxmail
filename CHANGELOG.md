@@ -4,6 +4,64 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (`gsxmail import`; WP5.5)
+
+- `importer/`: a new top-level package that parses an existing email HTML
+  file — MJML compiled output, react-email output, or hand-written table
+  soup — with `github.com/odvcencio/gotreesitter`'s error-tolerant HTML
+  grammar, and reverse-maps it onto gsxmail's shipped `email.*`
+  components (pixel dossier section 7.2(1)). It is gsxmail's second
+  deliberate gotreesitter import, after `internal/structverify`; the core
+  render path (`renderhtml`, `doc`, `lower`, `gsxmail.go`) still never
+  imports it — see `importer/doc.go` and
+  `structural_isolation_test.go`'s new `TestImporterIsolatedFromRenderPath`.
+- The mapper recognizes gsxmail's own hardened output shapes at high
+  confidence (the self-round-trip proof: importing a template gsxmail
+  itself rendered recovers the exact original block sequence) and a set
+  of looser, generic fingerprints for foreign HTML: a ghost-table/card
+  shell (with a fallback for MJML's own `<div style="max-width">` +
+  `width:100%` table shape, and for a source that compiles each block to
+  its own separate 600px table rather than one shared card), bulletproof
+  button anchors (primary/secondary/link variants), a data table with
+  `<th>` cells, label/value row pairs (nested in their own sub-table, or
+  stacked directly as the card's own top-level rows), fluid-hybrid
+  columns, a spacer/divider td, a bordered badge span, a hidden preheader
+  div, a sized image, and a numbered list. Every node it cannot place
+  lands inside an `email.Custom` fallback block, sanitized (tag
+  remapping, `class`/event-attribute stripping, href-scheme and image-src
+  validation, and CSS-matrix-safe style filtering) so the generated
+  template still loads cleanly.
+- Props synthesis: variable text (Panel row values, a Headline's lede, a
+  Shell's wordmark/tagline/title/preheader, a Button's confirmed source
+  text) becomes a named, deduplicated props field; repeated StatTable
+  rows synthesize into an `<Each>` over a generated row-slice type,
+  matching the shipped gallery's own `Cells []string` convention. A
+  best-effort `Theme` literal is extracted from the card's own literal
+  colors (`ImportedTheme()` in the generated `props.go`).
+- `Import` returns a `Report`: every mapped node's path, component, and
+  confidence; every unmapped node's path and reason; every synthesized
+  props field's source snippet; theme-extraction notes; and a next-steps
+  list. `gsxmail import` prints its own summary to stdout and writes the
+  full report as `IMPORT-REPORT.md`.
+- CLI: `gsxmail import <in.html> --out <dir> [--name Welcome] [--package
+  emails]` writes `template.gsx`, `props.go`, `props.sample.json`, and
+  `IMPORT-REPORT.md`. Building the CLI with `-tags 'grammar_subset
+  grammar_subset_html'` keeps the gotreesitter delta to roughly 819 KiB
+  over the pre-WP5.5 binary (25,513,420 vs 24,674,716 bytes), well under
+  the pixel dossier's ~5 MB gate; the untagged default build embeds every
+  grammar and costs roughly 19.4 MiB more.
+- `structural_isolation_test.go`'s own `corePackages` no longer lists
+  `cmd/gsxmail`: the pixel dossier's isolation rule extends, rather than
+  tightens, for WP5.5 — "the importer package and CLI may [import
+  gotreesitter]." The new `TestImporterIsolatedFromRenderPath` proves the
+  CLI reaches gotreesitter through exactly the one expected path.
+- `importer/testdata/corpus/`: three checked-in foreign-HTML fixtures —
+  `mjml.html` (MJML's real compiled section/button/column shapes, citing
+  R6-R9), `react-email.html` (react-email's Preview suppression styles
+  and per-Section layout, citing R3-R5), and `legacy.html` (hand-written
+  table soup with genuinely unclosed tags) — each with a pinned
+  `.gsx`/`props.go`/`props.sample.json`/`IMPORT-REPORT.md` golden.
+
 ### Documentation (WP5.3)
 
 - README: a new "New components (WP5.3)" section documents `Button`

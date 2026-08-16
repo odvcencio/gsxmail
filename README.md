@@ -27,24 +27,27 @@ from one tree — so the text part can never drift from the HTML part.
 - No Word-engine emulation in preview. The dev preview approximates
   webmail; it does not emulate Outlook's Word rendering engine.
 
-## Status: WP5.3, new components, the template gallery, and named themes
+## Status: WP5.5, `gsxmail import`, new components, the gallery, and named themes
 
 The stdlib now covers `Shell`, `Signal`, `Headline`, `Panel`/`PanelRow`,
 `CTA`, `Button`, `Columns`/`Column`, `Hero`, `Spacer`, `Badge`,
 `PickList`/`Item`, `Footer`, `Note`, `Divider`, and `StatTable`/`StatRow`.
 Templates can loop over a slice with `<Each>` and branch on a bool with
 `<If>`; a raw-element `Custom` subtree stays available as an escape hatch
-for markup the stdlib does not express. It ships the `gsxmail render` and
-`gsxmail check` CLI verbs, `gsxmail matrix refresh`, and the full
-`Load`/`Render`/`Check` library API. `Render`'s HTML part is hardened,
-bulletproof markup by default, mechanically proven by a structural
-verification pass — see "Output contracts" below. A `Theme` can declare a
-dark-mode strategy, and a Shell can set a preheader and its own
-output-contract override — see "Dark mode", "Preheader", and "Shell
-options" below. Two named themes, `TerminalTheme()` and `LedgerTheme()`,
-ship alongside the neutral `DefaultTheme()` — see "Named themes" below.
-The [`examples/gallery`](examples/gallery) directory holds five complete,
+for markup the stdlib does not express. It ships the `gsxmail render`,
+`gsxmail check`, and `gsxmail import` CLI verbs, `gsxmail matrix
+refresh`, and the full `Load`/`Render`/`Check` library API. `Render`'s
+HTML part is hardened, bulletproof markup by default, mechanically
+proven by a structural verification pass — see "Output contracts" below.
+A `Theme` can declare a dark-mode strategy, and a Shell can set a
+preheader and its own output-contract override — see "Dark mode",
+"Preheader", and "Shell options" below. Two named themes,
+`TerminalTheme()` and `LedgerTheme()`, ship alongside the neutral
+`DefaultTheme()` — see "Named themes" below. The
+[`examples/gallery`](examples/gallery) directory holds five complete,
 golden-tested templates — see "The template gallery" below.
+`gsxmail import` reverse-maps an email you already send onto these same
+components — see "Import from existing HTML" below.
 
 `Load` runs the full email lint catalog (EM001 through EM112) before it
 lowers anything. A missing props field, an expression outside the email
@@ -321,6 +324,79 @@ like this (hardened mode, Paper theme):
 and its text twin: `[PAID]`. See `examples/gallery/README.md` for the
 full table and a longer snippet.
 
+## Import from existing HTML
+
+Every other template compiler starts from a blank file. `gsxmail import`
+starts from the email you already send:
+
+```sh
+gsxmail import newsletter.html --out emails/ --name Newsletter
+```
+
+It reads an existing email's rendered HTML — MJML's compiled output,
+react-email's rendered output, or a hand-written table-soup mail — and
+reverse-maps it onto the `email.*` components above. It writes four
+files into `--out`:
+
+| File | Contents |
+|---|---|
+| `template.gsx` | The best-effort `.gsx` source: every row it recognized becomes a named component; every row it does not recognize survives inside a raw `email.Custom` block instead of being dropped. |
+| `props.go` | The declared props struct, one field per piece of text the mapper judged likely to vary (a Panel value, a headline's lede, the Shell's own wordmark and preheader), plus an `ImportedTheme()` reproducing the source's own dominant colors. |
+| `props.sample.json` | The literal values the mapper harvested from the source HTML, so `template.gsx` renders correctly the moment you load it — no placeholder data to invent first. |
+| `IMPORT-REPORT.md` | The honest accounting: every mapping decision and its confidence, every unmapped node and why, every synthesized props field's own source snippet, what the theme extraction did and did not recover, and a next-steps list. |
+
+**Parsing never fails closed.** `gsxmail import` parses with
+[gotreesitter](https://github.com/odvcencio/gotreesitter)'s HTML
+grammar, whose error tolerance is the whole point: an unclosed `<td>`, a
+stray `<b>` with no matching close, or a malformed comment still
+produces a walkable tree, never a hard parse failure. A node the mapper
+cannot confidently place never gets dropped — it lands inside
+`email.Custom`, sanitized just enough to stay lint-clean (a
+non-allowlisted tag is remapped or unwrapped, `class` and event
+attributes are stripped, an unsafe `href` or a non-`https` image `src`
+is swapped for a placeholder and flagged in the report), and gets a line
+in `IMPORT-REPORT.md` explaining why.
+
+**What it recognizes**, matching the output contracts above:
+
+| Source shape | Maps to |
+|---|---|
+| A ghost-table/max-width card, one 600px table per compiled section, or a fluid `<div style="max-width">` wrapping one | `email.Shell` (+ a `Theme` literal extracted from its own dominant colors) |
+| A hidden, first-child-of-`<body>` div with `display:none`/`overflow:hidden` | The Shell's own `preheader` |
+| A large or bold heading, optionally followed by one paragraph | `email.Headline` |
+| A padded `<td>` + `<a>` (MJML's `mso-padding-alt` shape), a bordered anchor, or a lone styled link | `email.Button` (`primary`/`secondary`/`link`, by which signal matched) |
+| A table with `<th>` cells | `email.StatTable`, with its data rows synthesized into an `<Each>` |
+| A run of two-cell rows — nested in their own sub-table, or stacked directly as the card's own rows | `email.Panel` |
+| 2-4 sibling `inline-block`/`table-cell` divs | `email.Columns`/`email.Column` |
+| A lone, sized `<img>` | `email.Hero` |
+| An empty, fixed-height cell | `email.Spacer` |
+| A content-free border-top rule, or `<hr>` | `email.Divider` |
+| A border-left-accented block of plain text | `email.Note` |
+| A short, bordered inline span | `email.Badge` (tone inferred from its color) |
+| An `<ol>`/`<ul>`, or rows starting with "1.", "2." ... | `email.PickList` |
+| Everything else | `email.Custom`, reported |
+
+**The product promise is that it just works, then you tune it.** Every
+imported template loads through `Load` and renders through `Render`
+immediately, using the harvested sample props — that guarantee is
+proven in CI against three checked-in foreign fixtures
+(`importer/testdata/corpus/`: an MJML-compiled shape, a react-email
+shape, and a deliberately crufty legacy table-soup mail with unclosed
+tags) and against gsxmail's own five gallery templates rendered back to
+HTML and re-imported, which recover their exact original component
+sequence. `IMPORT-REPORT.md` is not an apology; it is the map of what to
+review before you ship the result.
+
+Build the CLI with `-tags 'grammar_subset grammar_subset_html'` to keep
+gotreesitter's own footprint small: the tagged build adds roughly 819 KiB
+over a build with no import verb at all (25,513,420 vs 24,674,716
+bytes); the default, untagged build embeds every grammar gotreesitter
+ships and costs roughly 19.4 MiB more. `gsxmail import`, and the CLI it
+ships in, are the only places in this repository that import
+gotreesitter outside a test file — `renderhtml`, `doc`, `lower`, and
+`gsxmail.go` (the render path `Load`/`Render` execute) never do, proven
+by `structural_isolation_test.go`.
+
 ## Size budget
 
 Gmail clips an HTML email near 102,400 bytes and hides everything after
@@ -415,6 +491,21 @@ Treat an EM014 or EM015 finding from `check` as informational. Validate
 helper bindings with `Set.Check()` in your own test instead, where
 `Options.Helpers` holds your real functions.
 
+### `gsxmail import`
+
+```sh
+gsxmail import newsletter.html --out emails/ --name Newsletter
+```
+
+Reverse-maps an existing email's rendered HTML onto `email.*`
+components: writes `template.gsx`, `props.go`, `props.sample.json`, and
+`IMPORT-REPORT.md` into `--out`, and prints the report's own summary.
+`--name` sets the generated component's name (`Newsletter` becomes
+`NewsletterEmail`; a name that already ends in `Email` is kept as-is);
+it defaults to a name derived from the source document's own `<title>`.
+`--package` sets the generated Go package name (default `emails`). See
+"Import from existing HTML" above for the full contract.
+
 ### `gsxmail matrix refresh`
 
 ```sh
@@ -482,6 +573,36 @@ gsxmail still fails closed at render time. An unknown props field, an
 unsupported expression, or a disallowed href scheme is a returned error.
 It is never a silently empty or unsafe value. See "Two layers, one
 guarantee" below for why both checks exist.
+
+### The `importer` package
+
+```go
+package importer
+
+type Options struct {
+    PackageName  string // default "emails"
+    TemplateName string // default: derived from the source's own <title>
+}
+
+type Result struct {
+    TemplateName    string
+    TemplateGSX     string
+    PropsGo         string
+    SamplePropsJSON string
+    Report          *Report
+}
+
+func Import(html []byte, sourceName string, opts Options) (*Result, error)
+```
+
+`gsxmail import` (above) is a thin CLI wrapper around this one function.
+Call it directly to drive the mapper from your own Go program — a
+migration script importing a whole directory of legacy templates, for
+instance — without shelling out. `Import` never returns an error for
+malformed or unrecognized markup; the one error case is a byte stream
+gotreesitter cannot parse into any tree at all. This package is the one
+place outside a `_test.go` file that gsxmail imports gotreesitter; see
+"Import from existing HTML" above.
 
 ## Two layers, one guarantee
 
