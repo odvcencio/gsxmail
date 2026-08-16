@@ -67,7 +67,7 @@ type exprContext struct {
 	propsName    string
 	props        *typesafe.Props
 	helpers      map[string]any
-	bindings     map[string]typesafe.Kind
+	bindings     map[string]typesafe.Binding
 }
 
 func (w *walker) add(n *ir.Node, code, severity, msg string) {
@@ -108,7 +108,7 @@ func (w *walker) checkComponent(comp ir.Component, resolver *typesafe.Resolver, 
 		propsName:    propsName,
 		props:        props,
 		helpers:      w.helpers,
-		bindings:     map[string]typesafe.Kind{},
+		bindings:     map[string]typesafe.Binding{},
 	}
 	w.checkNode(comp.Root, ctx)
 }
@@ -121,7 +121,7 @@ func (w *walker) checkNode(id ir.NodeID, ctx *exprContext) {
 	case ir.NodeComponent:
 		w.checkComponentNode(n, ctx)
 	case ir.NodeExpr:
-		if v := typesafe.CheckInterpolation(n.Text, ctx.templateName, ctx.propsName, ctx.props, ctx.helpers); v != nil {
+		if v := typesafe.CheckInterpolation(n.Text, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings, ctx.helpers); v != nil {
 			w.add(n, v.Code, "error", v.Message)
 		}
 	case ir.NodeFragment:
@@ -172,7 +172,7 @@ func (w *walker) checkElementAttr(n *ir.Node, a ir.Attr, ctx *exprContext) {
 		w.checkHrefScheme(n, a.Value)
 	}
 	if a.Kind == ir.AttrExpr {
-		if v := typesafe.CheckInterpolation(a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.helpers); v != nil {
+		if v := typesafe.CheckInterpolation(a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings, ctx.helpers); v != nil {
 			w.add(n, v.Code, "error", v.Message)
 		}
 	}
@@ -181,15 +181,51 @@ func (w *walker) checkElementAttr(n *ir.Node, a ir.Attr, ctx *exprContext) {
 // checkComponentAttr is checkElementAttr's narrower counterpart for
 // email.* stdlib component attributes: it skips the raw-element-only rules
 // (EM004 event attrs, EM104 class — no stdlib component accepts either),
-// but still checks hrefs and every expression hole.
-func (w *walker) checkComponentAttr(n *ir.Node, a ir.Attr, ctx *exprContext) {
+// but still checks hrefs and every expression hole. slicePathAttrs names
+// this component's own attributes (if any) that are slice-valued rather
+// than interpolated text — <email.StatTable header={...}> and
+// <email.StatRow cells={...}> (spec section 7.2's "Rows built from Each
+// over props data or literal rows") — so checkComponentAttr can route them
+// through CheckSlicePath instead of the scalar-only CheckInterpolation.
+func (w *walker) checkComponentAttr(n *ir.Node, a ir.Attr, ctx *exprContext, slicePathAttrs map[string]bool) {
 	if a.Name == "href" && a.Kind == ir.AttrStatic {
 		w.checkHrefScheme(n, a.Value)
 	}
-	if a.Kind == ir.AttrExpr {
-		if v := typesafe.CheckInterpolation(a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.helpers); v != nil {
+	if a.Kind != ir.AttrExpr {
+		return
+	}
+	if slicePathAttrs[a.Name] {
+		label := n.Tag + " " + a.Name
+		if _, v := typesafe.CheckSlicePath(label, a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings); v != nil {
 			w.add(n, v.Code, "error", v.Message)
 		}
+		return
+	}
+	if v := typesafe.CheckInterpolation(a.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings, ctx.helpers); v != nil {
+		w.add(n, v.Code, "error", v.Message)
+	}
+}
+
+// statTableSliceAttrs and statRowSliceAttrs name the one slice-valued
+// attribute each of these two stdlib components accepts (the local name
+// after the "email." namespace prefix splitTag strips): <email.StatTable
+// header={...}> and <email.StatRow cells={...}> (design spec section 7.2).
+// Every other email.* component's attributes are ordinary interpolated
+// text or bool holes and stay on the generic CheckInterpolation path.
+var statTableSliceAttrs = map[string]bool{"header": true}
+var statRowSliceAttrs = map[string]bool{"cells": true}
+
+// sliceAttrsFor names local (a "email." prefix already stripped) which of
+// tag's own attributes are slice-valued, per statTableSliceAttrs and
+// statRowSliceAttrs.
+func sliceAttrsFor(local string) map[string]bool {
+	switch local {
+	case "StatTable":
+		return statTableSliceAttrs
+	case "StatRow":
+		return statRowSliceAttrs
+	default:
+		return nil
 	}
 }
 
@@ -314,7 +350,7 @@ func splitTag(tag string) (ns, local string) {
 }
 
 func (w *walker) checkComponentNode(n *ir.Node, ctx *exprContext) {
-	ns, _ := splitTag(n.Tag)
+	ns, local := splitTag(n.Tag)
 	switch {
 	case n.Tag == "If":
 		w.checkIf(n, ctx)
@@ -325,8 +361,9 @@ func (w *walker) checkComponentNode(n *ir.Node, ctx *exprContext) {
 		// whether that member exists at all, is package lower's job
 		// (spec section 15, WP1); the lint only validates this node's own
 		// attribute expressions and recurses into its children.
+		slicePathAttrs := sliceAttrsFor(local)
 		for _, a := range n.Attrs {
-			w.checkComponentAttr(n, a, ctx)
+			w.checkComponentAttr(n, a, ctx, slicePathAttrs)
 		}
 		for _, c := range n.Children {
 			w.checkNode(c, ctx)
@@ -371,27 +408,15 @@ func (w *walker) checkEach(n *ir.Node, ctx *exprContext) {
 		}
 	}
 
-	elemKind := typesafe.KindUnknown
+	elemBinding := typesafe.Binding{Kind: typesafe.KindUnknown}
 	switch {
 	case ofAttr == nil || ofAttr.Kind != ir.AttrExpr:
 		w.add(n, "EM032", "error", "<Each of={}> requires a slice or array props path; got the of attribute is required")
 	default:
-		field, isBareField := typesafe.BareFieldName(ofAttr.Expr, ctx.propsName)
-		switch {
-		case !isBareField:
-			w.add(n, "EM032", "error", fmt.Sprintf("<Each of={%s}> requires a slice or array props path; got a non-props-path expression", ofAttr.Expr))
-		case ctx.props == nil:
-			w.add(n, "EM012", "error", fmt.Sprintf("template %s reads props.%s but type %s has no field %s", ctx.templateName, field, "<no props type>", field))
-		default:
-			f, exists := ctx.props.Fields[field]
-			switch {
-			case !exists:
-				w.add(n, "EM012", "error", fmt.Sprintf("template %s reads props.%s but type %s has no field %s", ctx.templateName, field, ctx.props.Name, field))
-			case f.Kind != typesafe.KindSlice:
-				w.add(n, "EM032", "error", fmt.Sprintf("<Each of={%s}> requires a slice or array props path; got %s", ofAttr.Expr, f.GoType))
-			default:
-				elemKind = f.ElemKind
-			}
+		if b, v := typesafe.CheckSlicePath("Each of", ofAttr.Expr, ctx.templateName, ctx.propsName, ctx.props, ctx.bindings); v != nil {
+			w.add(n, v.Code, "error", v.Message)
+		} else {
+			elemBinding = b
 		}
 	}
 
@@ -401,11 +426,11 @@ func (w *walker) checkEach(n *ir.Node, ctx *exprContext) {
 
 	childCtx := ctx
 	if asAttr != nil && asAttr.Kind == ir.AttrStatic && strings.TrimSpace(asAttr.Value) != "" {
-		bindings := make(map[string]typesafe.Kind, len(ctx.bindings)+1)
+		bindings := make(map[string]typesafe.Binding, len(ctx.bindings)+1)
 		for k, v := range ctx.bindings {
 			bindings[k] = v
 		}
-		bindings[asAttr.Value] = elemKind
+		bindings[asAttr.Value] = elemBinding
 		childCtx = &exprContext{
 			templateName: ctx.templateName, propsName: ctx.propsName,
 			props: ctx.props, helpers: ctx.helpers, bindings: bindings,

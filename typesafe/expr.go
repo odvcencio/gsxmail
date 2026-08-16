@@ -21,16 +21,17 @@ func (v *Violation) Error() string { return v.Code + ": " + v.Message }
 // CheckExpr type-checks src — a raw Go expression, as recorded on an
 // ir.Attr's Expr field or an ir.Node's NodeExpr Text — against the v1 email
 // dialect (design spec section 6.1): props field reads, the loop bindings
-// an enclosing <Each as="name"> introduces, string/int/float literals,
-// string + concatenation, comparisons on scalars, len(), and calls to a
-// helper registered in helpers. templateName names the template being
-// checked (EM012's message); propsName is its declared props parameter
-// name. props is nil when the template declares no resolvable props type,
-// in which case every props field read reports EM012. bindings maps a loop
-// binding's name to its element Kind; pass nil outside an <Each> body.
-// CheckExpr returns the expression's resolved Kind and the first dialect
-// violation found, if any — never both.
-func CheckExpr(src, templateName, propsName string, props *Props, bindings map[string]Kind, helpers map[string]any) (Kind, *Violation) {
+// an enclosing <Each as="name"> introduces (including one level of field
+// reads on a struct-element binding, "row.Cells"), string/int/float
+// literals, string + concatenation, comparisons on scalars, len(), and
+// calls to a helper registered in helpers. templateName names the template
+// being checked (EM012's message); propsName is its declared props
+// parameter name. props is nil when the template declares no resolvable
+// props type, in which case every props field read reports EM012.
+// bindings maps a loop binding's name to its element Binding; pass nil
+// outside an <Each> body. CheckExpr returns the expression's resolved Kind
+// and the first dialect violation found, if any — never both.
+func CheckExpr(src, templateName, propsName string, props *Props, bindings map[string]Binding, helpers map[string]any) (Kind, *Violation) {
 	fset := token.NewFileSet()
 	expr, err := parser.ParseExprFrom(fset, "expr", src, 0)
 	if err != nil {
@@ -51,33 +52,75 @@ func CheckExpr(src, templateName, propsName string, props *Props, bindings map[s
 // CheckInterpolation type-checks src as an attribute-hole or text-hole
 // expression whose resolved value must be interpolatable text (spec
 // EM013): a string, integer, float, or bool. It is CheckExpr plus that one
-// additional rule, with a fast path for the common case — a bare props
-// field read — so a non-scalar field gets EM013's specific message instead
-// of the generic EM010 catch-all.
-func CheckInterpolation(src, templateName, propsName string, props *Props, helpers map[string]any) *Violation {
-	if props != nil {
-		if field, ok := BareFieldName(src, propsName); ok {
-			f, exists := props.Fields[field]
-			if !exists {
-				return em012(templateName, props.Name, field)
-			}
+// additional rule, with a fast path for the common case — a bare props or
+// loop-binding field read — so a non-scalar field gets EM013's specific
+// message instead of the generic EM010 catch-all. bindings is the same
+// loop-binding scope CheckExpr takes; pass nil outside an <Each> body.
+func CheckInterpolation(src, templateName, propsName string, props *Props, bindings map[string]Binding, helpers map[string]any) *Violation {
+	if root, field, ok := ParseBareSelector(src); ok && field != "" {
+		if f, resolved := ResolveFieldPath(root, field, propsName, props, bindings); resolved {
 			if !f.Kind.IsScalar() {
+				typeName := f.GoType
 				return &Violation{"EM013", fmt.Sprintf(
 					"props.%s has type %s; interpolated values must be string, integer, float, or bool — format structs before rendering",
-					field, f.GoType)}
+					field, typeName)}
 			}
 			return nil
 		}
+		if root == propsName {
+			return em012(templateName, propsTypeName(props), field)
+		}
 	}
-	_, v := CheckExpr(src, templateName, propsName, props, nil, helpers)
+	_, v := CheckExpr(src, templateName, propsName, props, bindings, helpers)
 	return v
+}
+
+func propsTypeName(props *Props) string {
+	if props == nil {
+		return ""
+	}
+	return props.Name
+}
+
+// CheckSlicePath type-checks src as a bare slice-valued path — the shape
+// <Each of={...}>, <email.StatTable header={...}>, and <email.StatRow
+// cells={...}> all require (design spec section 8, EM032; section 15,
+// WP3): a bare props or loop-binding field read whose resolved Kind is
+// KindSlice. label names the attribute for the message, exactly as it
+// should read inside "<%s> requires a slice or array props path" — "Each
+// of" reproduces EM032's original, pinned wording for <Each>; StatTable
+// and StatRow's callers pass their own tag and attribute name so the same
+// rule reads correctly for header and cells too. CheckSlicePath returns
+// the slice element's own Binding (so a caller such as <Each> can extend
+// its own bindings map with it) and the first violation found, if any.
+func CheckSlicePath(label, src, templateName, propsName string, props *Props, bindings map[string]Binding) (elem Binding, v *Violation) {
+	root, field, ok := ParseBareSelector(src)
+	if !ok {
+		return Binding{}, emSlicePath(label, src, "a non-props-path expression")
+	}
+	f, resolved := ResolveFieldPath(root, field, propsName, props, bindings)
+	switch {
+	case !resolved && root == propsName:
+		return Binding{}, em012(templateName, propsTypeName(props), field)
+	case !resolved:
+		return Binding{}, emSlicePath(label, src, "a non-props-path expression")
+	case f.Kind != KindSlice:
+		return Binding{}, emSlicePath(label, src, f.GoType)
+	default:
+		return Binding{Kind: f.ElemKind, Fields: f.ElemProps}, nil
+	}
+}
+
+func emSlicePath(label, src, got string) *Violation {
+	return &Violation{"EM032", fmt.Sprintf(
+		"<%s={%s}> requires a slice or array props path; got %s", label, src, got)}
 }
 
 type checker struct {
 	templateName string
 	propsName    string
 	props        *Props
-	bindings     map[string]Kind
+	bindings     map[string]Binding
 	helpers      map[string]any
 	src          string
 	fset         *token.FileSet
@@ -146,8 +189,8 @@ func (c *checker) eval(n ast.Expr) (Kind, *Violation) {
 		if e.Name == "true" || e.Name == "false" {
 			return KindBool, nil
 		}
-		if k, ok := c.bindings[e.Name]; ok {
-			return k, nil
+		if b, ok := c.bindings[e.Name]; ok {
+			return b.Kind, nil
 		}
 		return KindUnknown, em010(c.src)
 	case *ast.SelectorExpr:
@@ -155,17 +198,30 @@ func (c *checker) eval(n ast.Expr) (Kind, *Violation) {
 			return KindUnknown, em011(c.src, c.sourceSlice(e.X.Pos(), e.X.End()))
 		}
 		ident, ok := e.X.(*ast.Ident)
-		if !ok || ident.Name != c.propsName {
+		if !ok {
 			return KindUnknown, em010(c.src)
 		}
-		if c.props == nil {
-			return KindUnknown, c.em012(e.Sel.Name)
+		if ident.Name == c.propsName {
+			if c.props == nil {
+				return KindUnknown, c.em012(e.Sel.Name)
+			}
+			f, ok := c.props.Fields[e.Sel.Name]
+			if !ok {
+				return KindUnknown, c.em012(e.Sel.Name)
+			}
+			return f.Kind, nil
 		}
-		f, ok := c.props.Fields[e.Sel.Name]
-		if !ok {
-			return KindUnknown, c.em012(e.Sel.Name)
+		if b, ok := c.bindings[ident.Name]; ok {
+			if b.Fields == nil {
+				return KindUnknown, em010(c.src)
+			}
+			f, ok := b.Fields.Fields[e.Sel.Name]
+			if !ok {
+				return KindUnknown, em010(c.src)
+			}
+			return f.Kind, nil
 		}
-		return f.Kind, nil
+		return KindUnknown, em010(c.src)
 	case *ast.BinaryExpr:
 		return c.evalBinary(e)
 	case *ast.UnaryExpr:

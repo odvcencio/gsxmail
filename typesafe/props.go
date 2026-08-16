@@ -75,6 +75,24 @@ type Field struct {
 	// are the zero value otherwise.
 	ElemKind Kind
 	ElemType string
+	// ElemProps resolves ElemType's own fields when a KindSlice field's
+	// element is itself a struct (nil otherwise, including for a scalar
+	// element type). <Each as="row"> over such a field binds "row" to a
+	// value whose own fields (row.Cells, row.IsKeystone, ...) this drives —
+	// the email dialect's answer to "nested prop reads" for loop bodies
+	// (design spec section 6.1), scoped to one level of nesting.
+	ElemProps *Props
+}
+
+// Binding is what an <Each as="name"> loop variable resolves to for the
+// rest of its body: name's own Kind (KindString for []string, KindOther
+// or a scalar Kind for []T, ...), and, when the slice's element is a
+// struct, that struct's own field map so the checker can validate
+// name.Field reads the same way it validates props.Field reads. Fields is
+// nil for a scalar-element loop (name has no fields to read).
+type Binding struct {
+	Kind   Kind
+	Fields *Props
 }
 
 // Props is a props struct go/types resolved from the *.go files beside a
@@ -138,15 +156,27 @@ func (r *Resolver) Resolve(dir, typeName string) (*Props, error) {
 	}
 
 	qualifier := types.RelativeTo(rp.pkg)
+	return propsFromStruct(typeName, st, qualifier, 1), nil
+}
+
+// propsFromStruct builds a Props from a resolved *types.Struct: st's own
+// exported fields, classified against qualifier. depth bounds how many
+// further levels of KindSlice-of-struct elements classifyField resolves
+// into an ElemProps of their own (Resolve's top-level call passes 1: one
+// level of <Each> loop-body nesting, matching the design spec's "props
+// field paths, including nested reads" scope for v1 — a KindSlice field
+// whose own element is a struct that itself declares a KindSlice field
+// does not recurse further, avoiding unbounded work on a recursive type).
+func propsFromStruct(name string, st *types.Struct, qualifier types.Qualifier, depth int) *Props {
 	fields := make(map[string]Field, st.NumFields())
 	for i := 0; i < st.NumFields(); i++ {
 		f := st.Field(i)
 		if !f.Exported() {
 			continue
 		}
-		fields[f.Name()] = classifyField(f.Type(), qualifier)
+		fields[f.Name()] = classifyField(f.Type(), qualifier, depth)
 	}
-	return &Props{Name: typeName, Fields: fields}, nil
+	return &Props{Name: name, Fields: fields}
 }
 
 func isPlainIdent(s string) bool {
@@ -216,12 +246,17 @@ func (r *Resolver) buildPackage(dir string) *resolvedPackage {
 	return &resolvedPackage{pkg: pkg}
 }
 
-func classifyField(t types.Type, qualifier types.Qualifier) Field {
+func classifyField(t types.Type, qualifier types.Qualifier, depth int) Field {
 	kind, goType := classify(t, qualifier)
 	f := Field{Kind: kind, GoType: goType}
 	if kind == KindSlice {
 		if elem, ok := sliceElem(t); ok {
 			f.ElemKind, f.ElemType = classify(elem, qualifier)
+			if depth > 0 {
+				if elemSt, ok := elem.Underlying().(*types.Struct); ok {
+					f.ElemProps = propsFromStruct(f.ElemType, elemSt, qualifier, depth-1)
+				}
+			}
 		}
 	}
 	return f
@@ -267,18 +302,67 @@ func classify(t types.Type, qualifier types.Qualifier) (Kind, string) {
 // message, rather than the generic EM010 catch-all a nested occurrence
 // would fall through to.
 func BareFieldName(src, propsName string) (string, bool) {
+	root, field, ok := ParseBareSelector(src)
+	if !ok || field == "" || root != propsName {
+		return "", false
+	}
+	return field, true
+}
+
+// ParseBareSelector parses src as a bare "root.field" reference, or a bare
+// "root" identifier with no selector, and reports the two names. It takes
+// no view on whether root is the props parameter or a loop binding — that
+// judgment needs context (the props type, the active bindings) this parse
+// step does not have; ResolveFieldPath and CheckSlicePath supply it. ok is
+// false for anything else (a call, an index, a literal, and so on).
+func ParseBareSelector(src string) (root, field string, ok bool) {
 	fset := token.NewFileSet()
 	expr, err := parser.ParseExprFrom(fset, "expr", src, 0)
 	if err != nil {
-		return "", false
+		return "", "", false
 	}
-	sel, ok := expr.(*ast.SelectorExpr)
+	switch e := expr.(type) {
+	case *ast.SelectorExpr:
+		ident, ok := e.X.(*ast.Ident)
+		if !ok {
+			return "", "", false
+		}
+		return ident.Name, e.Sel.Name, true
+	case *ast.Ident:
+		return e.Name, "", true
+	default:
+		return "", "", false
+	}
+}
+
+// ResolveFieldPath resolves a bare selector's root/field pair (as
+// ParseBareSelector returns them) against propsName and bindings: root ==
+// propsName reads props.field; root naming a bindings key reads that loop
+// variable's own field (design spec section 6.1's "the binding
+// participates in expression resolution inside the body"). field == ""
+// (a bare loop-variable reference with no selector, such as <Each of=...
+// as="tag"> then {tag}) resolves to the binding's own Kind, with no
+// further Fields — a scalar-element loop has nothing to select from. ok is
+// false when root names neither the props parameter nor a known binding,
+// or when the named field does not exist on whichever side matched.
+func ResolveFieldPath(root, field, propsName string, props *Props, bindings map[string]Binding) (Field, bool) {
+	if root == propsName {
+		if field == "" || props == nil {
+			return Field{}, false
+		}
+		f, ok := props.Fields[field]
+		return f, ok
+	}
+	b, ok := bindings[root]
 	if !ok {
-		return "", false
+		return Field{}, false
 	}
-	ident, ok := sel.X.(*ast.Ident)
-	if !ok || ident.Name != propsName {
-		return "", false
+	if field == "" {
+		return Field{Kind: b.Kind}, true
 	}
-	return sel.Sel.Name, true
+	if b.Fields == nil {
+		return Field{}, false
+	}
+	f, ok := b.Fields.Fields[field]
+	return f, ok
 }
