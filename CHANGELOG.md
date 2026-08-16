@@ -4,6 +4,25 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (named themes; WP5.3)
+
+- `gsxmail.TerminalTheme()`/`renderhtml.TerminalTheme()`: a dark,
+  mono-forward named theme, green-on-near-black, `DarkMode: "locked"`
+  (pixel dossier section 8.2). It is deliberately not the private
+  gridiron aqua/navy palette, which stays unshipped (dossier section
+  8.2's own note; spec section 16.5's default). Its token values are the
+  same ones WP5.2's own private `darkLockedTheme` test fixture already
+  proved against EM140-144; they now ship as a named theme.
+- `gsxmail.LedgerTheme()`/`renderhtml.LedgerTheme()`: a warm, print-like
+  light named theme, `DarkMode: "adaptive"` with a genuine `Dark`
+  palette. Terminal is dark-native by construction and needs no separate
+  swapped-in presentation; Ledger is light-native, so it carries a real
+  companion dark palette instead — together the two themes demonstrate
+  both of gsxmail's non-trivial dark-mode strategies with real, shipped
+  themes.
+- Both themes pass EM140-144 (`TestCheckThemeNamedGalleryThemesPass`,
+  called through their real constructors, not a copied token table).
+
 ### Added (new components; WP5.3)
 
 - `email.Button` (variants `"primary"`, `"secondary"`, `"link"`; pixel

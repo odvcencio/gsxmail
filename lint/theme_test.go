@@ -133,3 +133,25 @@ func TestCheckThemeAdaptiveDarkPalettePasses(t *testing.T) {
 		t.Errorf("a well-formed adaptive dark palette tripped %d diagnostic(s), want none: %+v", len(diags), diags)
 	}
 }
+
+// TestCheckThemeNamedGalleryThemesPass is the WP5.3 acceptance line (pixel
+// dossier section 8.2: "All three palettes must pass EM141 contrast and
+// EM142 midtone lint"; the task's own "both pass EM140-144"): the two new
+// named themes, called through their real renderhtml constructors rather
+// than a copy of their token values, must trip none of EM140-EM144.
+func TestCheckThemeNamedGalleryThemesPass(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		theme renderhtml.Theme
+	}{
+		{"Terminal", renderhtml.TerminalTheme()},
+		{"Ledger", renderhtml.LedgerTheme()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			diags := lint.CheckTheme(tc.theme)
+			if len(diags) != 0 {
+				t.Errorf("%sTheme() tripped %d theme diagnostic(s), want none: %+v", tc.name, len(diags), diags)
+			}
+		})
+	}
+}

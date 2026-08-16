@@ -114,3 +114,77 @@ func DefaultTheme() Theme {
 		DarkMode:    "none",
 	}
 }
+
+// TerminalTheme is a dark, mono-forward gallery theme (pixel dossier
+// section 8.2, WP5.3): green-on-near-black, deliberately not the private
+// gridiron aqua/navy palette (dossier section 8.2's own note; section 12,
+// open question 3's default). Its DarkMode is "locked" — the theme is
+// itself dark-native, the dossier's own assignment for Terminal — so
+// Theme.Dark stays nil; there is no separate presentation to swap to. The
+// same token values already proved EM140-144 in WP5.2's own private
+// darkLockedTheme fixture (wp52_test.go), carried over here unchanged now
+// that they ship as a named theme.
+func TerminalTheme() Theme {
+	return Theme{
+		ColorGround: "#0C100D",
+		ColorCard:   "#101611",
+		ColorPanel:  "#16201A",
+		ColorBorder: "#23402F",
+		ColorAccent: "#33E68C",
+		ColorInk:    "#E8F5EC",
+		ColorBody:   "#C7D9CE",
+		ColorMuted:  "#7FA28D",
+		ColorFaint:  "#4F6D5C",
+
+		FontSans: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
+		FontMono: "'SFMono-Regular',Consolas,Menlo,monospace",
+
+		CardWidth: 600,
+
+		ColorScheme: "dark",
+		DarkMode:    "locked",
+	}
+}
+
+// LedgerTheme is a warm, print-like light gallery theme (pixel dossier
+// section 8.2, WP5.3). Its DarkMode is "adaptive" with a genuine Dark
+// palette: unlike Terminal (already dark-native, so it needs no separate
+// swapped-in presentation), Ledger is light-native, so demonstrating a
+// real dark experience for it means carrying an actual companion dark
+// palette. Together, the two named themes show off gsxmail's two
+// non-trivial dark-mode strategies with real, shipped themes: Terminal
+// is "locked" dark by nature; Ledger swaps to its own Dark palette under
+// "adaptive". ColorScheme stays "" ("adaptive" computes its own "light
+// dark" meta pair; EM144 rejects a stale explicit value here).
+func LedgerTheme() Theme {
+	return Theme{
+		ColorGround: "#FBF7EF",
+		ColorCard:   "#FFFFFF",
+		ColorPanel:  "#F5EFE1",
+		ColorBorder: "#E7DECB",
+		ColorAccent: "#B4451F",
+		ColorInk:    "#26201A",
+		ColorBody:   "#4A4038",
+		ColorMuted:  "#8A7E6C",
+		ColorFaint:  "#A89A87",
+
+		FontSans: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
+		FontMono: "'SFMono-Regular',Consolas,Menlo,monospace",
+
+		CardWidth: 600,
+
+		ColorScheme: "",
+		DarkMode:    "adaptive",
+		Dark: &DarkPalette{
+			ColorGround: "#17130E",
+			ColorCard:   "#1E1913",
+			ColorPanel:  "#241E17",
+			ColorBorder: "#3A2F23",
+			ColorAccent: "#E08A52",
+			ColorInk:    "#F3E9DA",
+			ColorBody:   "#D8CAB8",
+			ColorMuted:  "#A08F79",
+			ColorFaint:  "#6E6153",
+		},
+	}
+}

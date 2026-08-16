@@ -18,3 +18,19 @@ type DarkPalette = renderhtml.DarkPalette
 func DefaultTheme() Theme {
 	return renderhtml.DefaultTheme()
 }
+
+// TerminalTheme returns a dark, mono-forward named theme (pixel dossier
+// section 8.2, WP5.3): green-on-near-black, DarkMode "locked". It is
+// deliberately not the private gridiron aqua/navy palette, which stays
+// unshipped. See the README's "Named themes" section for the full
+// palette and its EM140-144 proof.
+func TerminalTheme() Theme {
+	return renderhtml.TerminalTheme()
+}
+
+// LedgerTheme returns a warm, print-like light named theme (pixel dossier
+// section 8.2, WP5.3), DarkMode "adaptive" with its own companion Dark
+// palette. See the README's "Named themes" section for the full palette.
+func LedgerTheme() Theme {
+	return renderhtml.LedgerTheme()
+}
