@@ -4,6 +4,36 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (template gallery; WP5.3)
+
+- `examples/gallery/`: five complete templates (pixel dossier section
+  8.1), each a self-contained `fs.FS` root with typed props, a `.gsx`
+  source, a fixture props JSON file, a byte-exact golden HTML/text pair,
+  and its own README: `welcome/` (Shell, Headline, PickList, Button,
+  Footer), `magiclink/` (Shell, Headline, Panel, Note, Button), `receipt/`
+  (Shell, Badge, Headline, StatTable, Panel, Button, Footer — the
+  dossier's own complete worked example, section 8.3), `digest/` (Shell,
+  Hero, Columns, StatTable, Divider, PickList, rendered under
+  `LedgerTheme()`), and `alert/` (Shell, Signal, Badge, Note, Button,
+  rendered under `TerminalTheme()`).
+- `examples/gallery/gallery_test.go` loads every template independently,
+  renders each against its own fixture, pins the golden pair, and runs
+  the structural verification pass over the whole gallery in both output
+  contracts (hardened and parity) — the corpus doubling as the
+  structural-verification test suite the task set out for it. Every
+  gallery HTML stays under the EM121 90,000-byte warning line (the
+  largest, `digest.html`, is 10,402 bytes).
+- Documented deviation: `receipt/`'s dossier-cited `.gsx` source writes
+  inline slice literals for `StatTable`'s `header`/`cells`
+  (`cells={[item.Name, item.Qty, item.Amount]}`), which the shipped
+  `StatTable`/`StatRow` API does not accept — it only takes a bare props-
+  or binding-rooted field path, and `StatTable` is out of WP5.3 scope
+  (its own byte-pinned goldens must not move). `receipt/`'s `ReceiptItem`
+  carries a `Cells []string` field instead of separate fields, and
+  `ReceiptProps` carries an explicit `Header []string` field; the
+  rendered content and shape still match the dossier's worked example
+  (see `receipt/README.md`).
+
 ### Added (named themes; WP5.3)
 
 - `gsxmail.TerminalTheme()`/`renderhtml.TerminalTheme()`: a dark,

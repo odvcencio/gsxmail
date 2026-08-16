@@ -1,0 +1,15 @@
+{
+  "Product": "ACME",
+  "OrderID": "1042",
+  "IssuedOn": "August 14, 2026",
+  "BilledTo": "ada@example.com",
+  "Header": ["ITEM", "QTY", "AMOUNT"],
+  "Items": [
+    {"Cells": ["Standard seat", "1", "$80.00"]},
+    {"Cells": ["Priority support", "1", "$0.00"]}
+  ],
+  "Subtotal": "$80.00",
+  "Tax": "$6.00",
+  "Total": "$86.00",
+  "ReceiptURL": "https://acme.example/r/1042"
+}

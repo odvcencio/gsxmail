@@ -1,0 +1,27 @@
+Acme // WEEKLY DIGEST
+
+[Acme weekly digest highlights]
+
+THIS WEEK.
+
+Week of August 10, 2026
+
+[New release icon]
+New release
+Version 4.2 ships faster search and a redesigned dashboard.
+
+[Community icon]
+Community picks
+Three workflows the community shared this week, curated by the team.
+
+BY THE NUMBERS //
+  METRIC             THIS WEEK
+  -----------------  ---------
+  Active workspaces  1,204
+  Reports generated  8,930
+  Uptime             99.98%
+
+ALSO THIS WEEK
+  1. Read the top story
+  2. Catch up on the comment threads
+  3. Check this week's leaderboard

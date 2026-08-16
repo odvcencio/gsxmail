@@ -1,0 +1,16 @@
+Acme // ACCOUNT CREATED
+
+YOU'RE IN.
+
+Your Acme account is live, Ada. Sign in to finish setting up your
+workspace.
+
+NEXT STEPS
+  1. Confirm your email address
+  2. Invite your team
+  3. Read the getting-started guide
+
+  -> SIGN IN: https://acme.example/login
+
+— The Team
+You are receiving this email because your Acme account was just created.

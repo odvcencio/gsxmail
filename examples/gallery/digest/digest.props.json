@@ -1,0 +1,26 @@
+{
+  "Product": "Acme",
+  "Period": "Week of August 10, 2026",
+  "HeroSrc": "https://cdn.acme.example/digest-hero@2x.png",
+  "HeroAlt": "Acme weekly digest highlights",
+  "HeroWidth": "598",
+  "HeroHeight": "240",
+  "Col1ImgSrc": "https://cdn.acme.example/digest-col-release@2x.png",
+  "Col1ImgAlt": "New release icon",
+  "Col1ImgWidth": "120",
+  "Col1ImgHeight": "80",
+  "Col1Title": "New release",
+  "Col1Text": "Version 4.2 ships faster search and a redesigned dashboard.",
+  "Col2ImgSrc": "https://cdn.acme.example/digest-col-community@2x.png",
+  "Col2ImgAlt": "Community icon",
+  "Col2ImgWidth": "120",
+  "Col2ImgHeight": "80",
+  "Col2Title": "Community picks",
+  "Col2Text": "Three workflows the community shared this week, curated by the team.",
+  "StatHeader": ["METRIC", "THIS WEEK"],
+  "Stats": [
+    {"Cells": ["Active workspaces", "1,204"]},
+    {"Cells": ["Reports generated", "8,930"]},
+    {"Cells": ["Uptime", "99.98%"]}
+  ]
+}

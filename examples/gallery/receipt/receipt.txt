@@ -1,0 +1,23 @@
+ACME // ORDER RECEIPT
+
+[PAID]
+
+PAYMENT RECEIVED.
+
+Order 1042, issued August 14, 2026. A copy is attached to your account.
+
+ITEMS //
+  ITEM              QTY  AMOUNT
+  ----------------  ---  ------
+  Standard seat     1    $80.00
+  Priority support  1    $0.00
+
+  SUBTOTAL     $80.00
+  TAX          $6.00
+  TOTAL        $86.00
+  BILLED TO    ada@example.com
+
+  -> VIEW RECEIPT: https://acme.example/r/1042
+
+— ACME Billing
+ACME · This is a receipt, not an invoice. Keep it for your records.

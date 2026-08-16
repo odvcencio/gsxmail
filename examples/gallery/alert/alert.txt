@@ -1,0 +1,10 @@
+Acme // SYSTEM ALERTS
+
+* SYSTEM ALERT // Acme
+
+[CRITICAL]
+
+Database replication lag exceeded 5 minutes at 03:14 UTC. On-call has
+been paged.
+
+  -> VIEW INCIDENT: https://status.acme.example/incidents/482
