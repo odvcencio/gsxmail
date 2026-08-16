@@ -1,0 +1,2120 @@
+{
+ "date": "2026-08-10",
+ "source": "https://www.caniemail.com/api/data.json",
+ "clients": [
+  {
+   "id": "gmail-web",
+   "label": "Gmail (web)"
+  },
+  {
+   "id": "gmail-ios",
+   "label": "Gmail (iOS)"
+  },
+  {
+   "id": "gmail-android",
+   "label": "Gmail (Android)"
+  },
+  {
+   "id": "apple-mail-macos",
+   "label": "Apple Mail (macOS)"
+  },
+  {
+   "id": "apple-mail-ios",
+   "label": "Apple Mail (iOS)"
+  },
+  {
+   "id": "outlook-windows",
+   "label": "Outlook (Windows desktop)"
+  },
+  {
+   "id": "outlook-web",
+   "label": "Outlook (web)"
+  },
+  {
+   "id": "yahoo-web",
+   "label": "Yahoo (web)"
+  }
+ ],
+ "properties": {
+  "accent-color": {
+   "slug": "css-accent-color",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "align-items": {
+   "slug": "css-align-items",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "animation": {
+   "slug": "css-animation",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "aspect-ratio": {
+   "slug": "css-aspect-ratio",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "backdrop-filter": {
+   "slug": "css-backdrop-filter",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "background": {
+   "slug": "css-background",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "background-blend-mode": {
+   "slug": "css-background-blend-mode",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "background-clip": {
+   "slug": "css-background-clip",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "background-color": {
+   "slug": "css-background-color",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "y",
+    "yahoo-web": "y"
+   }
+  },
+  "background-image": {
+   "slug": "css-background-image",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "a"
+   }
+  },
+  "background-origin": {
+   "slug": "css-background-origin",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "background-position": {
+   "slug": "css-background-position",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "background-repeat": {
+   "slug": "css-background-repeat",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "background-size": {
+   "slug": "css-background-size",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "block-inline-size": {
+   "slug": "css-block-inline-size",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "block-size": {
+   "slug": "css-block-inline-size",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "border": {
+   "slug": "css-border",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "border-bottom": {
+   "slug": "css-border",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "border-collapse": {
+   "slug": "css-border-collapse",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "y",
+    "yahoo-web": "y"
+   }
+  },
+  "border-color": {
+   "slug": "css-border",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "border-image": {
+   "slug": "css-border-image",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "border-inline-block": {
+   "slug": "css-border-inline-block",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "border-inline-block-individual": {
+   "slug": "css-border-inline-block-individual",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "border-inline-block-longhand": {
+   "slug": "css-border-inline-block-longhand",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "border-left": {
+   "slug": "css-border",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "border-radius": {
+   "slug": "css-border-radius",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "a"
+   }
+  },
+  "border-radius-logical": {
+   "slug": "css-border-radius-logical",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "border-right": {
+   "slug": "css-border",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "border-spacing": {
+   "slug": "css-border-spacing",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "border-style": {
+   "slug": "css-border",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "border-top": {
+   "slug": "css-border",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "border-width": {
+   "slug": "css-border",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "bottom": {
+   "slug": "css-left-right-top-bottom",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "box-shadow": {
+   "slug": "css-box-shadow",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "box-sizing": {
+   "slug": "css-box-sizing",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "caption-side": {
+   "slug": "css-caption-side",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "clear": {
+   "slug": "css-clear",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "a"
+   }
+  },
+  "clip-path": {
+   "slug": "css-clip-path",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "color-scheme": {
+   "slug": "css-color-scheme",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "column-count": {
+   "slug": "css-column-count",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "cursor": {
+   "slug": "css-cursor",
+   "support": {
+    "apple-mail-ios": "n",
+    "apple-mail-macos": "a",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "u",
+    "yahoo-web": "a"
+   }
+  },
+  "direction": {
+   "slug": "css-direction",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "y",
+    "yahoo-web": "y"
+   }
+  },
+  "display": {
+   "slug": "css-display",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "display-flex": {
+   "slug": "css-display-flex",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "display-grid": {
+   "slug": "css-display-grid",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "display-none": {
+   "slug": "css-display-none",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "empty-cells": {
+   "slug": "css-empty-cells",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "filter": {
+   "slug": "css-filter",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "flex-direction": {
+   "slug": "css-flex-direction",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "flex-wrap": {
+   "slug": "css-flex-wrap",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "float": {
+   "slug": "css-float",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "a"
+   }
+  },
+  "font": {
+   "slug": "css-font",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "y",
+    "yahoo-web": "y"
+   }
+  },
+  "font-kerning": {
+   "slug": "css-font-kerning",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "font-size": {
+   "slug": "css-font-size",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "font-size-adjust": {
+   "slug": "css-font-size-adjust",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "a"
+   }
+  },
+  "font-stretch": {
+   "slug": "css-font-stretch",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "font-weight": {
+   "slug": "css-font-weight",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "gap": {
+   "slug": "css-gap",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "a",
+    "outlook-web": "a",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "grid-template": {
+   "slug": "css-grid-template",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "height": {
+   "slug": "css-height",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "n"
+   }
+  },
+  "hyphenate-character": {
+   "slug": "css-hyphenate-character",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "hyphenate-limit-chars": {
+   "slug": "css-hyphenate-limit-chars",
+   "support": {
+    "apple-mail-ios": "n",
+    "apple-mail-macos": "n",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "hyphens": {
+   "slug": "css-hyphens",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "inert-attribute": {
+   "slug": "css-inert-attribute",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "inline-size": {
+   "slug": "css-inline-size",
+   "support": {
+    "apple-mail-ios": "n",
+    "apple-mail-macos": "n",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "inset": {
+   "slug": "css-inset",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "intrinsic-size": {
+   "slug": "css-intrinsic-size",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "justify-content": {
+   "slug": "css-justify-content",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "left": {
+   "slug": "css-left-right-top-bottom",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "left-right-top-bottom": {
+   "slug": "css-left-right-top-bottom",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "letter-spacing": {
+   "slug": "css-letter-spacing",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "line-height": {
+   "slug": "css-line-height",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "list-style": {
+   "slug": "css-list-style",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "a",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "list-style-image": {
+   "slug": "css-list-style-image",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "list-style-position": {
+   "slug": "css-list-style-position",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "list-style-type": {
+   "slug": "css-list-style-type",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "y",
+    "yahoo-web": "y"
+   }
+  },
+  "margin": {
+   "slug": "css-margin",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "a",
+    "outlook-web": "a",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "margin-block-end": {
+   "slug": "css-margin-block-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "margin-block-start": {
+   "slug": "css-margin-block-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "margin-block-start-end": {
+   "slug": "css-margin-block-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "margin-bottom": {
+   "slug": "css-margin",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "a",
+    "outlook-web": "a",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "margin-inline-block": {
+   "slug": "css-margin-inline-block",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "margin-inline-end": {
+   "slug": "css-margin-inline-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "margin-inline-start": {
+   "slug": "css-margin-inline-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "margin-inline-start-end": {
+   "slug": "css-margin-inline-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "margin-left": {
+   "slug": "css-margin",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "a",
+    "outlook-web": "a",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "margin-right": {
+   "slug": "css-margin",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "a",
+    "outlook-web": "a",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "margin-top": {
+   "slug": "css-margin",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "a",
+    "outlook-web": "a",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "mask-image": {
+   "slug": "css-mask-image",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "max-block-size": {
+   "slug": "css-max-block-size",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "max-height": {
+   "slug": "css-max-height",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "max-inline-size": {
+   "slug": "css-max-inline-size",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "max-width": {
+   "slug": "css-max-width",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "min-block-size": {
+   "slug": "css-min-block-size",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "min-height": {
+   "slug": "css-min-height",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "min-inline-size": {
+   "slug": "css-min-inline-size",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "min-width": {
+   "slug": "css-min-width",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "mix-blend-mode": {
+   "slug": "css-mix-blend-mode",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "object-fit": {
+   "slug": "css-object-fit",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "object-position": {
+   "slug": "css-object-position",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "opacity": {
+   "slug": "css-opacity",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "orphans": {
+   "slug": "css-orphans",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "outline": {
+   "slug": "css-outline",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "outline-offset": {
+   "slug": "css-outline-offset",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "overflow": {
+   "slug": "css-overflow",
+   "support": {
+    "apple-mail-ios": "a",
+    "apple-mail-macos": "a",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "a",
+    "outlook-web": "a",
+    "outlook-windows": "n",
+    "yahoo-web": "a"
+   }
+  },
+  "overflow-wrap": {
+   "slug": "css-overflow-wrap",
+   "support": {
+    "apple-mail-ios": "a",
+    "apple-mail-macos": "a",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "padding": {
+   "slug": "css-padding",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "padding-block-end": {
+   "slug": "css-padding-block-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "padding-block-start": {
+   "slug": "css-padding-block-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "padding-block-start-end": {
+   "slug": "css-padding-block-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "padding-bottom": {
+   "slug": "css-padding",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "padding-inline-block": {
+   "slug": "css-padding-inline-block",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "padding-inline-end": {
+   "slug": "css-padding-inline-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "padding-inline-start": {
+   "slug": "css-padding-inline-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "padding-inline-start-end": {
+   "slug": "css-padding-inline-start-end",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "padding-left": {
+   "slug": "css-padding",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "padding-right": {
+   "slug": "css-padding",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "padding-top": {
+   "slug": "css-padding",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "position": {
+   "slug": "css-position",
+   "support": {
+    "apple-mail-ios": "a",
+    "apple-mail-macos": "a",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "a",
+    "outlook-windows": "n",
+    "yahoo-web": "a"
+   }
+  },
+  "resize": {
+   "slug": "css-resize",
+   "support": {
+    "apple-mail-ios": "n",
+    "apple-mail-macos": "a",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "right": {
+   "slug": "css-left-right-top-bottom",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "scroll-snap": {
+   "slug": "css-scroll-snap",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "shape-margin": {
+   "slug": "css-shape-margin",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "shape-outside": {
+   "slug": "css-shape-outside",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "tab-size": {
+   "slug": "css-tab-size",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "table-layout": {
+   "slug": "css-table-layout",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "text-align": {
+   "slug": "css-text-align",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "text-align-last": {
+   "slug": "css-text-align-last",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "text-decoration": {
+   "slug": "css-text-decoration",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "text-decoration-color": {
+   "slug": "css-text-decoration-color",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "text-decoration-line": {
+   "slug": "css-text-decoration-line",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "text-decoration-skip-ink": {
+   "slug": "css-text-decoration-skip-ink",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "text-decoration-style": {
+   "slug": "css-text-decoration-style",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "text-decoration-thickness": {
+   "slug": "css-text-decoration-thickness",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "text-emphasis": {
+   "slug": "css-text-emphasis",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "text-emphasis-position": {
+   "slug": "css-text-emphasis-position",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "text-indent": {
+   "slug": "css-text-indent",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "a",
+    "outlook-web": "y",
+    "outlook-windows": "y",
+    "yahoo-web": "a"
+   }
+  },
+  "text-justify": {
+   "slug": "css-text-justify",
+   "support": {
+    "apple-mail-ios": "n",
+    "apple-mail-macos": "n",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "a",
+    "outlook-web": "a",
+    "outlook-windows": "a",
+    "yahoo-web": "a"
+   }
+  },
+  "text-orientation": {
+   "slug": "css-text-orientation",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "text-overflow": {
+   "slug": "css-text-overflow",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "text-shadow": {
+   "slug": "css-text-shadow",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "text-transform": {
+   "slug": "css-text-transform",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "text-underline-offset": {
+   "slug": "css-text-underline-offset",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "text-underline-position": {
+   "slug": "css-text-underline-position",
+   "support": {
+    "apple-mail-ios": "a",
+    "apple-mail-macos": "a",
+    "gmail-android": "y",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "text-wrap": {
+   "slug": "css-text-wrap",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "top": {
+   "slug": "css-left-right-top-bottom",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "transform": {
+   "slug": "css-transform",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "transition": {
+   "slug": "css-transition",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "a"
+   }
+  },
+  "user-select": {
+   "slug": "css-user-select",
+   "support": {
+    "apple-mail-ios": "a",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "vertical-align": {
+   "slug": "css-vertical-align",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "y",
+    "yahoo-web": "y"
+   }
+  },
+  "visibility": {
+   "slug": "css-visibility",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "white-space": {
+   "slug": "css-white-space",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "white-space-collapse": {
+   "slug": "css-white-space-collapse",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "n",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "widows": {
+   "slug": "css-widows",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "width": {
+   "slug": "css-width",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "a",
+    "yahoo-web": "y"
+   }
+  },
+  "word-break": {
+   "slug": "css-word-break",
+   "support": {
+    "apple-mail-ios": "a",
+    "apple-mail-macos": "a",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "a",
+    "outlook-windows": "y",
+    "yahoo-web": "n"
+   }
+  },
+  "word-spacing": {
+   "slug": "css-word-spacing",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "y",
+    "gmail-ios": "y",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "a"
+   }
+  },
+  "word-wrap": {
+   "slug": "css-word-wrap",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "u",
+    "gmail-web": "a",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  },
+  "writing-mode": {
+   "slug": "css-writing-mode",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "a",
+    "gmail-ios": "a",
+    "gmail-web": "y",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "n"
+   }
+  },
+  "z-index": {
+   "slug": "css-z-index",
+   "support": {
+    "apple-mail-ios": "y",
+    "apple-mail-macos": "y",
+    "gmail-android": "n",
+    "gmail-ios": "n",
+    "gmail-web": "n",
+    "outlook-web": "y",
+    "outlook-windows": "n",
+    "yahoo-web": "y"
+   }
+  }
+ }
+}

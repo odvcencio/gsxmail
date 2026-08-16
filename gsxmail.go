@@ -7,15 +7,19 @@ package gsxmail
 import (
 	"fmt"
 	"io/fs"
+	"path"
 	"reflect"
 	"sort"
 	"strings"
 
 	"m31labs.dev/gosx"
+	"m31labs.dev/gosx/ir"
 	"m31labs.dev/gsxmail/doc"
+	"m31labs.dev/gsxmail/lint"
 	"m31labs.dev/gsxmail/lower"
 	"m31labs.dev/gsxmail/renderhtml"
 	"m31labs.dev/gsxmail/rendertext"
+	"m31labs.dev/gsxmail/typesafe"
 )
 
 // Parts is one rendered multipart email.
@@ -30,9 +34,12 @@ type Options struct {
 	// inlines. The zero value is replaced with DefaultTheme().
 	Theme Theme
 
-	// Helpers registers pure functions callable from templates. WP1's
-	// expression grammar has no call syntax, so this field is accepted
-	// but unused until a later work package adds helper calls.
+	// Helpers registers pure functions callable from templates. Load's
+	// lint pass validates every helper call against this map: an
+	// unregistered name is EM014, and a registered helper called with the
+	// wrong number of arguments is EM015. Runtime helper invocation is a
+	// later work package; a template that calls a helper cannot render
+	// yet even once it passes the lint (spec section 15, WP3).
 	Helpers map[string]any
 
 	// MaxHTMLBytes is the Gmail-clip size budget: 0 selects the default
@@ -42,28 +49,41 @@ type Options struct {
 	MaxHTMLBytes int
 }
 
-// Diagnostic is one check-time finding. WP1's Load performs no linting, so
-// Check always returns nil; the type exists so WP2's EM catalog can fill it
-// in without changing the Set API.
-type Diagnostic struct {
-	File     string
-	Line     int
-	Col      int
-	Code     string
-	Severity string
-	Message  string
+// Diagnostic is one check-time finding (design spec section 8). It is a
+// type alias for lint.Diagnostic, so gsxmail's public API never requires a
+// caller to import package lint directly.
+type Diagnostic = lint.Diagnostic
+
+// LintError is the error Load returns when the email lint (spec section 8)
+// finds at least one error-severity finding in any loaded template: Load
+// fails closed, returning no Set. Diagnostics carries every finding
+// gathered across every template in the fs.FS, including any warnings
+// found alongside the errors — the same list gsxmail check prints.
+type LintError struct {
+	Diagnostics []Diagnostic
 }
 
-// String formats d as "file:line:col: CODE: message" (spec section 8).
-func (d Diagnostic) String() string {
-	return fmt.Sprintf("%s:%d:%d: %s: %s", d.File, d.Line, d.Col, d.Code, d.Message)
+// Error lists every error-severity Diagnostic, one per line, in
+// "file:line:col: CODE: message" form (spec section 8).
+func (e *LintError) Error() string {
+	var b strings.Builder
+	b.WriteString("gsxmail: lint failed:\n")
+	for _, d := range e.Diagnostics {
+		if d.Severity != "error" {
+			continue
+		}
+		b.WriteString(d.String())
+		b.WriteByte('\n')
+	}
+	return strings.TrimRight(b.String(), "\n")
 }
 
 // Set is an immutable, goroutine-safe collection of compiled templates.
 type Set struct {
-	templates map[string]*compiledTemplate
-	names     []string
-	opts      Options
+	templates   map[string]*compiledTemplate
+	names       []string
+	opts        Options
+	diagnostics []Diagnostic
 }
 
 type compiledTemplate struct {
@@ -71,12 +91,16 @@ type compiledTemplate struct {
 	propsType string
 }
 
-// Load compiles every *.gsx file under fsys and lowers each declared
-// component to an EmailDoc. WP1 performs no separate lint pass (spec
-// section 8's EM catalog is a later work package); a component that gosx
-// cannot compile, or that lower.Lower rejects (an unsupported root, an
-// unknown email.* tag, or an expression outside the v1 grammar), fails
-// Load closed: the whole call returns an error and no Set.
+// Load compiles every *.gsx file under fsys, runs the email lint (spec
+// section 8) over the compiled programs, and — only once every template
+// clears the lint — lowers each declared component to an EmailDoc. Load
+// fails closed at either stage: a component gosx cannot compile is a plain
+// compile error; an error-severity lint finding in any template makes Load
+// return the full diagnostic list, as a *LintError, and no Set, without
+// ever lowering anything (spec section 7.1). A component that clears the
+// lint but that lower.Lower still rejects (an unsupported root, or a
+// construct — such as <If>/<Each> — the lint recognizes as valid dialect
+// but this release cannot yet render) fails Load with that plain error.
 func Load(fsys fs.FS, opts Options) (*Set, error) {
 	if (opts.Theme == Theme{}) {
 		opts.Theme = DefaultTheme()
@@ -85,36 +109,55 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 		opts.MaxHTMLBytes = 100_000
 	}
 
-	templates := make(map[string]*compiledTemplate)
-	walkErr := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+	type compiledFile struct {
+		path string
+		prog *ir.Program
+	}
+	var files []compiledFile
+	walkErr := fs.WalkDir(fsys, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() || !strings.HasSuffix(path, ".gsx") {
+		if d.IsDir() || !strings.HasSuffix(p, ".gsx") {
 			return nil
 		}
-		src, err := fs.ReadFile(fsys, path)
+		src, err := fs.ReadFile(fsys, p)
 		if err != nil {
-			return fmt.Errorf("gsxmail: reading %s: %w", path, err)
+			return fmt.Errorf("gsxmail: reading %s: %w", p, err)
 		}
 		prog, err := gosx.Compile(src)
 		if err != nil {
-			return fmt.Errorf("gsxmail: compiling %s: %w", path, err)
+			return fmt.Errorf("gsxmail: compiling %s: %w", p, err)
 		}
-		for _, c := range prog.Components {
-			emailDoc, err := lower.Lower(prog, c.Name)
-			if err != nil {
-				return fmt.Errorf("gsxmail: %s: %w", path, err)
-			}
-			if _, dup := templates[c.Name]; dup {
-				return fmt.Errorf("gsxmail: %s: template %q is already declared in another file", path, c.Name)
-			}
-			templates[c.Name] = &compiledTemplate{doc: emailDoc, propsType: c.PropsType}
-		}
+		files = append(files, compiledFile{path: p, prog: prog})
 		return nil
 	})
 	if walkErr != nil {
 		return nil, walkErr
+	}
+
+	resolver := typesafe.NewResolver(fsys)
+	lintOpts := lint.Options{Helpers: opts.Helpers}
+	var diagnostics []Diagnostic
+	for _, cf := range files {
+		diagnostics = append(diagnostics, lint.CheckProgram(cf.path, cf.prog, resolver, path.Dir(cf.path), lintOpts)...)
+	}
+	if hasErrorDiagnostic(diagnostics) {
+		return nil, &LintError{Diagnostics: diagnostics}
+	}
+
+	templates := make(map[string]*compiledTemplate)
+	for _, cf := range files {
+		for _, c := range cf.prog.Components {
+			emailDoc, err := lower.Lower(cf.prog, c.Name)
+			if err != nil {
+				return nil, fmt.Errorf("gsxmail: %s: %w", cf.path, err)
+			}
+			if _, dup := templates[c.Name]; dup {
+				return nil, fmt.Errorf("gsxmail: %s: template %q is already declared in another file", cf.path, c.Name)
+			}
+			templates[c.Name] = &compiledTemplate{doc: emailDoc, propsType: c.PropsType}
+		}
 	}
 
 	names := make([]string, 0, len(templates))
@@ -123,7 +166,16 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 	}
 	sort.Strings(names)
 
-	return &Set{templates: templates, names: names, opts: opts}, nil
+	return &Set{templates: templates, names: names, opts: opts, diagnostics: diagnostics}, nil
+}
+
+func hasErrorDiagnostic(diags []Diagnostic) bool {
+	for _, d := range diags {
+		if d.Severity == "error" {
+			return true
+		}
+	}
+	return false
 }
 
 // Render renders one named template. props must be assignable to the
@@ -157,16 +209,29 @@ func (s *Set) Names() []string {
 	return out
 }
 
-// Check runs the email lint without rendering. WP1 has no lint stage, so
-// Check always returns nil; a later work package fills in the EM catalog.
+// Check returns every finding the email lint (spec section 8) produced
+// while loading s, without rendering anything. A successfully loaded Set
+// carries only warning-severity findings: Load already fails closed on
+// every error-severity one, so a Set that exists never has an outstanding
+// error. Check does not see EM014/EM015 findings the standalone gsxmail
+// check CLI could not: both Load and Check see whatever Options.Helpers s
+// was loaded with (spec section 8's "split of responsibilities" is a CLI
+// limitation, not a library one — see the README).
 func (s *Set) Check() []Diagnostic {
-	return nil
+	out := make([]Diagnostic, len(s.diagnostics))
+	copy(out, s.diagnostics)
+	return out
 }
 
 // checkPropsType rejects a struct props value whose named type does not
-// match the template's declared props type. A map[string]any (the render
-// CLI's path, ahead of WP2's go/types-resolved decoding) has no named Go
-// type to compare and skips this check.
+// match the template's declared props type. This is the render-time half
+// of gsxmail's two-layer type check: typesafe/ (package lint's EM010-EM015
+// rules) resolves field types from source at Load time, but a props value
+// only exists at Render time, so checkPropsType — and doc.Resolve's own
+// per-field reflection right after it — re-proves the same guarantee
+// against the actual value, fail-closed either way. A map[string]any (the
+// render CLI's path, since it decodes JSON with no static Go type to
+// target) has no named Go type to compare and skips this check.
 func checkPropsType(props any, declared string) error {
 	v := reflect.ValueOf(props)
 	for v.Kind() == reflect.Pointer {
