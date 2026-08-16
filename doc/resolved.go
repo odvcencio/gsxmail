@@ -51,3 +51,55 @@ func (ResolvedPickList) isResolvedBlock() {}
 type ResolvedFooter struct{ Signoff, Note string }
 
 func (ResolvedFooter) isResolvedBlock() {}
+
+type ResolvedNote struct{ Text string }
+
+func (ResolvedNote) isResolvedBlock() {}
+
+type ResolvedDivider struct{}
+
+func (ResolvedDivider) isResolvedBlock() {}
+
+// ResolvedStatRow is one resolved StatTable row: its formatted cells and
+// whether it is the marked row (mirrors emailkit's per-row shape; the
+// table-level 1-based MarkRow that both writers actually key off of is
+// ResolvedStatTable.MarkRow, derived from every row's Mark).
+type ResolvedStatRow struct {
+	Cells []string
+	Mark  bool
+}
+
+// ResolvedStatTable is StatTable after every Expr and FieldPath has been
+// evaluated. MarkRow is the 1-based index of the first row whose Mark
+// resolved true, or 0 when none did — emailkit's MarkRow shape (design
+// spec section 6.5, "Mark semantics match emailkit's MarkRow"), derived
+// once here so both writers key off the same field rather than re-scanning
+// Rows themselves.
+type ResolvedStatTable struct {
+	Title   string
+	Header  []string
+	Rows    []ResolvedStatRow
+	MarkRow int
+}
+
+func (ResolvedStatTable) isResolvedBlock() {}
+
+// ResolvedCustom is Custom after every Expr in its subtree has been
+// evaluated.
+type ResolvedCustom struct {
+	Root ResolvedCustomNode
+}
+
+func (ResolvedCustom) isResolvedBlock() {}
+
+// ResolvedCustomNode mirrors CustomNode with every Expr evaluated to a
+// plain string.
+type ResolvedCustomNode struct {
+	Tag      string
+	IsText   bool
+	Text     string
+	Attrs    []ResolvedCustomAttr
+	Children []ResolvedCustomNode
+}
+
+type ResolvedCustomAttr struct{ Name, Value string }
