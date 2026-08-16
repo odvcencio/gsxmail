@@ -57,6 +57,17 @@ type Options struct {
 	// no Parts; over the fixed 90,000-byte warning line but still within
 	// budget is a returned Parts with one EM121 entry in Diagnostics.
 	MaxHTMLBytes int
+
+	// Outlook selects the HTML output contract every template in this Set
+	// renders with (design spec section 15, WP5.1; pixel dossier section
+	// 4.2). "" and "ghost-tables" (the default) emit the hardened,
+	// bulletproof markup: an Outlook ghost table, doubled DPI-fix widths,
+	// td-pair Panel rows, an <h1> Headline title, mso-padding-alt on the
+	// CTA, a real StatTable data-table contract, and the border-left Note
+	// / spacer-technique Divider. "off" emits the WP1 byte stream
+	// unchanged — the parity mode a consumer's own byte- or DOM-
+	// equivalence test can pin.
+	Outlook string
 }
 
 // defaultMaxHTMLBytes is Options.MaxHTMLBytes' zero-value default
@@ -236,7 +247,7 @@ func (s *Set) Render(name string, props any) (Parts, error) {
 		return Parts{}, err
 	}
 	parts := Parts{
-		HTML: renderhtml.Write(resolved, s.opts.Theme),
+		HTML: renderhtml.WriteWithOptions(resolved, s.opts.Theme, renderhtml.WriteOptions{Outlook: s.opts.Outlook}),
 		Text: rendertext.Write(resolved),
 	}
 	diag, sizeErr := checkHTMLBudget(name, parts.HTML, s.opts.MaxHTMLBytes)

@@ -6,6 +6,28 @@ All notable changes to gsxmail are documented in this file.
 
 ### Added
 
+- WP5.1 bulletproof output contracts (design spec section 15; pixel
+  dossier section 4): `renderhtml.Write` now emits hardened, bulletproof
+  markup by default for `Shell`, `Headline`, `Panel`, `CTA`, `StatTable`,
+  `Note`, and `Divider`. The hardened contract adds an Outlook ghost table
+  around the 600px card, `xmlns:v`/`xmlns:o` namespaces, the
+  `o:PixelsPerInch` DPI fix, MJML's reset `<style>` block, a
+  `role="article"` accessible wrapper, doubled width attributes/CSS on
+  sized elements, td-pair `Panel` rows (Outlook has no
+  `display:inline-block`), an `<h1>` `Headline` title, `mso-padding-alt`
+  on the `CTA` button, a real `StatTable` data-table contract (no
+  `role="presentation"`, `<th scope="col">` headers), a border-left `Note`
+  aside, and a spacer-technique `Divider`
+  (`font-size:0;line-height:0;mso-line-height-rule:exactly`). `Signal`,
+  `PickList`, and `Footer` are unchanged: their WP1 markup already met the
+  contract.
+- New `renderhtml.WriteOptions` and `renderhtml.WriteWithOptions`
+  (additive; `Write` keeps its signature) and a new `Options.Outlook`
+  field on `gsxmail.Options`: `""`/`"ghost-tables"` (the default) selects
+  the hardened contract above; `"off"` selects parity mode, the exact WP1
+  byte stream, unchanged. A consumer with its own byte- or DOM-equivalence
+  test against WP1 output — gsxmail's own gridiron invite fixture is the
+  example — sets `Outlook: "off"` to keep pinning the old bytes.
 - `<Each of={...} as="name">` and `<If cond={...}>` now render, not just
   lint-pass: `lower.Lower` expands `<Each>` into zero or more sibling
   blocks per element of the bound slice (empty slice renders nothing), and

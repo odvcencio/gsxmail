@@ -57,9 +57,15 @@ func gridironTheme() gsxmail.Theme {
 	}
 }
 
+// loadInviteSet loads the shared testdata/emails Set with Outlook "off"
+// (parity mode): InviteEmail is gridiron's production invite email, and
+// its own T3 DOM-parity guard (parity_test.go) pins admin.go's hand-written
+// bytes. WP5.1's hardened contract is opt-in per Set, so a template that
+// must stay parity-preserving picks "off" explicitly (design spec section
+// 15, WP5.1's parity guard; pixel dossier section 4.2).
 func loadInviteSet(t *testing.T) *gsxmail.Set {
 	t.Helper()
-	set, err := gsxmail.Load(os.DirFS("testdata/emails"), gsxmail.Options{Theme: gridironTheme()})
+	set, err := gsxmail.Load(os.DirFS("testdata/emails"), gsxmail.Options{Theme: gridironTheme(), Outlook: "off"})
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
