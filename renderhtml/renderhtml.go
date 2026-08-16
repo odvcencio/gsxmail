@@ -125,6 +125,14 @@ func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock) {
 		writePickList(b, theme, v)
 	case doc.ResolvedFooter:
 		writeFooter(b, theme, v)
+	case doc.ResolvedNote:
+		writeNote(b, theme, v)
+	case doc.ResolvedDivider:
+		writeDivider(b, theme, v)
+	case doc.ResolvedStatTable:
+		writeStatTable(b, theme, v)
+	case doc.ResolvedCustom:
+		writeCustomNode(b, v.Root)
 	}
 }
 
@@ -280,6 +288,136 @@ func writePickList(b *strings.Builder, theme Theme, p doc.ResolvedPickList) {
 </td>
 </tr>
 `)
+}
+
+func writeNote(b *strings.Builder, theme Theme, n doc.ResolvedNote) {
+	b.WriteString(`<tr>
+<td style="padding:24px 32px 0 32px;">
+<div style="color:`)
+	b.WriteString(theme.ColorBody)
+	b.WriteString(`; font-family:`)
+	b.WriteString(theme.FontSans)
+	b.WriteString(`; font-size:14px; line-height:1.6;">`)
+	b.WriteString(escapeText(n.Text))
+	b.WriteString(`</div>
+</td>
+</tr>
+`)
+}
+
+func writeDivider(b *strings.Builder, theme Theme, _ doc.ResolvedDivider) {
+	b.WriteString(`<tr>
+<td style="padding:20px 32px 0 32px;">
+<div style="border-top:1px solid `)
+	b.WriteString(theme.ColorBorder)
+	b.WriteString(`;"></div>
+</td>
+</tr>
+`)
+}
+
+// writeStatTable ports emailkit's StatTable.appendHTML (blocks.go), driven
+// by Theme's tokens instead of package-level constants. MarkRow (1-based;
+// 0 means no row is marked) selects the accent-colored row, matching
+// emailkit's own MarkRow semantics (design spec section 6.5).
+func writeStatTable(b *strings.Builder, theme Theme, s doc.ResolvedStatTable) {
+	b.WriteString(`<tr>
+<td style="padding:24px 32px 0 32px;">
+`)
+	if s.Title != "" {
+		b.WriteString(`<div style="color:`)
+		b.WriteString(theme.ColorMuted)
+		b.WriteString(`; font-family:`)
+		b.WriteString(theme.FontMono)
+		b.WriteString(`; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px;">`)
+		b.WriteString(escapeText(s.Title))
+		b.WriteString(`</div>
+`)
+	}
+	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid `)
+	b.WriteString(theme.ColorBorder)
+	b.WriteString(`; border-radius:4px;">
+`)
+	if len(s.Header) > 0 {
+		b.WriteString("<tr>\n")
+		for _, cell := range s.Header {
+			b.WriteString(`<td style="padding:10px 14px; border-bottom:1px solid `)
+			b.WriteString(theme.ColorBorder)
+			b.WriteString(`; color:`)
+			b.WriteString(theme.ColorMuted)
+			b.WriteString(`; font-family:`)
+			b.WriteString(theme.FontMono)
+			b.WriteString(`; font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">`)
+			b.WriteString(escapeText(cell))
+			b.WriteString("</td>\n")
+		}
+		b.WriteString("</tr>\n")
+	}
+	for i, row := range s.Rows {
+		rowColor := theme.ColorBody
+		background := ""
+		if i+1 == s.MarkRow {
+			rowColor = theme.ColorAccent
+			background = ` background-color:` + theme.ColorPanel + `;`
+		}
+		border := ""
+		if i < len(s.Rows)-1 {
+			border = ` border-bottom:1px solid ` + theme.ColorBorder + `;`
+		}
+		b.WriteString(`<tr style="`)
+		b.WriteString(background)
+		b.WriteString("\">\n")
+		for _, cell := range row.Cells {
+			b.WriteString(`<td style="padding:10px 14px;`)
+			b.WriteString(border)
+			b.WriteString(` color:`)
+			b.WriteString(rowColor)
+			b.WriteString(`; font-family:`)
+			b.WriteString(theme.FontSans)
+			b.WriteString(`; font-size:14px;">`)
+			b.WriteString(escapeText(cell))
+			b.WriteString("</td>\n")
+		}
+		b.WriteString("</tr>\n")
+	}
+	b.WriteString(`</table>
+</td>
+</tr>
+`)
+}
+
+// voidElements are the allowlisted raw elements with no closing tag.
+var voidElements = map[string]bool{"img": true, "br": true, "hr": true}
+
+// writeCustomNode writes one Custom subtree node (design spec section 7.2):
+// a raw element with its literal (already lint-checked) attributes, or a
+// text run. It carries the subtree through unmodified; gsxmail applies no
+// theme tokens to a Custom element, since Custom exists precisely for
+// markup the stdlib does not style on the author's behalf.
+func writeCustomNode(b *strings.Builder, n doc.ResolvedCustomNode) {
+	if n.IsText {
+		b.WriteString(escapeText(n.Text))
+		return
+	}
+	b.WriteByte('<')
+	b.WriteString(n.Tag)
+	for _, a := range n.Attrs {
+		b.WriteByte(' ')
+		b.WriteString(a.Name)
+		b.WriteString(`="`)
+		b.WriteString(escapeAttr(a.Value))
+		b.WriteByte('"')
+	}
+	b.WriteByte('>')
+	if voidElements[n.Tag] {
+		return
+	}
+	for _, c := range n.Children {
+		writeCustomNode(b, c)
+	}
+	b.WriteString("</")
+	b.WriteString(n.Tag)
+	b.WriteByte('>')
 }
 
 func writeFooter(b *strings.Builder, theme Theme, f doc.ResolvedFooter) {

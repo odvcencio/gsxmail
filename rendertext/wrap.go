@@ -67,3 +67,58 @@ func panelValueColumn(labels []string) int {
 	}
 	return 2 + longest + 4
 }
+
+// columnWidths computes the display width of each column across a header
+// row and every data row, so a text table's columns line up without
+// wrapping any cell (table rows never wrap, spec section 9). Width is
+// measured in runes. The column count is sized from whichever is wider,
+// the header or the widest data row, so a table with no header still
+// sizes every row cell's own column correctly. Ported from gridiron's
+// internal/emailkit/text.go.
+func columnWidths(header []string, rows [][]string) []int {
+	numCols := len(header)
+	for _, row := range rows {
+		if len(row) > numCols {
+			numCols = len(row)
+		}
+	}
+	widths := make([]int, numCols)
+	for i, cell := range header {
+		widths[i] = utf8.RuneCountInString(cell)
+	}
+	for _, row := range rows {
+		for i, cell := range row {
+			if n := utf8.RuneCountInString(cell); n > widths[i] {
+				widths[i] = n
+			}
+		}
+	}
+	return widths
+}
+
+// joinRow renders one table row with each cell left-justified to its
+// column width and a 2-space gutter between columns (spec section 9:
+// "two-space-guttered columns"). Ported from gridiron's
+// internal/emailkit/text.go.
+func joinRow(cells []string, widths []int) string {
+	parts := make([]string, len(cells))
+	for i, cell := range cells {
+		if i < len(widths)-1 {
+			parts[i] = padLabel(cell, widths[i])
+			continue
+		}
+		parts[i] = cell // last column never trails with padding
+	}
+	return strings.Join(parts, "  ")
+}
+
+// dashRow renders the underline row beneath a text table's header: one
+// run of dashes per column, sized to that column's width. Ported from
+// gridiron's internal/emailkit/text.go.
+func dashRow(widths []int) string {
+	cells := make([]string, len(widths))
+	for i, width := range widths {
+		cells[i] = strings.Repeat("-", width)
+	}
+	return strings.Join(cells, "  ")
+}

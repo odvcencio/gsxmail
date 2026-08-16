@@ -19,6 +19,16 @@ func Write(resolved *doc.Resolved) string {
 	b.WriteString(" // ")
 	b.WriteString(resolved.Shell.Tagline)
 	for _, block := range resolved.Blocks {
+		// A Divider carries its blank line as the ambient separator
+		// between its neighbors, not as its own extra pair of separators
+		// (ported from gridiron's internal/emailkit finding nit 1): skip
+		// its own leading "\n\n" entirely, since writeBlock already emits
+		// nothing for it. Without this, the "\n\n" written here plus the
+		// next block's own leading "\n\n" would stack into three blank
+		// lines instead of the spec's one.
+		if _, isDivider := block.(doc.ResolvedDivider); isDivider {
+			continue
+		}
 		b.WriteString("\n\n")
 		writeBlock(&b, block)
 	}
@@ -39,6 +49,14 @@ func writeBlock(b *strings.Builder, block doc.ResolvedBlock) {
 		writePickList(b, v)
 	case doc.ResolvedFooter:
 		writeFooter(b, v)
+	case doc.ResolvedNote:
+		writeNote(b, v)
+	case doc.ResolvedDivider:
+		// No output of its own; see Write's Divider special case above.
+	case doc.ResolvedStatTable:
+		writeStatTable(b, v)
+	case doc.ResolvedCustom:
+		writeCustom(b, v.Root)
 	}
 }
 
@@ -102,6 +120,41 @@ func writePickList(b *strings.Builder, p doc.ResolvedPickList) {
 	}
 	for i, item := range p.Items {
 		lines = append(lines, "  "+strconv.Itoa(i+1)+". "+item)
+	}
+	b.WriteString(strings.Join(lines, "\n"))
+}
+
+func writeNote(b *strings.Builder, n doc.ResolvedNote) {
+	b.WriteString(strings.Join(wrapText(n.Text, WrapWidth), "\n"))
+}
+
+// writeStatTable ports emailkit's StatTable.appendText (text.go/blocks.go):
+// an optional title line, an optional header row with a dashed underline,
+// then every row two-space-guttered — table rows never wrap. MarkRow
+// (1-based; 0 means none) prefixes its row with "* " instead of "  ", so
+// the marked row's meaning survives in plain text too (design spec section
+// 6.5, "Mark semantics match emailkit's MarkRow").
+func writeStatTable(b *strings.Builder, s doc.ResolvedStatTable) {
+	var lines []string
+	if s.Title != "" {
+		lines = append(lines, s.Title)
+	}
+
+	rows := make([][]string, len(s.Rows))
+	for i, row := range s.Rows {
+		rows[i] = row.Cells
+	}
+	widths := columnWidths(s.Header, rows)
+	if len(s.Header) > 0 {
+		lines = append(lines, "  "+joinRow(s.Header, widths))
+		lines = append(lines, "  "+dashRow(widths))
+	}
+	for i, row := range rows {
+		marker := "  "
+		if i+1 == s.MarkRow {
+			marker = "* "
+		}
+		lines = append(lines, marker+joinRow(row, widths))
 	}
 	b.WriteString(strings.Join(lines, "\n"))
 }
