@@ -4,6 +4,21 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Fixed (launch-gate B1: numeric attribute injection)
+
+- `email.Hero`'s width/height, `email.Spacer`'s height, `email.Column`'s
+  imgWidth/imgHeight, and `email.Button`'s link-variant width now reject a
+  props-driven value at render time unless it is empty or a positive
+  decimal integer (`doc.Resolve`'s new `resolvePositiveInt`). Every write
+  site for these five fields in `renderhtml` also passes through
+  `escapeAttr`, as defense in depth. A static (non-`{expression}`) value
+  that fails the same rule now fails `gsxmail check` too, as diagnostic
+  code EM181.
+- Before this fix, a caller-controlled value at any of these five sites
+  rendered unescaped and unvalidated into an HTML attribute or inline
+  style, so a value such as `20" onmouseover="x" data-evil="` broke out of
+  the attribute it was written into.
+
 ### Added (`gsxmail import`; WP5.5)
 
 - `importer/`: a new top-level package that parses an existing email HTML

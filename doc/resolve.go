@@ -180,7 +180,7 @@ func (sc *scope) resolveBlockInto(block Block, out *[]ResolvedBlock) error {
 		if err != nil {
 			return err
 		}
-		width, err := sc.resolveText(b.Width)
+		width, err := sc.resolvePositiveInt(b.Width, "email.Button", "width")
 		if err != nil {
 			return err
 		}
@@ -208,17 +208,17 @@ func (sc *scope) resolveBlockInto(block Block, out *[]ResolvedBlock) error {
 		if err != nil {
 			return err
 		}
-		width, err := sc.resolveText(b.Width)
+		width, err := sc.resolvePositiveInt(b.Width, "email.Hero", "width")
 		if err != nil {
 			return err
 		}
-		height, err := sc.resolveText(b.Height)
+		height, err := sc.resolvePositiveInt(b.Height, "email.Hero", "height")
 		if err != nil {
 			return err
 		}
 		*out = append(*out, ResolvedHero{Src: src, Alt: alt, Width: width, Height: height})
 	case Spacer:
-		height, err := sc.resolveText(b.Height)
+		height, err := sc.resolvePositiveInt(b.Height, "email.Spacer", "height")
 		if err != nil {
 			return err
 		}
@@ -342,10 +342,10 @@ func (sc *scope) resolveColumn(col Column) (ResolvedColumn, error) {
 	if rc.ImgAlt, err = sc.resolveText(col.ImgAlt); err != nil {
 		return rc, err
 	}
-	if rc.ImgWidth, err = sc.resolveText(col.ImgWidth); err != nil {
+	if rc.ImgWidth, err = sc.resolvePositiveInt(col.ImgWidth, "email.Column", "imgWidth"); err != nil {
 		return rc, err
 	}
-	if rc.ImgHeight, err = sc.resolveText(col.ImgHeight); err != nil {
+	if rc.ImgHeight, err = sc.resolvePositiveInt(col.ImgHeight, "email.Column", "imgHeight"); err != nil {
 		return rc, err
 	}
 	if rc.Title, err = sc.resolveText(col.Title); err != nil {
@@ -382,6 +382,51 @@ func (sc *scope) resolveCustomNode(n CustomNode) (ResolvedCustomNode, error) {
 		children[i] = rc
 	}
 	return ResolvedCustomNode{Tag: n.Tag, Attrs: attrs, Children: children}, nil
+}
+
+// resolvePositiveInt resolves expr like resolveText, then requires the
+// result to be either empty (a field an author left unset, such as a
+// Button's width, which falls back to a computed default) or a positive
+// decimal integer with no sign, decimal point, or extra characters. Every
+// numeric props-driven attribute gsxmail writes unquoted into an HTML
+// attribute or inline style pixel value (email.Hero's width/height,
+// email.Spacer's height, email.Column's imgWidth/imgHeight, email.Button's
+// width) resolves through here: a template value is untrusted input, and an
+// attribute written without this check is an injection vector (a
+// non-numeric string can break out of the attribute or style context it is
+// written into). component and field name the failing site in the returned
+// error, which a caller such as gsxmail.Set.Render surfaces to the caller
+// rather than rendering the unchecked value.
+func (sc *scope) resolvePositiveInt(e Expr, component, field string) (string, error) {
+	s, err := sc.resolveText(e)
+	if err != nil {
+		return "", err
+	}
+	if s == "" {
+		return "", nil
+	}
+	if !isPositiveDecimalInt(s) {
+		return "", fmt.Errorf("gsxmail: %s %s must be a positive decimal integer (a pixel count), got %q", component, field, s)
+	}
+	return s, nil
+}
+
+// isPositiveDecimalInt reports whether s is one or more ASCII digits
+// spelling a value greater than zero: no sign, no decimal point, no
+// leading/trailing whitespace, and no other character. strconv.Atoi alone
+// is not enough, since it accepts a leading "+" and "-0" style inputs this
+// check must reject.
+func isPositiveDecimalInt(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	n, err := strconv.Atoi(s)
+	return err == nil && n > 0
 }
 
 // fieldValue reads name from container, which is either a struct (field

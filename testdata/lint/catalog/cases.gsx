@@ -149,3 +149,7 @@ func CaseEM179() Node {
 func CaseEM180() Node {
     return <email.Badge text="x" tone="sideways" />
 }
+
+func CaseEM181() Node {
+    return <email.Spacer height="20px" />
+}

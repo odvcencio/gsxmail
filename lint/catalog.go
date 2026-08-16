@@ -3,6 +3,7 @@ package lint
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -582,24 +583,63 @@ func isBlankNode(n *ir.Node) bool {
 // checkShell's own outlook attribute (EM172) already applies.
 func (w *walker) checkButton(n *ir.Node) {
 	a := findAttr(n.Attrs, "variant")
-	if a == nil {
-		return // defaults to "primary"
-	}
-	got := a.Value
-	valid := a.Kind == ir.AttrStatic
-	if valid {
-		switch a.Value {
-		case "", "primary", "secondary", "link":
-		default:
-			valid = false
+	if a != nil {
+		got := a.Value
+		valid := a.Kind == ir.AttrStatic
+		if valid {
+			switch a.Value {
+			case "", "primary", "secondary", "link":
+			default:
+				valid = false
+			}
+		} else {
+			got = "{" + a.Expr + "}"
 		}
-	} else {
-		got = "{" + a.Expr + "}"
+		if !valid {
+			w.add(n, "EM175", "error", fmt.Sprintf(
+				`<email.Button> variant attribute must be a static "primary", "secondary", or "link"; got %q`, got))
+		}
 	}
-	if !valid {
-		w.add(n, "EM175", "error", fmt.Sprintf(
-			`<email.Button> variant attribute must be a static "primary", "secondary", or "link"; got %q`, got))
+	w.checkPositiveIntAttr(n, "email.Button", "width")
+}
+
+// checkPositiveIntAttr implements EM181 (design spec's B1 gate): when
+// component's name attribute is a static value, it must be empty (the
+// field is optional and falls back to a computed default) or a positive
+// decimal integer with no sign, decimal point, or extra characters —
+// gsxmail writes every one of these fields unquoted into an HTML attribute
+// or inline style pixel value (doc.Resolve's resolvePositiveInt enforces
+// the same rule at render time for a dynamic {expression} value, which
+// this static check cannot see until Render). A template author gets the
+// error at `gsxmail check` time instead of only at Render time when the
+// value never varies.
+func (w *walker) checkPositiveIntAttr(n *ir.Node, component, name string) {
+	a := findAttr(n.Attrs, name)
+	if a == nil || a.Kind != ir.AttrStatic {
+		return
 	}
+	if a.Value == "" || isPositiveDecimalInt(a.Value) {
+		return
+	}
+	w.add(n, "EM181", "error", fmt.Sprintf(
+		"%s %s must be a positive decimal integer (a pixel count), got %q", component, name, a.Value))
+}
+
+// isPositiveDecimalInt reports whether s is one or more ASCII digits
+// spelling a value greater than zero, mirroring doc.isPositiveDecimalInt
+// (package lint does not import package doc's internals, so it keeps its
+// own copy of this small, purely syntactic check).
+func isPositiveDecimalInt(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	n, err := strconv.Atoi(s)
+	return err == nil && n > 0
 }
 
 // checkColumns implements EM176 (design spec section 15, WP5.3; pixel
@@ -634,6 +674,8 @@ func (w *walker) checkColumns(n *ir.Node, ctx *exprContext) {
 		for _, a := range c.Attrs {
 			w.checkComponentAttr(c, a, ctx, nil)
 		}
+		w.checkPositiveIntAttr(c, "email.Column", "imgWidth")
+		w.checkPositiveIntAttr(c, "email.Column", "imgHeight")
 	}
 }
 
@@ -654,6 +696,8 @@ func (w *walker) checkHero(n *ir.Node) {
 			return
 		}
 	}
+	w.checkPositiveIntAttr(n, "email.Hero", "width")
+	w.checkPositiveIntAttr(n, "email.Hero", "height")
 }
 
 // checkSpacer implements EM179 (design spec section 15, WP5.3; pixel
@@ -664,7 +708,9 @@ func (w *walker) checkSpacer(n *ir.Node) {
 	a := findAttr(n.Attrs, "height")
 	if a == nil || (a.Kind == ir.AttrStatic && strings.TrimSpace(a.Value) == "") {
 		w.add(n, "EM179", "error", `<email.Spacer> requires a height attribute (a positive pixel integer)`)
+		return
 	}
+	w.checkPositiveIntAttr(n, "email.Spacer", "height")
 }
 
 // checkBadge implements EM180 (design spec section 15, WP5.3; pixel

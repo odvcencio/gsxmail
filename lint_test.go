@@ -69,6 +69,7 @@ func TestLintCatalog(t *testing.T) {
 		{"EM178", `<email.Hero> requires width and height attributes at display size; retina assets render at intrinsic size without them`},
 		{"EM179", `<email.Spacer> requires a height attribute (a positive pixel integer)`},
 		{"EM180", `<email.Badge> tone attribute must be a static "neutral", "positive", "warning", or "critical"; got "sideways"`},
+		{"EM181", `email.Spacer height must be a positive decimal integer (a pixel count), got "20px"`},
 	}
 
 	for _, tc := range cases {

@@ -763,16 +763,16 @@ func writeButtonLink(b *strings.Builder, theme Theme, v doc.ResolvedButton) {
 	b.WriteString(`; display:inline-block; font-family:`)
 	b.WriteString(theme.FontSans)
 	b.WriteString(`; font-size:14px; font-weight:800; letter-spacing:0.04em; line-height:44px; text-align:center; text-decoration:none; text-transform:uppercase; width:`)
-	b.WriteString(width)
+	b.WriteString(escapeAttr(width))
 	b.WriteString(`px; -webkit-text-size-adjust:none;">
 <!--[if mso]><i style="letter-spacing:`)
-	b.WriteString(width)
+	b.WriteString(escapeAttr(width))
 	b.WriteString(`px; mso-font-width:-100%; mso-text-raise:22pt;" hidden>&nbsp;</i><![endif]-->
 <span style="mso-text-raise:15pt;">`)
 	b.WriteString(escapeText(v.Label))
 	b.WriteString(`</span>
 <!--[if mso]><i style="letter-spacing:`)
-	b.WriteString(width)
+	b.WriteString(escapeAttr(width))
 	b.WriteString(`px; mso-font-width:-100%;" hidden>&nbsp;</i><![endif]-->
 </a>
 </td>
@@ -840,13 +840,13 @@ func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn,
 		b.WriteString(`<img src="`)
 		b.WriteString(escapeAttr(col.ImgSrc))
 		b.WriteString(`" width="`)
-		b.WriteString(col.ImgWidth)
+		b.WriteString(escapeAttr(col.ImgWidth))
 		b.WriteString(`" height="`)
-		b.WriteString(col.ImgHeight)
+		b.WriteString(escapeAttr(col.ImgHeight))
 		b.WriteString(`" alt="`)
 		b.WriteString(escapeAttr(col.ImgAlt))
 		b.WriteString(`" style="display:block; width:100%; max-width:`)
-		b.WriteString(col.ImgWidth)
+		b.WriteString(escapeAttr(col.ImgWidth))
 		b.WriteString(`px; height:auto; border:0; margin-bottom:12px;">
 `)
 	}
@@ -891,13 +891,13 @@ func writeHero(b *strings.Builder, v doc.ResolvedHero) {
 <img src="`)
 	b.WriteString(escapeAttr(v.Src))
 	b.WriteString(`" width="`)
-	b.WriteString(v.Width)
+	b.WriteString(escapeAttr(v.Width))
 	b.WriteString(`" height="`)
-	b.WriteString(v.Height)
+	b.WriteString(escapeAttr(v.Height))
 	b.WriteString(`" alt="`)
 	b.WriteString(escapeAttr(v.Alt))
 	b.WriteString(`" style="display:block; width:100%; max-width:`)
-	b.WriteString(v.Width)
+	b.WriteString(escapeAttr(v.Width))
 	b.WriteString(`px; height:auto; border:0;">
 </td>
 </tr>
@@ -910,9 +910,9 @@ func writeHero(b *strings.Builder, v doc.ResolvedHero) {
 // empty div does not). New in WP5.3, one contract regardless of hard.
 func writeSpacer(b *strings.Builder, v doc.ResolvedSpacer) {
 	b.WriteString(`<tr><td height="`)
-	b.WriteString(v.Height)
+	b.WriteString(escapeAttr(v.Height))
 	b.WriteString(`" style="height:`)
-	b.WriteString(v.Height)
+	b.WriteString(escapeAttr(v.Height))
 	b.WriteString(`px; font-size:0; line-height:0; mso-line-height-rule:exactly;">&nbsp;</td></tr>
 `)
 }
