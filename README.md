@@ -27,7 +27,7 @@ from one tree — so the text part can never drift from the HTML part.
 - No Word-engine emulation in preview. The dev preview approximates
   webmail; it does not emulate Outlook's Word rendering engine.
 
-## Status: WP5.1, bulletproof output contracts
+## Status: WP5.2, dark mode, preheader, and Shell options
 
 The stdlib now covers `Shell`, `Signal`, `Headline`, `Panel`/`PanelRow`,
 `CTA`, `PickList`/`Item`, `Footer`, `Note`, `Divider`, and
@@ -37,7 +37,10 @@ available as an escape hatch for markup the stdlib does not express. It
 ships the `gsxmail render` and `gsxmail check` CLI verbs, `gsxmail matrix
 refresh`, and the full `Load`/`Render`/`Check` library API. `Render`'s
 HTML part is hardened, bulletproof markup by default, mechanically proven
-by a structural verification pass — see "Output contracts" below.
+by a structural verification pass — see "Output contracts" below. A
+`Theme` can declare a dark-mode strategy, and a Shell can set a preheader
+and its own output-contract override — see "Dark mode", "Preheader", and
+"Shell options" below.
 
 `Load` runs the full email lint catalog (EM001 through EM112) before it
 lowers anything. A missing props field, an expression outside the email
@@ -146,7 +149,88 @@ gotreesitter; no render-path package (`renderhtml`, `doc`, `lower`,
 repo root, `TestGotreesitterIsolatedFromCorePath`, proves it on every
 run. gotreesitter's default build embeds its full ~206-grammar registry,
 so linking it into a binary is not free: measure before you import it
-anywhere outside a test.
+anywhere outside a test. WP5.2 extends the pass with two more checks: a
+configured preheader div must carry its full suppression-style stack
+(EM173), and an "adaptive" dark-mode style layer must carry both its
+Outlook-app hooks with balanced braces (EM174).
+
+## Dark mode
+
+Set `Theme.DarkMode` to one of three strategies (pixel dossier section 5).
+Each strategy states its own honest reach: **no strategy controls Gmail's
+forced dark transform**. Every strategy is a mitigation, never a claim of
+control, and the README says so on purpose — state the mitigation, not
+pixel parity, in your own product copy too.
+
+- **`"none"`** (the default). `Render` adds no dark-mode markup at all. A
+  `Theme` that sets `ColorScheme` still emits its own meta pair, exactly
+  as WP5.1 shipped.
+- **`"locked"`**. The `Theme` itself is dark-native — gridiron's own
+  palette is this case. `Render` adds a `:root{color-scheme:dark}` rule to
+  the `<style>` block and a `dark`/`dark` meta pair. Apple Mail 16+ honors
+  the root rule; Gmail's forced transform may still lighten the theme, so
+  keep every color a midtone, never pure black or pure white.
+- **`"adaptive"`**. The `Theme` carries both a light presentation (its own
+  fields) and a dark one (`Theme.Dark`, a `DarkPalette`). `Render` emits a
+  `light dark` meta pair and an `@media (prefers-color-scheme:dark)` layer
+  that swaps `Theme.Dark`'s tokens into the Shell wordmark, tagline, and
+  Headline title, plus best-effort `[data-ogsc]`/`[data-ogsb]` hooks for
+  Outlook's own app-level inversion. Apple Mail, iOS Mail, and Outlook.com
+  switch cleanly; Gmail ignores the media query and applies its own forced
+  transform regardless.
+
+`Load` checks a Set's `Theme` before it renders anything:
+
+- **EM140** (error): `"adaptive"` requires `Theme.Dark`.
+- **EM141** (error): the active dark palette's ink-on-card and
+  body-on-card pairs must clear 4.5:1 contrast (WCAG AA body text).
+- **EM142** (warn): no color in the active dark palette may be pure black
+  or pure white — a forced transform maps extremes the hardest.
+- **EM143** (warn): a raw `Custom` element's literal color that matches
+  neither palette's tokens, under `DarkMode: "adaptive"` only — it has
+  nowhere to go when the style layer swaps in.
+- **EM144** (error): an explicit `ColorScheme` must agree with what
+  `DarkMode` implies.
+
+## Preheader
+
+Set `preheader={...}` on `<email.Shell>` to control the text a mail client
+shows next to the subject line as the inbox preview. Like MJML's
+`mj-preview`, a preheader belongs to the template, not the caller: it is
+authored on the Shell and can read `props` the same way any other Shell
+field does.
+
+`Render` writes it as a hidden `<div>`, first inside `<body>`, with
+react-email's own shipped suppression styles (`display:none;
+overflow:hidden; line-height:1px; opacity:0; max-height:0; max-width:0`)
+and an alternating `&nbsp;`/`&zwnj;` pad tail that brings the decoded text
+to exactly 150 characters — long enough that no supported client falls
+back to pulling in body copy. A Shell with no `preheader` attribute at all
+triggers **EM170** (warn) at `Load`; a static preheader text over 150
+characters triggers **EM171** (error).
+
+## Shell options
+
+`Options.Outlook` (WP5.1) still selects a Set's default output contract.
+WP5.2 adds a per-Shell override: set `outlook="off"` or
+`outlook="ghost-tables"` directly on one template's `<email.Shell>` to
+pick that template's own contract, regardless of the Set's own default.
+A Shell that leaves `outlook` unset keeps using `Options.Outlook` —
+every WP5.1 consumer keeps working with no change. `outlook` must be a
+static string literal, never a `{props.X}` expression: the output
+contract is a structural, compile-time choice, not a per-render one.
+**EM172** (error) rejects anything else.
+
+```gsx
+<email.Shell
+    wordmark={props.Product}
+    title={props.Product + " receipt"}
+    lang="en"
+    preheader={"Receipt for order " + props.OrderID}
+    outlook="off">
+    ...
+</email.Shell>
+```
 
 ## Size budget
 
@@ -272,7 +356,7 @@ type Options struct {
     Theme        Theme
     Helpers      map[string]any
     MaxHTMLBytes int
-    Outlook      string // "" / "ghost-tables" (hardened, default) | "off" (parity)
+    Outlook      string // "" / "ghost-tables" (hardened, default) | "off" (parity); a Shell's own outlook="..." attribute overrides this per template
 }
 
 func Load(fsys fs.FS, opts Options) (*Set, error)
@@ -281,8 +365,9 @@ func (s *Set) Render(name string, props any) (Parts, error)
 func (s *Set) Names() []string
 func (s *Set) Check() []Diagnostic
 
-type Theme = renderhtml.Theme
-func DefaultTheme() Theme
+type Theme = renderhtml.Theme // gains DarkMode ("none"/"locked"/"adaptive") and Dark *DarkPalette (WP5.2)
+type DarkPalette = renderhtml.DarkPalette
+func DefaultTheme() Theme // DarkMode "none"
 
 type SizeBudgetError struct{ Diagnostic Diagnostic } // Render's EM120
 ```

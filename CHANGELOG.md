@@ -4,6 +4,59 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (dark mode, preheader, Shell options; WP5.2)
+
+- `Theme.DarkMode` (`"none"` default, `"locked"`, `"adaptive"`) and
+  `Theme.Dark` (a new `DarkPalette` type) select a dark-mode strategy
+  (design spec section 15, WP5.2; pixel dossier section 5). `"locked"`
+  adds a `:root{color-scheme:...}` rule to the `<style>` block.
+  `"adaptive"` adds an `@media (prefers-color-scheme:dark)` layer that
+  swaps `Theme.Dark`'s tokens into the Shell wordmark/tagline and
+  Headline title (marked with new `gsx-ink`/`gsx-muted` classes), plus
+  best-effort `[data-ogsc]`/`[data-ogsb]` Outlook-app hooks. No strategy
+  claims control of Gmail's own forced dark transform — see the README's
+  "Dark mode" section for the honest per-client reach each one has.
+  `"none"` (the default) changes nothing: every existing hardened golden
+  stays byte-identical.
+- `<email.Shell preheader={...}>`: the hidden inbox-preview div, written
+  as the first child of `<body>` in both output contracts, with
+  react-email's shipped suppression styles and an `&nbsp;`/`&zwnj;` pad
+  tail that brings the decoded text to exactly 150 characters (pixel
+  dossier section 6.1). It is authored on the Shell, like MJML's
+  `mj-preview`, and can read `props`. Writes nothing when unset, so an
+  existing template's bytes do not change until its author sets one.
+- `<email.Shell outlook="off"|"ghost-tables">`: a per-Shell override of
+  `Options.Outlook`'s Set-wide default (design spec section 15, WP5.2's
+  Shell options surface). An unset Shell attribute keeps using
+  `Options.Outlook`, so every WP5.1 consumer's own Set-level setting
+  keeps working with no change. `outlook` must be a static string
+  literal, never a `{props.X}` expression.
+- New lint rules (design spec section 15, WP5.2; pixel dossier section
+  10): EM140 (`DarkMode: "adaptive"` with a nil `Theme.Dark`), EM141
+  (a dark palette's ink-on-card or body-on-card pair under 4.5:1 WCAG AA
+  contrast), EM142 (a pure black or pure white color in a dark palette),
+  EM143 (a `Custom` block color with no dark-palette counterpart, under
+  `DarkMode: "adaptive"` only), EM144 (`ColorScheme` conflicts with
+  `DarkMode`), EM170 (a Shell with no preheader attribute), EM171 (a
+  static preheader text over 150 characters), EM172 (an `outlook`
+  attribute that is not a static `""`, `"ghost-tables"`, or `"off"`).
+  EM140-144 run once per `Load` call, against the Set's own `Theme`;
+  EM170-172 run per Shell, like every other check-time rule.
+- `internal/structverify` gains EM173 (a preheader div missing part of
+  its suppression-style stack) and EM174 (an adaptive dark-mode style
+  layer missing an Outlook-app hook or carrying unbalanced braces), both
+  folded into `Verify` so every existing caller picks them up for free.
+  Fixing this also fixed a pre-existing bug in `isElementNamed`: the
+  gotreesitter HTML grammar tags `<style>`/`<script>` as distinct
+  `style_element`/`script_element` node types, not the generic `element`
+  type every other tag uses, so a name lookup for `"style"` never
+  matched before this change.
+- New goldens under `testdata/wp52/`, rendered from a new
+  `testdata/wp52/emails/Notice` fixture: `notice_preheader.html`
+  (preheader-on), `notice_dark_locked.html` and
+  `notice_dark_adaptive.html` (hardened+dark, both strategies). No
+  existing golden's bytes changed.
+
 ### Added (structural verification, WP5.1)
 
 - `internal/structverify`: a test-layer-only package that re-parses
@@ -123,3 +176,19 @@ All notable changes to gsxmail are documented in this file.
   non-tabular layout (design spec section 16, open question 4);
   `text="..."` on any element overrides its own derived content when the
   default reads badly.
+- The WP5.2 `"adaptive"` dark-mode `gsx-ink`/`gsx-muted` class hooks apply
+  only at the Shell wordmark/tagline and Headline title — the highest-
+  visibility ink/muted text, and the exact elements the pixel dossier's
+  own section 5.2 worked example shows. A template-wide sweep over every
+  ink- or muted-colored element (Panel labels, StatTable headers,
+  PickList titles, Footer copy) is a natural follow-on, not required for
+  the strategy to work end to end; those elements keep their light-theme
+  inline color under a forced dark transform until a later work package
+  widens the sweep.
+- `email.Button` (react-email's fuller button API and its `mso-padding-
+  alt`/`mso-font-width` variants), `email.Columns`, and the named
+  `Terminal`/`Ledger` gallery themes the pixel dossier's section 8
+  describes stay out of scope for WP5.2; they are WP5.3 work. WP5.2's own
+  `lint/theme_test.go` and `wp52_test.go` build a private, unshipped
+  dark-theme fixture with the dossier's own numbers to prove EM140-144
+  against a genuine dark palette, without shipping `Terminal` early.
