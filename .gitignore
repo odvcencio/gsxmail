@@ -1,0 +1,15 @@
+# Build output
+/gsxmail
+/cmd/gsxmail/gsxmail
+
+# Example run output
+/examples/quickstart/*.html
+/examples/quickstart/*.txt
+
+# Go tooling
+*.test
+*.out
+
+# Editor and OS noise
+.DS_Store
+*.swp
