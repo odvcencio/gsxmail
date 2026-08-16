@@ -38,14 +38,13 @@ func runImport(args []string) error {
 		return fmt.Errorf("reading %s: %w", inPath, err)
 	}
 
-	templateName := *name
-	if templateName != "" && len(templateName) > 5 && templateName[len(templateName)-5:] != "Email" {
-		templateName += "Email"
-	}
-
+	// Import itself appends the "Email" suffix to a bare *name ("Welcome"
+	// -> "WelcomeEmail") when the caller did not already include one —
+	// the CLI's --name flag and Options.TemplateName are the same knob,
+	// so this verb does not duplicate that rule.
 	res, err := importer.Import(html, filepath.Base(inPath), importer.Options{
 		PackageName:  *pkg,
-		TemplateName: templateName,
+		TemplateName: *name,
 	})
 	if err != nil {
 		return fmt.Errorf("importing %s: %w", inPath, err)

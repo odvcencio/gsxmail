@@ -75,8 +75,17 @@ func Import(html []byte, sourceName string, opts Options) (*Result, error) {
 	lang := findLang(root)
 
 	templateName := opts.TemplateName
-	if templateName == "" {
+	switch {
+	case templateName == "":
 		templateName = deriveTemplateName(title)
+	case !strings.HasSuffix(templateName, "Email"):
+		// A caller-supplied name ("Welcome") gets the same "Email" suffix
+		// a derived one always carries (deriveTemplateName's own rule) —
+		// the CLI's --name flag and this field are the same knob, and
+		// both must land on the same generated component name for a
+		// given input (cmd/gsxmail/import.go relies on this: it no
+		// longer appends the suffix itself).
+		templateName += "Email"
 	}
 
 	rpt := &Report{SourceFile: sourceName}
@@ -90,7 +99,7 @@ func Import(html []byte, sourceName string, opts Options) (*Result, error) {
 		preheaderText = truncateRunes(preheaderText, 150)
 	}
 
-	card := findCard(body)
+	cards := findCards(body)
 
 	var blocks []mappedBlock
 	var wordmark, tagline, shortCode, signoff, footerNote string
@@ -98,16 +107,24 @@ func Import(html []byte, sourceName string, opts Options) (*Result, error) {
 	theme := defaultThemeTokens()
 	themeNotes := []string{"No card table was found, so no theme extraction ran; the generated Theme is DefaultTheme()'s own values."}
 
-	if card == nil {
+	if len(cards) == 0 {
 		rpt.unmapped("document", "no plausible 320-820px card table was found; the whole body was preserved as email.Custom")
 		blocks = append(blocks, mappedBlock{kind: "Custom", gsx: writeWholeBodyCustom(body)})
 	} else {
-		if w, ok := tableWidth(card); ok {
+		if w, ok := tableWidth(cards[0]); ok {
 			cardWidth = w
 		}
-		theme, themeNotes = extractTheme(body, card)
+		theme, themeNotes = extractTheme(body, cards[0])
 
-		rows := tableRows(card)
+		// A multi-section compiled source (MJML's own real shape: one
+		// 600px table per mj-section, not one shared card — see
+		// findCards's own doc comment) concatenates every card's rows
+		// into one unified sequence before the header/footer/per-row
+		// classification below ever runs.
+		var rows []*node
+		for _, c := range cards {
+			rows = append(rows, tableRows(c)...)
+		}
 		if len(rows) == 0 {
 			rpt.unmapped("card", "the card table has no rows")
 		}
@@ -137,9 +154,30 @@ func Import(html []byte, sourceName string, opts Options) (*Result, error) {
 			rpt.mapped("card/row[1]", "email.Shell (header)", "high",
 				"the first row's own short-code + wordmark/tagline shape matched the Shell header contract")
 		}
-		for i := startIdx; i < endIdx; i++ {
+		for i := startIdx; i < endIdx; {
+			if n := panelRunLength(rows, i, endIdx); n > 0 {
+				path := fmt.Sprintf("card/row[%d]", i+1)
+				if n > 1 {
+					path = fmt.Sprintf("card/row[%d-%d]", i+1, i+n)
+				}
+				var pairs []panelPair
+				for j := i; j < i+n; j++ {
+					p, _ := panelRowPair(rows[j])
+					pairs = append(pairs, p)
+				}
+				confidence := "medium"
+				if n > 1 {
+					confidence = "high"
+				}
+				rpt.mapped(path, "email.Panel", confidence,
+					"a run of the card's own top-level two-cell rows matched the label/value Panel contract, with no wrapping sub-table")
+				blocks = append(blocks, mappedBlock{kind: "Panel", gsx: buildPanelGSX(pairs, props)})
+				i += n
+				continue
+			}
 			path := fmt.Sprintf("card/row[%d]", i+1)
 			blocks = append(blocks, classifyRow(rows[i], ctx, path))
+			i++
 		}
 		if footerMapped {
 			rpt.mapped(fmt.Sprintf("card/row[%d]", len(rows)), "email.Footer", "high",

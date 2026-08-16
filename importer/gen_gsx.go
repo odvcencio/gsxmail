@@ -3,6 +3,7 @@ package importer
 import (
 	"encoding/json"
 	"fmt"
+	"go/format"
 	"strconv"
 	"strings"
 )
@@ -69,7 +70,10 @@ func assemble(pkg, templateName, sourceName string, shell shellInfo, blocks []ma
 		rpt.Fields = append(rpt.Fields, propsFieldReportLine{Name: f.name, GoType: f.goType, Source: f.source})
 	}
 
-	propsGo := writePropsGo(pkg, propsType, props, shell.theme, shell.cardWidth)
+	propsGo, err := formatGoSource(writePropsGo(pkg, propsType, props, shell.theme, shell.cardWidth))
+	if err != nil {
+		return nil, err
+	}
 	sampleJSON, err := writeSampleJSON(props)
 	if err != nil {
 		return nil, err
@@ -83,6 +87,18 @@ func assemble(pkg, templateName, sourceName string, shell shellInfo, blocks []ma
 		Report:          rpt,
 		blocks:          blocks,
 	}, nil
+}
+
+// formatGoSource runs src through go/format — the same formatting
+// gofmt itself applies — so props.go ships gofmt-clean: a generated
+// props struct earns the same "read it like any other Go file" trust as
+// hand-written code, and CI's own `gofmt -l` check has nothing to flag.
+func formatGoSource(src string) (string, error) {
+	out, err := format.Source([]byte(src))
+	if err != nil {
+		return "", fmt.Errorf("importer: formatting generated props.go: %w", err)
+	}
+	return string(out), nil
 }
 
 // writePropsGo renders props.go: one synthesized row struct per

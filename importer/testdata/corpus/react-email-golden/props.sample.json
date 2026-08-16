@@ -1,0 +1,8 @@
+{
+  "Expires": "10 minutes from now",
+  "Lede": "Use this code within the next 10 minutes to finish signing in to Acme.",
+  "OneTimeCode": "central: 481 902",
+  "Preheader": "Your one-time code is ready",
+  "Title": "Sign in to Acme",
+  "Wordmark": "Sign"
+}

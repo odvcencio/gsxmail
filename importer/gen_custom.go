@@ -123,15 +123,32 @@ var dropEntirely = map[string]bool{
 // inline element still nests inside an EM003-allowed structural element,
 // matching gsxmail's own row-per-block shape elsewhere in the card.
 func writeCustomFallback(row *node) string {
+	elems := row.elements()
+
+	// row is already shaped like a real table row — every element child
+	// is a <td>/<th> — so wrapping it in a synthetic <table><tr><td> on
+	// top would nest a <td> inside this function's own <td>, which
+	// parses but reads as a mistake to anyone reviewing the fallback.
+	// Reuse row's own <tr> shape instead: <table><tr>{cells}</tr></table>.
+	if len(elems) > 0 && allCells(elems) {
+		var b strings.Builder
+		b.WriteString("<table style=\"width:100%;\">\n<tr>\n")
+		for _, c := range elems {
+			writeCustomNode(&b, c)
+		}
+		b.WriteString("\n</tr>\n</table>\n")
+		return b.String()
+	}
+
 	var b strings.Builder
 	b.WriteString("<table style=\"width:100%;\">\n<tr>\n<td>\n")
-	for _, c := range row.elements() {
+	for _, c := range elems {
 		writeCustomNode(&b, c)
 	}
 	// A row with no element children at all (bare text only, unusual but
 	// not impossible from a malformed source) falls back to its own
 	// flattened text.
-	if len(row.elements()) == 0 {
+	if len(elems) == 0 {
 		if t := strings.TrimSpace(row.innerText()); t != "" {
 			b.WriteString(qexpr(t))
 			b.WriteString("\n")
@@ -139,6 +156,18 @@ func writeCustomFallback(row *node) string {
 	}
 	b.WriteString("</td>\n</tr>\n</table>\n")
 	return b.String()
+}
+
+// allCells reports whether every element in elems is a <td> or <th> —
+// writeCustomFallback's own signal that row already has a real row
+// shape, needing no synthetic wrapping cell.
+func allCells(elems []*node) bool {
+	for _, e := range elems {
+		if e.tag != "td" && e.tag != "th" {
+			return false
+		}
+	}
+	return true
 }
 
 // writeWholeBodyCustom is writeCustomFallback's whole-document fallback:

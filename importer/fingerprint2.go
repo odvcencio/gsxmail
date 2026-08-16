@@ -92,15 +92,15 @@ func detectButton(td *node, ctx *blockCtx, path string) (mappedBlock, bool) {
 	confidence := "low"
 	note := "a lone anchor filled the row with no other content, and was assumed to be a call-to-action button"
 
-	bg := findWrappingStyleValue(td, a, "background-color")
-	border := findWrappingStyleValue(td, a, "border")
+	bg := findButtonFaceColor(td, a)
+	border := findWrappingBorder(td, a)
 	_, hasLineHeight := a.styleValue("line-height")
 	display, _ := a.styleValue("display")
 
 	switch {
 	case bg != "":
 		variant, confidence, note = "primary", "high", "a background-colored button face wrapping the anchor matched the primary Button contract"
-	case border != "":
+	case border:
 		variant, confidence, note = "secondary", "high", "a bordered, transparent button face wrapping the anchor matched the secondary Button contract"
 	case hasLineHeight && strings.Contains(display, "inline-block"):
 		variant, confidence, note = "link", "medium", "a fixed line-height, inline-block anchor matched the link Button's full-click technique"
@@ -116,12 +116,83 @@ func detectButton(td *node, ctx *blockCtx, path string) (mappedBlock, bool) {
 	return mappedBlock{kind: "Button", gsx: gsx}, true
 }
 
-// findWrappingStyleValue looks up prop on every element strictly between
-// root and target (root and target themselves included), returning the
-// first non-empty value found nearest to target — the button-face td
-// sits between the row's own td and the anchor itself in every shipped
-// contract.
-func findWrappingStyleValue(root, target *node, prop string) string {
+// findButtonFaceColor looks for a background color between root and
+// target, bounded to target's own immediate face table (boundedChain):
+// the "background-color" property, the "background" shorthand (MJML's
+// own compiled button emits both bgcolor and background:#hex — R8), or
+// the legacy "bgcolor" HTML attribute, in that order, at whichever
+// wrapping element carries one first. Bounding the climb matters when
+// root is the whole document (extractTheme's own call, hunting for an
+// accent color) rather than one row's own td: without it, a legacy
+// source's outer card table (this package's own testdata/corpus/
+// legacy.html sets `bgcolor="#ffffff"` on its 600px card) reads as if it
+// were the button's own face color, which it plainly is not.
+func findButtonFaceColor(root, target *node) string {
+	for _, n := range boundedChain(root, target) {
+		if v, ok := n.styleValue("background-color"); ok && strings.TrimSpace(v) != "" {
+			return v
+		}
+		if v, ok := n.styleValue("background"); ok && looksLikeColor(v) {
+			return v
+		}
+		// The legacy "bgcolor" HTML attribute only counts on a td/tr: a
+		// <table bgcolor="..."> is the card's own page-background
+		// convention (this package's own testdata/corpus/legacy.html sets
+		// exactly that), not a per-button face color, even after
+		// boundedChain's own table-boundary cap — when target has no
+		// closer face table at all, that outer card table is still "the
+		// first table in the chain."
+		if n.tag != "table" {
+			if v, ok := n.attr("bgcolor"); ok && strings.TrimSpace(v) != "" {
+				return v
+			}
+		}
+	}
+	return ""
+}
+
+// looksLikeColor reports whether v (a CSS "background" shorthand value)
+// is plausibly just a color — a hex token, or a color-looking bare word —
+// rather than a shorthand that also names a gradient or image the
+// dossier already bans (EM162) and this package has no business trying
+// to parse.
+func looksLikeColor(v string) bool {
+	v = strings.TrimSpace(v)
+	if strings.HasPrefix(v, "#") {
+		return true
+	}
+	return !strings.Contains(v, "(") && !strings.Contains(v, "url")
+}
+
+// findWrappingBorder reports whether any element between root and
+// target, bounded to target's own immediate face table (boundedChain),
+// carries a real border declaration — "border" (or a "border-*"
+// longhand) present and not "none"/"0"/"0px". A td whose own "border:
+// none;" reset (MJML's own compiled button carries exactly this, R8)
+// must not read as "this button has a border."
+func findWrappingBorder(root, target *node) bool {
+	for _, n := range boundedChain(root, target) {
+		for _, d := range n.style() {
+			if d.prop != "border" && !strings.HasPrefix(d.prop, "border-") {
+				continue
+			}
+			v := strings.ToLower(strings.TrimSpace(d.value))
+			if v == "" || v == "none" || v == "0" || v == "0px" {
+				continue
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// wrappingChain returns every node strictly between root and target,
+// root and target themselves included, nearest to target first — the
+// button-face td sits between the row's own td and the anchor itself in
+// every shipped contract, and findButtonFaceColor/findWrappingBorder
+// both want to check the element nearest the anchor before a looser
+// ancestor.
+func wrappingChain(root, target *node) []*node {
 	var path []*node
 	var find func(*node) bool
 	find = func(n *node) bool {
@@ -139,7 +210,34 @@ func findWrappingStyleValue(root, target *node, prop string) string {
 		return false
 	}
 	find(root)
-	for _, n := range path {
+	return path
+}
+
+// boundedChain is wrappingChain, truncated to stop right after the
+// first <table> element it reaches walking outward from target — the
+// button's own immediate face table, never a further-out structural
+// table (a card, a section, a whole document) that happens to carry an
+// unrelated color of its own. A chain with no <table> anywhere in it
+// (target sits directly in a div-only structure) is returned whole.
+func boundedChain(root, target *node) []*node {
+	chain := wrappingChain(root, target)
+	for i, n := range chain {
+		if n.tag == "table" {
+			return chain[:i+1]
+		}
+	}
+	return chain
+}
+
+// findWrappingStyleValue looks up prop on every element strictly between
+// root and target (root and target themselves included), returning the
+// first non-empty value found nearest to target — the button-face td
+// sits between the row's own td and the anchor itself in every shipped
+// contract. extractTheme's own accent-color scan is the one remaining
+// caller; detectButton uses the more specific findButtonFaceColor and
+// findWrappingBorder above instead.
+func findWrappingStyleValue(root, target *node, prop string) string {
+	for _, n := range wrappingChain(root, target) {
 		if v, ok := n.styleValue(prop); ok && strings.TrimSpace(v) != "" && strings.TrimSpace(v) != "0" {
 			return v
 		}
@@ -250,11 +348,61 @@ func kickerBefore(td, tbl *node) string {
 	return ""
 }
 
-// detectPanel matches email.Panel: a table whose every row carries
-// exactly two cells and no <th> (pixel dossier section 7.2(1), heuristic
-// 5's "uniform label/value td pattern"), rendered as a literal
-// PanelRow per row — Panel has no shipped Each-over-rows shape (unlike
-// StatTable), so rows stay literal rather than synthesized.
+// panelPair is one label/value row candidate, before it is known whether
+// the row belongs to a Panel at all.
+type panelPair struct{ label, value string }
+
+// panelRowPair reports whether row has exactly two <td> cells and no
+// <th> (a <th> anywhere is StatTable's own territory, never Panel's),
+// neither carrying an <img> (an image in either cell reads as a
+// two-column layout row — Columns' own territory — never a text
+// label/value pair), returning its label/value text when it does.
+func panelRowPair(row *node) (panelPair, bool) {
+	var tds []*node
+	for _, c := range row.elements() {
+		if c.tag == "td" {
+			tds = append(tds, c)
+		} else {
+			return panelPair{}, false
+		}
+	}
+	if len(tds) != 2 {
+		return panelPair{}, false
+	}
+	for _, td := range tds {
+		if findFirst(td, "img") != nil {
+			return panelPair{}, false
+		}
+	}
+	return panelPair{
+		label: strings.TrimSpace(tds[0].innerText()),
+		value: strings.TrimSpace(tds[1].innerText()),
+	}, true
+}
+
+// buildPanelGSX renders pairs as one <email.Panel> block, synthesizing a
+// props field for each row's own value (Panel has no shipped
+// Each-over-rows shape, unlike StatTable, so rows stay literal per row
+// rather than synthesized into a slice).
+func buildPanelGSX(pairs []panelPair, props *propsBuilder) string {
+	var b strings.Builder
+	b.WriteString("<email.Panel>\n")
+	for _, p := range pairs {
+		field := props.field(panelValueName(p.label), p.value, "the Panel row labeled "+quoteForReport(p.label))
+		b.WriteString(indent(`<email.PanelRow label=` + qexpr(p.label) + ` value={props.` + field + `} />` + "\n"))
+	}
+	b.WriteString("</email.Panel>\n")
+	return b.String()
+}
+
+// detectPanel matches email.Panel: a <table> nested one level inside the
+// row's own td, whose every row carries exactly two cells and no <th>
+// (pixel dossier section 7.2(1), heuristic 5's "uniform label/value td
+// pattern") — gsxmail's own native shape (writePanel). A source that
+// stacks label/value pairs as the card's own top-level rows instead,
+// with no wrapping sub-table, matches panelRunLength in importer.go
+// instead, which this function's own row-pair logic (panelRowPair,
+// buildPanelGSX) also backs.
 func detectPanel(td *node, ctx *blockCtx, path string) (mappedBlock, bool) {
 	tbl := findFirst(td, "table")
 	if tbl == nil {
@@ -264,36 +412,38 @@ func detectPanel(td *node, ctx *blockCtx, path string) (mappedBlock, bool) {
 	if len(rows) == 0 {
 		return mappedBlock{}, false
 	}
-	type lv struct{ label, value string }
-	var pairs []lv
+	var pairs []panelPair
 	for _, r := range rows {
-		cells := r.elements()
-		var tds []*node
-		for _, c := range cells {
-			if c.tag == "td" {
-				tds = append(tds, c)
-			} else {
-				return mappedBlock{}, false // a <th> anywhere disqualifies Panel (StatTable's own territory)
-			}
-		}
-		if len(tds) != 2 {
+		p, ok := panelRowPair(r)
+		if !ok {
 			return mappedBlock{}, false
 		}
-		pairs = append(pairs, lv{
-			label: strings.TrimSpace(tds[0].innerText()),
-			value: strings.TrimSpace(tds[1].innerText()),
-		})
+		pairs = append(pairs, p)
 	}
 
-	var b strings.Builder
-	b.WriteString("<email.Panel>\n")
-	for _, p := range pairs {
-		field := ctx.props.field(panelValueName(p.label), p.value, "the Panel row labeled "+quoteForReport(p.label))
-		b.WriteString(indent(`<email.PanelRow label=` + qexpr(p.label) + ` value={props.` + field + `} />` + "\n"))
-	}
-	b.WriteString("</email.Panel>\n")
 	ctx.rpt.mapped(path, "email.Panel", "high", "a table of two-cell rows matched the label/value Panel contract")
-	return mappedBlock{kind: "Panel", gsx: b.String()}, true
+	return mappedBlock{kind: "Panel", gsx: buildPanelGSX(pairs, ctx.props)}, true
+}
+
+// panelRunLength reports how many consecutive rows, starting at start
+// (and stopping before end), are each a naked two-cell label/value row
+// with no wrapping sub-table — a source that stacks Panel-shaped rows
+// directly as the card's own top-level rows (react-email's own idiomatic
+// per-row-a-Section shape is one example; this package's own
+// react-email.html fixture reproduces it) rather than nesting them one
+// level down the way gsxmail's own writePanel does. It returns 0 when
+// rows[start] itself is not two-cell-shaped, so importer.go's own loop
+// falls through to the ordinary per-row classifyRow path unchanged for
+// every other block type.
+func panelRunLength(rows []*node, start, end int) int {
+	n := 0
+	for i := start; i < end; i++ {
+		if _, ok := panelRowPair(rows[i]); !ok {
+			break
+		}
+		n++
+	}
+	return n
 }
 
 // panelValueName turns a Panel row's own label text ("SUBTOTAL", "Billed
@@ -520,10 +670,24 @@ func detectHeadline(td *node, ctx *blockCtx, path string) (mappedBlock, bool) {
 	return mappedBlock{kind: "Headline", gsx: gsx}, true
 }
 
+// looksLikeHeading reports whether n reads as a headline title: a real
+// heading tag, a styled div/p carrying bold or large text, or (legacy
+// table-soup HTML predates CSS-driven styling) a bare <b>/<strong>, or a
+// <font size="N"> at N >= 4 — the pre-CSS way authors marked a line as
+// "big" (HTML 4's own font size scale tops out at 7; 4 and up reads
+// larger than body copy in every client still rendering the tag at all).
 func looksLikeHeading(n *node) bool {
 	switch n.tag {
 	case "h1", "h2", "h3":
 		return true
+	case "b", "strong":
+		return true
+	case "font":
+		if size, ok := n.attr("size"); ok {
+			if v, err := strconv.Atoi(strings.TrimSpace(size)); err == nil && v >= 4 {
+				return true
+			}
+		}
 	}
 	if n.tag != "div" && n.tag != "p" {
 		return false

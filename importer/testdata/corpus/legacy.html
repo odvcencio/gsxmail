@@ -1,0 +1,50 @@
+<!--
+  legacy.html is a deliberately crufty, hand-written table-soup fixture:
+  no doctype, bgcolor/font-tag styling instead of CSS, a javascript: link,
+  a cid: image reference, and two genuinely unclosed tags (an unclosed
+  <td> before the next row's own <tr>, and a <b> that is never closed at
+  all) — proof-bar item (b)'s own "legacy hand-written table-soup mail
+  with unclosed tags." gotreesitter's error-tolerant HTML grammar (pixel
+  dossier section 7.1) still produces a walkable tree for all of this;
+  nothing here should make Import return an error.
+-->
+<html>
+<head>
+<title>Acme Newsletter</title>
+</head>
+<body bgcolor="#eeeeee">
+<table width="600" bgcolor="#ffffff" cellpadding="0" cellspacing="0" border="0" align="center">
+<tr>
+<td>
+<font face="Arial" size="5" color="#111111"><b>Acme Weekly</font>
+<font face="Arial" size="2" color="#555555">Five things from the shop floor this month.</font>
+</td>
+</tr>
+<tr>
+<td width="120"><font face="Arial" size="2" color="#888888">ISSUE</font></td>
+<td><font face="Arial" size="2" color="#111111">No. 42</font></td>
+</tr>
+<tr>
+<td width="120"><font face="Arial" size="2" color="#888888">DATE</font></td>
+<td><font face="Arial" size="2" color="#111111">August 2026</font></td>
+</tr>
+<tr>
+<td>
+<a href="https://acme.example/newsletter/42">Read the full issue on the web</a>
+</td>
+</tr>
+<tr>
+<td>
+<img src="cid:logo.png" alt="Acme">
+</tr>
+<tr>
+<td><hr></td>
+</tr>
+<tr>
+<td align="center">
+<center><font face="Arial" size="1" color="#999999">&copy; 2026 Acme Corp, 1 Market St, Springfield. <a href="javascript:void(0)">Unsubscribe</a></font></center>
+</td>
+</tr>
+</table>
+</body>
+</html>

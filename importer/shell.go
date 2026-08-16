@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -54,24 +55,36 @@ func findBody(root *node) *node {
 	return root
 }
 
-// findCard locates the card table heuristic 1 maps to <email.Shell>: the
-// highest-scoring <table> whose own width (an HTML width attribute or a
+// findCards locates every card-shaped table heuristic 1 maps onto the
+// Shell body: a <table> whose own width (an HTML width attribute or a
 // CSS width/max-width declaration) falls in an email card's plausible
-// range. Scoring by row count first, then by inner text volume, prefers
-// the outermost table that actually holds the message's content over an
-// inner single-cell wrapper or a narrow nested table (a Panel's own
-// bordered table, for instance) — MJML and react-email's compiled output
-// both nest one or more purely structural nest tables around the real
-// card (heuristic 1's own "ghost tables that duplicate an adjacent
-// structure map to nothing"); scoring naturally prefers the row-richest
-// candidate over a structural wrapper with just one row.
-func findCard(body *node) *node {
-	var best *node
-	bestScore := -1
-	for _, t := range findAll(body, "table") {
-		w, ok := tableWidth(t)
-		if !ok || w < 320 || w > 820 {
-			continue
+// range, OR (MJML's own real compiled shape, R7: a section wraps its
+// column table in a `<div style="max-width:600px">` and gives the table
+// itself a fluid `width:100%` — the fixed pixel width lives on the div,
+// not the table) a `width:100%` table whose own parent div carries that
+// plausible width instead.
+//
+// It returns every match, in document order, rather than picking one:
+// gsxmail's own Shell renders one 600px card holding every block as a
+// row, but MJML compiles each mj-section to its *own separate* 600px
+// table (R7's own compiled shape, reproduced verbatim in this package's
+// mjml.html fixture — every <!--[if mso | IE]> ghost table in that file
+// opens and closes around exactly one section), and react-email's own
+// per-block table layout follows the same one-table-per-block pattern.
+// Import.go concatenates every returned table's own rows into one
+// unified row sequence, so a multi-section compiled source still
+// recovers its full block list — see readCardRows.
+//
+// A table nested inside an already-matched table (or an already-matched
+// div's own table) is dropped: heuristic 1's own "ghost tables that
+// duplicate an adjacent structure map to nothing" generalizes here to
+// "a card inside a card is the same card twice."
+func findCards(body *node) []*node {
+	seen := map[*node]bool{}
+	var candidates []*node
+	consider := func(t *node) {
+		if seen[t] {
+			return
 		}
 		rows := 0
 		for _, e := range t.elements() {
@@ -80,15 +93,71 @@ func findCard(body *node) *node {
 			}
 		}
 		if rows == 0 {
-			continue
+			return
 		}
-		score := rows*1000 + len(t.innerText())
-		if score > bestScore {
-			bestScore = score
-			best = t
+		seen[t] = true
+		candidates = append(candidates, t)
+	}
+	for _, t := range findAll(body, "table") {
+		if w, ok := tableWidth(t); ok && w >= 320 && w <= 820 {
+			consider(t)
 		}
 	}
-	return best
+	for _, d := range findAll(body, "div") {
+		w, ok := tableWidth(d) // divs and tables share the same width-attribute/style shape
+		if !ok || w < 320 || w > 820 {
+			continue
+		}
+		for _, t := range elementsIgnoringText(d) {
+			if t.tag == "table" {
+				consider(t)
+			}
+		}
+	}
+
+	order := map[*node]int{}
+	idx := 0
+	var walk func(*node)
+	walk = func(n *node) {
+		if seen[n] {
+			order[n] = idx
+			idx++
+		}
+		for i := range n.children {
+			walk(&n.children[i])
+		}
+	}
+	walk(body)
+	sort.Slice(candidates, func(i, j int) bool { return order[candidates[i]] < order[candidates[j]] })
+
+	var out []*node
+	for _, c := range candidates {
+		nested := false
+		for _, o := range out {
+			if containsNode(o, c) {
+				nested = true
+				break
+			}
+		}
+		if !nested {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// containsNode reports whether target is ancestor itself or anywhere in
+// its subtree, compared by pointer identity.
+func containsNode(ancestor, target *node) bool {
+	if ancestor == target {
+		return true
+	}
+	for i := range ancestor.children {
+		if containsNode(&ancestor.children[i], target) {
+			return true
+		}
+	}
+	return false
 }
 
 // tableWidth reads a plausible pixel width for t from its "width"

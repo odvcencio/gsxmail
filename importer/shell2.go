@@ -145,7 +145,7 @@ func extractTheme(body, card *node) (themeTokens, []string) {
 
 	accentFound := false
 	for _, a := range findAll(body, "a") {
-		if v := findWrappingStyleValue(body, a, "background-color"); v != "" && isHex(v) {
+		if v := findButtonFaceColor(body, a); v != "" && isHex(v) {
 			t.ColorAccent = normalizeHex(v)
 			accentFound = true
 			break
