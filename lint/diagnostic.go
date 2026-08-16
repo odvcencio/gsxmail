@@ -9,13 +9,15 @@ import "fmt"
 
 // Diagnostic is one check-time finding. gsxmail.Diagnostic is a type alias
 // for this type, so package gsxmail never has to convert between the two.
+// The JSON field names are what `gsxmail check --format json` emits for CI
+// annotations (spec section 10).
 type Diagnostic struct {
-	File     string
-	Line     int
-	Col      int
-	Code     string
-	Severity string
-	Message  string
+	File     string `json:"file"`
+	Line     int    `json:"line"`
+	Col      int    `json:"col"`
+	Code     string `json:"code"`
+	Severity string `json:"severity"`
+	Message  string `json:"message"`
 }
 
 // String formats d as "file:line:col: CODE: message" (spec section 8).

@@ -1,6 +1,6 @@
-// Command gsxmail is the gsxmail CLI. WP1 ships one verb, render; dev,
-// check, and matrix land in later work packages (spec section 10, section
-// 15).
+// Command gsxmail is the gsxmail CLI. This release ships render, check,
+// and matrix refresh; dev (the live preview server) lands in a later
+// work package (spec section 10, section 15).
 package main
 
 import (
@@ -27,6 +27,10 @@ func run(args []string) error {
 	switch args[0] {
 	case "render":
 		return runRender(args[1:])
+	case "check":
+		return runCheck(args[1:])
+	case "matrix":
+		return runMatrix(args[1:])
 	case "-h", "--help", "help":
 		printUsage(os.Stdout)
 		return nil
@@ -48,7 +52,22 @@ verbs:
       <Template>.html and <Template>.txt under --out (default: the
       current directory), or streams one part to stdout.
 
-  dev, check, matrix
+  check [--dir emails] [--format text|json]
+      Runs Load and prints every lint finding (spec section 8). Exits 1
+      if any finding is error-severity. --format json feeds CI
+      annotations. This verb never calls the network; it cannot see a
+      consumer's registered helpers, so EM014/EM015 findings here mean
+      only "the CLI cannot verify this," not "this helper is missing" —
+      validate helper bindings with Set.Check() in your own test instead.
+
+  matrix refresh [--out lint/snapshot.json]
+      Downloads the caniemail dataset, rewrites the embedded snapshot
+      with its date, and prints the per-client support diffs for review.
+      This is the one gsxmail command that calls the network. Run it
+      from a gsxmail module checkout and commit the result like any
+      other reviewed change.
+
+  dev
       Landing in a later gsxmail release.
 `
 }
