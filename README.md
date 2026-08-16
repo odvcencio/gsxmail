@@ -27,7 +27,7 @@ from one tree — so the text part can never drift from the HTML part.
 - No Word-engine emulation in preview. The dev preview approximates
   webmail; it does not emulate Outlook's Word rendering engine.
 
-## Status: WP3, dynamic data
+## Status: WP5.1, bulletproof output contracts
 
 The stdlib now covers `Shell`, `Signal`, `Headline`, `Panel`/`PanelRow`,
 `CTA`, `PickList`/`Item`, `Footer`, `Note`, `Divider`, and
@@ -35,7 +35,9 @@ The stdlib now covers `Shell`, `Signal`, `Headline`, `Panel`/`PanelRow`,
 branch on a bool with `<If>`; a raw-element `Custom` subtree stays
 available as an escape hatch for markup the stdlib does not express. It
 ships the `gsxmail render` and `gsxmail check` CLI verbs, `gsxmail matrix
-refresh`, and the full `Load`/`Render`/`Check` library API.
+refresh`, and the full `Load`/`Render`/`Check` library API. `Render`'s
+HTML part is hardened, bulletproof markup by default, mechanically proven
+by a structural verification pass — see "Output contracts" below.
 
 `Load` runs the full email lint catalog (EM001 through EM112) before it
 lowers anything. A missing props field, an expression outside the email
@@ -91,6 +93,60 @@ A registered helper (`Options.Helpers`) can appear in any expression hole,
 including a `StatRow`'s `cells`/`mark` or an `<If>`'s `cond`: `Load`
 checks its registration and arity (EM014/EM015); `Render` invokes it by
 reflection against the same map.
+
+## Output contracts
+
+`Render`'s HTML part is hardened, bulletproof markup by default: an
+Outlook ghost table around the 600px card, `xmlns:v`/`xmlns:o` and the
+`o:PixelsPerInch` DPI fix, MJML's reset `<style>` block, a
+`role="presentation"` invariant on every layout table, and doubled width
+attributes/CSS on sized elements. Per component:
+
+- **Shell**: the ghost table, DPI namespaces, and reset styles above,
+  plus a `role="article"` accessible wrapper around the card.
+- **Headline**: the title renders as a semantic `<h1>` (margins zeroed),
+  not a plain `<div>`.
+- **Panel**: each row is a two-cell table row, not two `<span>`s sharing
+  one cell — Outlook Windows has no `display:inline-block`.
+- **CTA**: the button face carries `mso-padding-alt`, so Outlook draws
+  the visual box the padding gives every other client.
+- **StatTable**: a real data table (no `role="presentation"`, `<th
+  scope="col">` headers) — it holds facts, not layout.
+- **Note**: a border-left accent bar and a tinted background, marking the
+  aside structurally, never by color alone.
+- **Divider**: the spacer technique
+  (`font-size:0;line-height:0;mso-line-height-rule:exactly`), which pins
+  an exact-height rule across clients that a bare `border-top` div does
+  not.
+
+`Signal`, `PickList`, and `Footer` needed no change: their WP1 markup
+already met the contract.
+
+Set `Options.Outlook: "off"` to render the exact WP1 byte stream instead
+— parity mode, for a consumer with its own byte- or DOM-equivalence test
+pinned to the old bytes. gsxmail's own gridiron invite fixture, and its
+DOM-parity test against the hand-written production template, is the
+worked example: it loads with `Outlook: "off"` for exactly this reason.
+
+### The structural verification pass
+
+gsxmail re-parses its own rendered HTML with a pure-Go tree-sitter HTML
+grammar ([gotreesitter](https://github.com/odvcencio/gotreesitter)) and
+mechanically proves the contract holds: zero parse-error nodes (malformed
+HTML still parses to a walkable tree under tree-sitter's error recovery,
+so a clean parse is a real guarantee), balanced `<!--[if mso]>`
+conditional comments, layout-table nesting under a 12-level cap, and (in
+hardened mode) that a `role="presentation"` table never has a `<th>`
+descendant. The pass runs over every golden and the full stdlib block
+corpus in the test suite.
+
+This is a test-layer dependency only. `internal/structverify` imports
+gotreesitter; no render-path package (`renderhtml`, `doc`, `lower`,
+`gsxmail` itself) and no CLI package does — a module-graph test at the
+repo root, `TestGotreesitterIsolatedFromCorePath`, proves it on every
+run. gotreesitter's default build embeds its full ~206-grammar registry,
+so linking it into a binary is not free: measure before you import it
+anywhere outside a test.
 
 ## Size budget
 
@@ -216,6 +272,7 @@ type Options struct {
     Theme        Theme
     Helpers      map[string]any
     MaxHTMLBytes int
+    Outlook      string // "" / "ghost-tables" (hardened, default) | "off" (parity)
 }
 
 func Load(fsys fs.FS, opts Options) (*Set, error)
