@@ -73,6 +73,30 @@ func TestLintCatalog(t *testing.T) {
 	}
 }
 
+// TestCustomSubtreeLintReachesRawStyles is WP3's regression check for the
+// Custom pass-through (design spec section 7.2, section 15 WP3): the
+// per-property matrix lint (EM101/EM102) must reach a raw element's style
+// attribute wherever it sits, including nested inside <email.Shell> —
+// the exact position lower.Lower now accepts as a Custom subtree, rather
+// than rejecting outright.
+func TestCustomSubtreeLintReachesRawStyles(t *testing.T) {
+	_, err := gsxmail.Load(os.DirFS("testdata/lint/customsubtree"), gsxmail.Options{})
+	if err == nil {
+		t.Fatal("Load succeeded; the Custom subtree's border-radius should fail EM101")
+	}
+	var lintErr *gsxmail.LintError
+	if !errors.As(err, &lintErr) {
+		t.Fatalf("Load's error is not a *gsxmail.LintError: %v", err)
+	}
+	want := `style property "border-radius" is unsupported in Outlook (Windows desktop) (caniemail not supported, snapshot 2026-08-10); remove it or suppress with gsxmail:allow "border-radius"`
+	for _, d := range lintErr.Diagnostics {
+		if d.Code == "EM101" && d.Message == want {
+			return
+		}
+	}
+	t.Errorf("no EM101 diagnostic %q found; got:\n%s", want, diagnosticsList(lintErr.Diagnostics))
+}
+
 func diagnosticsList(diags []gsxmail.Diagnostic) string {
 	s := ""
 	for _, d := range diags {

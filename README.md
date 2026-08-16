@@ -27,21 +27,87 @@ from one tree — so the text part can never drift from the HTML part.
 - No Word-engine emulation in preview. The dev preview approximates
   webmail; it does not emulate Outlook's Word rendering engine.
 
-## Status: WP2, the lint layer
+## Status: WP3, dynamic data
 
-This release compiles one template shape end to end: `Shell`, `Signal`,
-`Headline`, `Panel`/`PanelRow`, `CTA`, `PickList`/`Item`, and `Footer`. It
+The stdlib now covers `Shell`, `Signal`, `Headline`, `Panel`/`PanelRow`,
+`CTA`, `PickList`/`Item`, `Footer`, `Note`, `Divider`, and
+`StatTable`/`StatRow`. Templates can loop over a slice with `<Each>` and
+branch on a bool with `<If>`; a raw-element `Custom` subtree stays
+available as an escape hatch for markup the stdlib does not express. It
 ships the `gsxmail render` and `gsxmail check` CLI verbs, `gsxmail matrix
 refresh`, and the full `Load`/`Render`/`Check` library API.
 
-`Load` now runs the full email lint catalog (EM001 through EM112) before
-it lowers anything. A missing props field, an expression outside the
-email dialect, a disallowed HTML element, or an unsupported style
-property all fail `Load` closed. Each failure carries an exact
-diagnostic, not a runtime surprise.
+`Load` runs the full email lint catalog (EM001 through EM112) before it
+lowers anything. A missing props field, an expression outside the email
+dialect, a disallowed HTML element, or an unsupported style property all
+fail `Load` closed. Each failure carries an exact diagnostic, not a
+runtime surprise. `Render` adds its own render-time check: the rendered
+HTML part must fit the Gmail-clip size budget (see "Size budget" below).
 
 `gsxmail dev` (the live preview server) lands in a later release. Until
 then, validate a template with `gsxmail check` and by rendering it.
+
+## Dynamic data: `Each`, `If`, and `StatTable`
+
+`<Each of={props.Field} as="name">` iterates a slice props path (or,
+inside another `<Each>`, a slice field of the current loop binding) and
+binds `name` to the current element for its body. An empty slice renders
+nothing. `<If cond={props.Field}>` renders its children only when the
+bool expression is true; a bare-text child is a check-time error (EM031),
+so the text twin always has an element to place.
+
+```gsx
+func DraftRecap(props RecapProps) Node {
+    return <email.Shell wordmark={props.League} shortCode={props.Code}
+        tagline={props.Tagline} title={props.League} lang="en">
+        <email.StatTable title="YOUR HAUL //" header={props.HaulHeader}>
+            <Each of={props.Haul} as="row">
+                <email.StatRow cells={row.Cells} mark={row.IsKeystone} />
+            </Each>
+        </email.StatTable>
+        <If cond={props.HasAutoPicks}>
+            <email.Note text={props.AutoPickNote} />
+        </If>
+        <email.CTA label="SEE THE FULL BOARD →" href={props.BoardURL} />
+    </email.Shell>
+}
+```
+
+`row.Cells` and `row.IsKeystone` read fields off the loop-bound element
+itself, not off `props` — the same expression grammar as a `props.Field`
+read, resolved against whichever struct `<Each>` bound. `StatTable`'s
+`header` attribute, and `StatRow`'s `cells` attribute, are both a bare
+slice-valued path for the same reason a computed slice is not: `<Each
+of={...}>`, `header={...}`, and `cells={...}` all require one, never a
+concatenation or a helper call.
+
+A `StatRow`'s `mark` attribute (a bool expression, defaulting to false
+when omitted) selects the one row that renders with the accent color in
+HTML and a leading `* ` in text — the same 1-based "one marked row, or
+none" semantics `internal/emailkit`'s `MarkRow` established, derived here
+from whichever row's `mark` resolves true first.
+
+A registered helper (`Options.Helpers`) can appear in any expression hole,
+including a `StatRow`'s `cells`/`mark` or an `<If>`'s `cond`: `Load`
+checks its registration and arity (EM014/EM015); `Render` invokes it by
+reflection against the same map.
+
+## Size budget
+
+Gmail clips an HTML email near 102,400 bytes and hides everything after
+the cut, including an unsubscribe footer. `Render` checks the rendered
+HTML part on every call:
+
+- Over `Options.MaxHTMLBytes` (0 selects the default 100,000 bytes) fails
+  closed: `Render` returns a zero `Parts` and a `*gsxmail.SizeBudgetError`
+  carrying EM120's message.
+- Over the fixed 90,000-byte warning line, but still within budget,
+  succeeds: the returned `Parts.Diagnostics` carries one EM121 warning.
+- `Options.MaxHTMLBytes: -1` disables both checks.
+
+A template with an unbounded list — a `StatTable` fed from a large
+`<Each>` — is the shape most likely to cross either line; size it against
+a realistic worst-case fixture, not just your happy-path preview data.
 
 ## 60-second quick start
 
@@ -141,8 +207,9 @@ Every test runs offline too.
 package gsxmail
 
 type Parts struct {
-    HTML string
-    Text string
+    HTML        string
+    Text        string
+    Diagnostics []Diagnostic // today, only ever an EM121 size warning
 }
 
 type Options struct {
@@ -159,6 +226,8 @@ func (s *Set) Check() []Diagnostic
 
 type Theme = renderhtml.Theme
 func DefaultTheme() Theme
+
+type SizeBudgetError struct{ Diagnostic Diagnostic } // Render's EM120
 ```
 
 `Load` compiles every `*.gsx` file under `fsys`. It resolves each
