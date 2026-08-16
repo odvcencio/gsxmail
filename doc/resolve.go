@@ -66,6 +66,10 @@ func (sc *scope) resolveShell(s Shell) (ResolvedShell, error) {
 	if out.Lang, err = sc.resolveText(s.Lang); err != nil {
 		return out, err
 	}
+	if out.Preheader, err = sc.resolveText(s.Preheader); err != nil {
+		return out, err
+	}
+	out.Outlook = s.Outlook
 	return out, nil
 }
 

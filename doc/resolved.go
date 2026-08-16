@@ -9,12 +9,17 @@ type Resolved struct {
 }
 
 // ResolvedShell is Shell with every field evaluated to a plain string.
+// Preheader resolves like any other text field; Outlook carries straight
+// through unevaluated (design spec section 15, WP5.2: it is already a
+// plain string on Shell, never an Expr).
 type ResolvedShell struct {
 	Wordmark  string
 	ShortCode string
 	Tagline   string
 	Title     string
 	Lang      string
+	Preheader string
+	Outlook   string
 }
 
 // ResolvedBlock mirrors Block with plain-string fields. The implementations

@@ -59,14 +59,21 @@ type Options struct {
 	MaxHTMLBytes int
 
 	// Outlook selects the HTML output contract every template in this Set
-	// renders with (design spec section 15, WP5.1; pixel dossier section
-	// 4.2). "" and "ghost-tables" (the default) emit the hardened,
-	// bulletproof markup: an Outlook ghost table, doubled DPI-fix widths,
-	// td-pair Panel rows, an <h1> Headline title, mso-padding-alt on the
-	// CTA, a real StatTable data-table contract, and the border-left Note
-	// / spacer-technique Divider. "off" emits the WP1 byte stream
-	// unchanged — the parity mode a consumer's own byte- or DOM-
-	// equivalence test can pin.
+	// renders with, unless a template's own <email.Shell outlook="..."
+	// attribute overrides it (design spec section 15, WP5.1/WP5.2; pixel
+	// dossier section 4.2). "" and "ghost-tables" (the default) emit the
+	// hardened, bulletproof markup: an Outlook ghost table, doubled DPI-fix
+	// widths, td-pair Panel rows, an <h1> Headline title, mso-padding-alt
+	// on the CTA, a real StatTable data-table contract, and the
+	// border-left Note / spacer-technique Divider. "off" emits the WP1
+	// byte stream unchanged — the parity mode a consumer's own byte- or
+	// DOM-equivalence test can pin.
+	//
+	// This field is the Set-wide default/fallback (WP5.1's own shipped
+	// surface, unchanged): a template whose Shell sets its own outlook
+	// attribute always wins over this field for that one template; a
+	// Shell that leaves outlook unset keeps using this field, exactly as
+	// every WP5.1 consumer already does.
 	Outlook string
 }
 
@@ -181,11 +188,15 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 	}
 
 	resolver := typesafe.NewResolver(fsys)
-	lintOpts := lint.Options{Helpers: opts.Helpers}
+	lintOpts := lint.Options{Helpers: opts.Helpers, Theme: opts.Theme}
 	var diagnostics []Diagnostic
 	for _, cf := range files {
 		diagnostics = append(diagnostics, lint.CheckProgram(cf.path, cf.prog, resolver, path.Dir(cf.path), lintOpts)...)
 	}
+	// EM140-EM144 (design spec section 15, WP5.2; pixel dossier section 5)
+	// check opts.Theme itself, once per Load call — not per template, since
+	// every template in this Set shares the same Theme.
+	diagnostics = append(diagnostics, lint.CheckTheme(opts.Theme)...)
 	if hasErrorDiagnostic(diagnostics) {
 		return nil, &LintError{Diagnostics: diagnostics}
 	}
@@ -246,8 +257,20 @@ func (s *Set) Render(name string, props any) (Parts, error) {
 	if err != nil {
 		return Parts{}, err
 	}
+	// The rendered template's own <email.Shell outlook="..."> attribute
+	// (design spec section 15, WP5.2; pixel dossier section 4.2) overrides
+	// this Set's Options.Outlook default/fallback when set; an unset Shell
+	// attribute ("") keeps using the Set-wide value, exactly as WP5.1
+	// shipped it.
+	outlook := s.opts.Outlook
+	if resolved.Shell.Outlook != "" {
+		outlook = resolved.Shell.Outlook
+	}
 	parts := Parts{
-		HTML: renderhtml.WriteWithOptions(resolved, s.opts.Theme, renderhtml.WriteOptions{Outlook: s.opts.Outlook}),
+		HTML: renderhtml.WriteWithOptions(resolved, s.opts.Theme, renderhtml.WriteOptions{
+			Outlook:   outlook,
+			Preheader: resolved.Shell.Preheader,
+		}),
 		Text: rendertext.Write(resolved),
 	}
 	diag, sizeErr := checkHTMLBudget(name, parts.HTML, s.opts.MaxHTMLBytes)

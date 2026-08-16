@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"m31labs.dev/gosx/ir"
+	"m31labs.dev/gsxmail/renderhtml"
 	"m31labs.dev/gsxmail/typesafe"
 )
 
@@ -21,12 +23,16 @@ var elementAllowlist = map[string]bool{
 }
 
 // Options configures CheckProgram beyond the compiled IR: the registered
-// helpers (EM014/EM015) and the caniemail matrix (EM101/EM102). The zero
-// value selects DefaultMatrix() and treats every helper call as
-// unregistered.
+// helpers (EM014/EM015), the caniemail matrix (EM101/EM102), and (design
+// spec section 15, WP5.2) the Set's own Theme, which EM143 needs to judge
+// whether a raw element's literal color has a dark-palette counterpart.
+// The zero value selects DefaultMatrix(), treats every helper call as
+// unregistered, and (Theme's own zero value carrying DarkMode "") never
+// trips EM143, since that check only ever runs under DarkMode "adaptive".
 type Options struct {
 	Helpers map[string]any
 	Matrix  *Matrix
+	Theme   renderhtml.Theme
 }
 
 // CheckProgram runs the email lint catalog, EM001 through EM112 (design
@@ -44,7 +50,10 @@ func CheckProgram(file string, prog *ir.Program, resolver *typesafe.Resolver, di
 	if matrix == nil {
 		matrix = DefaultMatrix()
 	}
-	w := &walker{file: file, prog: prog, matrix: matrix, helpers: opts.Helpers}
+	w := &walker{
+		file: file, prog: prog, matrix: matrix, helpers: opts.Helpers,
+		theme: opts.Theme, darkTokens: collectDarkTokens(opts.Theme),
+	}
 	for _, comp := range prog.Components {
 		w.checkComponent(comp, resolver, dir)
 	}
@@ -56,7 +65,12 @@ type walker struct {
 	prog    *ir.Program
 	matrix  *Matrix
 	helpers map[string]any
-	diags   []Diagnostic
+	// theme and darkTokens back EM143 (design spec section 15, WP5.2): a
+	// raw element's literal color with no counterpart in either palette,
+	// checked only under DarkMode "adaptive" — see checkStyle.
+	theme      renderhtml.Theme
+	darkTokens map[string]bool
+	diags      []Diagnostic
 }
 
 // exprContext is the props/loop-binding scope in effect while checking one
@@ -262,6 +276,19 @@ func (w *walker) checkImg(n *ir.Node) {
 // true and isStatic is true), that it is present but a dynamic expression
 // gsxmail cannot check without rendering (present true, isStatic false), or
 // that it is absent (present false).
+// findAttr finds name in attrs and returns it, or nil if absent. checkShell
+// (design spec section 15, WP5.2) is the one caller that needs the whole
+// ir.Attr (kind and expression source, not just a resolved static value) —
+// attrValue below serves every other caller's narrower need.
+func findAttr(attrs []ir.Attr, name string) *ir.Attr {
+	for i := range attrs {
+		if attrs[i].Name == name {
+			return &attrs[i]
+		}
+	}
+	return nil
+}
+
 func attrValue(attrs []ir.Attr, name string) (value string, present, isStatic bool) {
 	for _, a := range attrs {
 		if a.Name != name {
@@ -293,6 +320,148 @@ func (w *walker) checkStyle(n *ir.Node, raw string) {
 					prop, f.ClientLabel, SupportWord(f.Code)))
 			}
 		}
+	}
+	w.checkDarkPaletteCoverage(n, raw)
+}
+
+// checkDarkPaletteCoverage implements EM143 (design spec section 15,
+// WP5.2; pixel dossier section 5.3, rule 3's "Custom block color" case):
+// under DarkMode "adaptive", a raw element's literal color or
+// background-color that matches neither the light Theme's nor Theme.Dark's
+// own tokens has nowhere to go when the adaptive style layer swaps in —
+// a forced transform will recolor it unpredictably instead. It only
+// judges "none" and "locked" themes' Custom colors — an author using
+// their own theme's own tokens is always covered under "locked" — by
+// staying a no-op there (darkTokens is only ever consulted here).
+func (w *walker) checkDarkPaletteCoverage(n *ir.Node, raw string) {
+	if w.theme.DarkStrategy() != "adaptive" {
+		return
+	}
+	for _, value := range extractColorValues(raw) {
+		hex := strings.ToUpper(strings.TrimSpace(value))
+		if !isHexColor(hex) {
+			continue // EM143 judges literal hex colors only; named colors and rgb()/var() are out of scope for a token-membership check
+		}
+		if !w.darkTokens[hex] {
+			w.add(n, "EM143", "warn", fmt.Sprintf(
+				"Custom block color %q has no dark-palette counterpart; forced transforms will recolor it unpredictably", value))
+		}
+	}
+}
+
+// extractColorValues re-splits raw the same way parseCSSDeclarations does,
+// but keeps color and background-color's own values (parseCSSDeclarations
+// keeps property names only, which EM101/EM102's matrix lookup is all
+// EM103's caller needs).
+func extractColorValues(raw string) map[string]string {
+	out := map[string]string{}
+	for _, decl := range strings.Split(raw, ";") {
+		decl = strings.TrimSpace(decl)
+		idx := strings.Index(decl, ":")
+		if idx <= 0 {
+			continue
+		}
+		prop := strings.ToLower(strings.TrimSpace(decl[:idx]))
+		if prop != "color" && prop != "background-color" {
+			continue
+		}
+		out[prop] = strings.TrimSpace(decl[idx+1:])
+	}
+	return out
+}
+
+// isHexColor reports whether s (already upper-cased) is a six-digit "#RRGGBB" literal.
+func isHexColor(s string) bool {
+	if len(s) != 7 || s[0] != '#' {
+		return false
+	}
+	for _, c := range s[1:] {
+		if !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+// collectDarkTokens gathers every color token from theme's light fields
+// and (when set) theme.Dark, upper-cased, for EM143's membership check.
+// It is cheap to build unconditionally; checkDarkPaletteCoverage is what
+// gates its use to DarkMode "adaptive".
+func collectDarkTokens(theme renderhtml.Theme) map[string]bool {
+	tokens := map[string]bool{}
+	add := func(hex string) {
+		if hex != "" {
+			tokens[strings.ToUpper(hex)] = true
+		}
+	}
+	add(theme.ColorGround)
+	add(theme.ColorCard)
+	add(theme.ColorPanel)
+	add(theme.ColorBorder)
+	add(theme.ColorAccent)
+	add(theme.ColorInk)
+	add(theme.ColorBody)
+	add(theme.ColorMuted)
+	add(theme.ColorFaint)
+	if theme.Dark != nil {
+		add(theme.Dark.ColorGround)
+		add(theme.Dark.ColorCard)
+		add(theme.Dark.ColorPanel)
+		add(theme.Dark.ColorBorder)
+		add(theme.Dark.ColorAccent)
+		add(theme.Dark.ColorInk)
+		add(theme.Dark.ColorBody)
+		add(theme.Dark.ColorMuted)
+		add(theme.Dark.ColorFaint)
+	}
+	return tokens
+}
+
+// checkShell validates <email.Shell>'s own WP5.2 attributes (design spec
+// section 15, WP5.2; pixel dossier section 4.2's Shell options and section
+// 6.1's preheader contract):
+//
+//   - EM170 (warn) flags a Shell with no preheader attribute at all — a
+//     discoverable authoring smell, not a rendering bug, since the source
+//     shape (attribute present or not) is knowable without evaluating
+//     anything.
+//   - EM171 (error) rejects a literal preheader text over the emitted
+//     block's 150-character pad target. A dynamic {expression} preheader
+//     is not checked here — its length is not known until Render.
+//   - EM172 (error) rejects an outlook attribute that is not a static "",
+//     "ghost-tables", or "off": the per-Shell output-contract override is
+//     a structural, compile-time choice, never a props-dependent one
+//     (doc.Shell's own doc comment).
+func (w *walker) checkShell(n *ir.Node) {
+	preheaderAttr := findAttr(n.Attrs, "preheader")
+	switch {
+	case preheaderAttr == nil:
+		w.add(n, "EM170", "warn", `Shell has no preheader; clients will preview the first body text instead`)
+	case preheaderAttr.Kind == ir.AttrStatic:
+		if count := utf8.RuneCountInString(preheaderAttr.Value); count > 150 {
+			w.add(n, "EM171", "error", fmt.Sprintf(
+				"preheader is %d characters; the limit is 150 (the emitted block pads to exactly 150)", count))
+		}
+	}
+
+	outlookAttr := findAttr(n.Attrs, "outlook")
+	if outlookAttr == nil {
+		return
+	}
+	got := outlookAttr.Value
+	valid := outlookAttr.Kind == ir.AttrStatic
+	if valid {
+		switch outlookAttr.Value {
+		case "", "ghost-tables", "off":
+		default:
+			valid = false
+		}
+	} else {
+		got = "{" + outlookAttr.Expr + "}"
+	}
+	if !valid {
+		w.add(n, "EM172", "error", fmt.Sprintf(
+			`<email.Shell> outlook attribute must be a static "", "ghost-tables", or "off"; got %q`, got))
 	}
 }
 
@@ -364,6 +533,9 @@ func (w *walker) checkComponentNode(n *ir.Node, ctx *exprContext) {
 		slicePathAttrs := sliceAttrsFor(local)
 		for _, a := range n.Attrs {
 			w.checkComponentAttr(n, a, ctx, slicePathAttrs)
+		}
+		if local == "Shell" {
+			w.checkShell(n)
 		}
 		for _, c := range n.Children {
 			w.checkNode(c, ctx)

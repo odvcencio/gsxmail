@@ -1,10 +1,12 @@
 // Package structverify re-parses gsxmail's own rendered HTML with
-// gotreesitter's HTML grammar and proves the WP5.1 output contract holds
-// mechanically (design spec section 15, WP5.1; pixel dossier section 7.2,
-// "Structural verification pass"): zero parse-error nodes, balanced
-// conditional comments, layout-table nesting under the cap, and (for
+// gotreesitter's HTML grammar and proves the output contract holds
+// mechanically (design spec section 15, WP5.1/WP5.2; pixel dossier section
+// 7.2, "Structural verification pass"): zero parse-error nodes, balanced
+// conditional comments, layout-table nesting under the cap, (for
 // hardened-mode output) the role="presentation" / data-table split the
-// contract states.
+// contract states, a preheader div (when the rendered HTML has one) that
+// carries its full suppression-style stack, and a dark-mode adaptive style
+// layer (when present) that carries its own required selectors.
 //
 // This package is gsxmail's one deliberate, opt-in gotreesitter import
 // (pixel dossier section 7.3: "The core library render path never
@@ -103,6 +105,8 @@ func Verify(html string) ([]Finding, error) {
 	walkWellFormed(root, &findings)
 	walkConditionalComments(root, src, &findings)
 	walkTableDepth(root, src, 0, &findings)
+	checkPreheaderStack(root, src, &findings)
+	checkDarkStyleLayer(root, src, &findings)
 	return findings, nil
 }
 
@@ -337,4 +341,135 @@ func elementHasDescendant(n *gts.Node, src []byte, target string) bool {
 		}
 	}
 	return false
+}
+
+// requiredPreheaderStyles are the six suppression declarations the pixel
+// dossier's preheader contract requires (section 6.1, citing react-email's
+// shipped Preview styles, R5).
+var requiredPreheaderStyles = []string{
+	"display:none", "overflow:hidden", "line-height:1px",
+	"opacity:0", "max-height:0", "max-width:0",
+}
+
+// checkPreheaderStack implements EM173 (design spec section 15, WP5.2):
+// when <body>'s first element child is a div whose style declares
+// display:none — the shape renderhtml.writePreheader emits — every one of
+// requiredPreheaderStyles must also be present. A template that renders
+// with no preheader configured has no such div at all, so this check is a
+// no-op for it (renderhtml.writePreheader writes nothing when Preheader is
+// empty, in either output contract).
+func checkPreheaderStack(root *gts.Node, src []byte, findings *[]Finding) {
+	body := findElement(root, src, "body")
+	if body == nil {
+		return
+	}
+	first := firstElementChild(body)
+	if first == nil || !isElementNamed(first, src, "div") {
+		return
+	}
+	tag := startTag(first)
+	style, present := attrValue(tag, src, "style")
+	normalized := strings.ReplaceAll(style, " ", "")
+	if !present || !strings.Contains(normalized, "display:none") {
+		return // not a preheader-shaped div; nothing to check
+	}
+	var missing []string
+	for _, want := range requiredPreheaderStyles {
+		if !strings.Contains(normalized, strings.ReplaceAll(want, " ", "")) {
+			missing = append(missing, want)
+		}
+	}
+	if len(missing) > 0 {
+		p := first.StartPoint()
+		*findings = append(*findings, Finding{
+			Code: "EM173",
+			Message: fmt.Sprintf(
+				"preheader div at output line %d, column %d is missing suppression style(s) %s",
+				p.Row+1, p.Column+1, strings.Join(missing, ", ")),
+		})
+	}
+}
+
+// checkDarkStyleLayer implements EM174 (design spec section 15, WP5.2): a
+// <style> block that declares @media (prefers-color-scheme:dark) — the
+// "adaptive" strategy's own marker — must also carry both
+// [data-ogsc]/[data-ogsb] Outlook-app inversion hooks (pixel dossier
+// section 5.2) and balanced braces. A "none" or "locked" style block never
+// mentions prefers-color-scheme at all, so this check is a no-op for both.
+func checkDarkStyleLayer(root *gts.Node, src []byte, findings *[]Finding) {
+	style := findElement(root, src, "style")
+	if style == nil {
+		return
+	}
+	text := elementText(style, src)
+	if !strings.Contains(text, "prefers-color-scheme") {
+		return
+	}
+	var missing []string
+	for _, want := range []string{"[data-ogsc]", "[data-ogsb]"} {
+		if !strings.Contains(text, want) {
+			missing = append(missing, want)
+		}
+	}
+	if strings.Count(text, "{") != strings.Count(text, "}") {
+		missing = append(missing, "balanced { }")
+	}
+	if len(missing) > 0 {
+		*findings = append(*findings, Finding{
+			Code:    "EM174",
+			Message: fmt.Sprintf("adaptive dark-mode style layer is malformed: missing %s", strings.Join(missing, ", ")),
+		})
+	}
+}
+
+// findElement returns the first element named name anywhere in n's
+// subtree (depth-first, including n itself), or nil.
+func findElement(n *gts.Node, src []byte, name string) *gts.Node {
+	if n == nil {
+		return nil
+	}
+	if isElementNamed(n, src, name) {
+		return n
+	}
+	for i := 0; i < n.ChildCount(); i++ {
+		if found := findElement(n.Child(i), src, name); found != nil {
+			return found
+		}
+	}
+	return nil
+}
+
+// firstElementChild returns n's first direct child that is itself an
+// "element" node, or nil.
+func firstElementChild(n *gts.Node) *gts.Node {
+	for i := 0; i < n.ChildCount(); i++ {
+		if c := n.Child(i); c.Type(htmlLang) == "element" {
+			return c
+		}
+	}
+	return nil
+}
+
+// elementText concatenates every leaf node's own text within n, skipping
+// its start/end tags — a grammar-agnostic way to read a <style> element's
+// content regardless of exactly which leaf node type the HTML grammar
+// gives raw CSS text.
+func elementText(n *gts.Node, src []byte) string {
+	var b strings.Builder
+	var walk func(*gts.Node)
+	walk = func(x *gts.Node) {
+		switch x.Type(htmlLang) {
+		case "start_tag", "end_tag", "self_closing_tag":
+			return
+		}
+		if x.ChildCount() == 0 {
+			b.WriteString(x.Text(src))
+			return
+		}
+		for i := 0; i < x.ChildCount(); i++ {
+			walk(x.Child(i))
+		}
+	}
+	walk(n)
+	return b.String()
 }

@@ -87,6 +87,14 @@ func lowerShell(root *ir.Node, propsName string) (doc.Shell, error) {
 	if s.Lang, err = attrExpr(root.Attrs, "lang", propsName, nil); err != nil {
 		return s, err
 	}
+	if s.Preheader, err = attrExpr(root.Attrs, "preheader", propsName, nil); err != nil {
+		return s, err
+	}
+	// outlook is a plain static string, never an {expression} (doc.Shell's
+	// own doc comment explains why): the lint pass (EM172) already rejects
+	// anything else before Lower ever runs, so this only needs to read the
+	// literal value lint already validated.
+	s.Outlook = staticAttrValue(root.Attrs, "outlook")
 	return s, nil
 }
 

@@ -19,12 +19,13 @@ package renderhtml
 import (
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"m31labs.dev/gsxmail/doc"
 )
 
 // WriteOptions configures Write's output contract (design spec section 15,
-// WP5.1; pixel dossier section 4.2's "Shell options" surface).
+// WP5.1/WP5.2; pixel dossier section 4.2's "Shell options" surface).
 type WriteOptions struct {
 	// Outlook selects the layout technique. "" and "ghost-tables" (the
 	// default) emit the hardened contract: an Outlook ghost table around
@@ -37,6 +38,16 @@ type WriteOptions struct {
 	// test can pin (pixel dossier section 4: "Parity mode ... keeps the
 	// WP1 byte stream").
 	Outlook string
+
+	// Preheader, when non-empty, emits the hidden inbox-preview div as the
+	// first child of <body>, in both output contracts (design spec section
+	// 15, WP5.2; pixel dossier section 6.1). gsxmail.Set.Render sources it
+	// from the rendered template's own Shell (design spec section 15,
+	// WP5.2: preheader is authored on <email.Shell preheader={...}>, not
+	// passed here directly) — a caller writing straight to WriteOptions
+	// only needs this field when driving the writer without going through
+	// Set.Render at all.
+	Preheader string
 }
 
 // hardened reports whether opts selects the hardened output contract (the
@@ -55,11 +66,16 @@ func Write(resolved *doc.Resolved, theme Theme) string {
 // see the package doc and WriteOptions for the two output contracts).
 func WriteWithOptions(resolved *doc.Resolved, theme Theme, opts WriteOptions) string {
 	hard := opts.hardened()
+	// adaptive gates the WP5.2 gsx-ink/gsx-muted class hooks (pixel dossier
+	// section 5.2's adaptive style layer): parity mode never gains new
+	// markup, and "none"/"locked" have no swapped-in class-driven colors to
+	// hook, so the classes only appear when both conditions hold.
+	adaptive := hard && theme.DarkStrategy() == "adaptive"
 	var b strings.Builder
 	writeHead(&b, theme, resolved.Shell, hard)
-	writeBodyOpen(&b, theme, resolved.Shell, hard)
+	writeBodyOpen(&b, theme, resolved.Shell, hard, adaptive, opts.Preheader)
 	for _, block := range resolved.Blocks {
-		writeBlock(&b, theme, block, hard)
+		writeBlock(&b, theme, block, hard, adaptive)
 	}
 	writeBodyClose(&b, hard)
 	return b.String()
@@ -78,11 +94,22 @@ func writeHead(b *strings.Builder, theme Theme, shell doc.ResolvedShell, hard bo
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 `)
-	if theme.ColorScheme != "" {
+	strategy := theme.DarkStrategy()
+	// metaScheme is the ColorScheme-driven pair WP5.1 shipped, unchanged
+	// for "none" and "locked" (backward-compatible: a theme that never sets
+	// DarkMode renders byte-identically to WP5.1). "adaptive" overrides it
+	// to "light dark" regardless of ColorScheme (pixel dossier section
+	// 5.2's exact snippet) — EM144 already rejects a conflicting explicit
+	// ColorScheme at Load time.
+	metaScheme := theme.ColorScheme
+	if strategy == "adaptive" {
+		metaScheme = "light dark"
+	}
+	if metaScheme != "" {
 		b.WriteString("<meta name=\"color-scheme\" content=\"")
-		b.WriteString(escapeAttr(theme.ColorScheme))
+		b.WriteString(escapeAttr(metaScheme))
 		b.WriteString("\">\n<meta name=\"supported-color-schemes\" content=\"")
-		b.WriteString(escapeAttr(theme.ColorScheme))
+		b.WriteString(escapeAttr(metaScheme))
 		b.WriteString("\">\n")
 	}
 	b.WriteString("<title>")
@@ -107,9 +134,55 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 .gsx-card{width:100% !important;}
 .gsx-col{display:block !important;width:100% !important;max-width:100% !important;}
 }
-</style>
+`)
+	writeDarkStyleLayer(b, theme, strategy)
+	b.WriteString(`</style>
 </head>
 `)
+}
+
+// writeDarkStyleLayer appends the "locked" or "adaptive" dark-mode
+// strategy's own <style> rules (pixel dossier section 5.2); "none" (the
+// default) writes nothing, keeping WP5.1's <style> block byte-identical.
+//
+// "locked" adds one :root rule (Apple Mail 16+ honors color-scheme only on
+// the root element — caniemail css-color-scheme, R2 — so this is the one
+// place a locked theme can declare itself). "adaptive" adds the
+// @media(prefers-color-scheme:dark) block that swaps Theme.Dark's tokens
+// into the gsx-body/gsx-card/gsx-ink/gsx-muted class hooks, plus the
+// [data-ogsc]/[data-ogsb] Outlook-app inversion hooks Litmus documents
+// (R14) — both best-effort, never claiming control of a forced transform
+// (pixel dossier section 5.1).
+func writeDarkStyleLayer(b *strings.Builder, theme Theme, strategy string) {
+	switch strategy {
+	case "locked":
+		scheme := theme.ColorScheme
+		if scheme == "" {
+			scheme = "dark"
+		}
+		b.WriteString(":root{color-scheme:")
+		b.WriteString(scheme)
+		b.WriteString(";}\n")
+	case "adaptive":
+		if theme.Dark == nil {
+			// EM140 already fails Load closed on this; the writer stays
+			// defensive, not exhaustive (lower.go's own stated philosophy
+			// for a check-time guarantee lint already proved).
+			return
+		}
+		d := theme.Dark
+		b.WriteString("@media (prefers-color-scheme: dark) {\n.gsx-body, .gsx-card { background-color:")
+		b.WriteString(d.ColorCard)
+		b.WriteString(" !important; }\n.gsx-ink { color:")
+		b.WriteString(d.ColorInk)
+		b.WriteString(" !important; }\n.gsx-muted { color:")
+		b.WriteString(d.ColorMuted)
+		b.WriteString(" !important; }\n}\n[data-ogsc] .gsx-ink { color:")
+		b.WriteString(d.ColorInk)
+		b.WriteString(" !important; }\n[data-ogsb] .gsx-card { background-color:")
+		b.WriteString(d.ColorCard)
+		b.WriteString(" !important; }\n")
+	}
 }
 
 // writeHeadParity is WP1's exact head writer, byte-for-byte (design spec
@@ -131,9 +204,9 @@ func writeHeadParity(b *strings.Builder, theme Theme, shell doc.ResolvedShell) {
 	b.WriteString("</title>\n</head>\n")
 }
 
-func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, hard bool) {
+func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, hard, adaptive bool, preheader string) {
 	if !hard {
-		writeBodyOpenParity(b, theme, shell)
+		writeBodyOpenParity(b, theme, shell, preheader)
 		return
 	}
 	width := strconv.Itoa(theme.CardWidth)
@@ -141,7 +214,9 @@ func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, har
 	b.WriteString(`<body class="gsx-body" style="margin:0; padding:0; background-color:`)
 	b.WriteString(theme.ColorGround)
 	b.WriteString(`;">
-<div role="article" aria-roledescription="email" aria-label="`)
+`)
+	writePreheader(b, preheader)
+	b.WriteString(`<div role="article" aria-roledescription="email" aria-label="`)
 	b.WriteString(escapeAttr(shell.Title))
 	b.WriteString(`" lang="`)
 	b.WriteString(escapeAttr(shell.Lang))
@@ -185,14 +260,18 @@ func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, har
 	b.WriteString(`</td></tr></table>
 </td>
 <td valign="middle">
-<div style="color:`)
+<div`)
+	b.WriteString(classAttrIf(adaptive, "gsx-ink"))
+	b.WriteString(` style="color:`)
 	b.WriteString(theme.ColorInk)
 	b.WriteString(`; font-family:`)
 	b.WriteString(theme.FontSans)
 	b.WriteString(`; font-size:19px; font-weight:800; letter-spacing:-0.02em; text-transform:uppercase;">`)
 	b.WriteString(escapeText(shell.Wordmark))
 	b.WriteString(`</div>
-<div style="color:`)
+<div`)
+	b.WriteString(classAttrIf(adaptive, "gsx-muted"))
+	b.WriteString(` style="color:`)
 	b.WriteString(theme.ColorMuted)
 	b.WriteString(`; font-family:`)
 	b.WriteString(theme.FontMono)
@@ -207,17 +286,68 @@ func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, har
 `)
 }
 
+// classAttrIf returns ` class="name"` when cond holds, or "" otherwise —
+// the WP5.2 adaptive-mode gsx-ink/gsx-muted class hook (pixel dossier
+// section 5.2), applied only at the Shell wordmark/tagline and Headline
+// title (the highest-visibility ink/muted text): a template-wide sweep
+// over every ink- or muted-colored element is a natural follow-on, not
+// required for the strategy to work end to end.
+func classAttrIf(cond bool, name string) string {
+	if !cond {
+		return ""
+	}
+	return ` class="` + name + `"`
+}
+
+// preheaderTargetChars is the decoded-character length the hidden
+// preview-text div always reaches (pixel dossier section 6.1, citing
+// react-email's shipped Preview component's padding pattern, R5): long
+// enough that no supported client pulls visible body copy into the inbox
+// preview line once the author's own text runs out. EM171 already rejects
+// a literal preheader over this limit at Load time.
+const preheaderTargetChars = 150
+
+// writePreheader writes the hidden inbox-preview div — react-email's
+// shipped suppression style set (R5) plus an alternating &nbsp;/&zwnj; pad
+// tail bringing the decoded text to exactly preheaderTargetChars
+// characters — as the first child of <body>, in both output contracts
+// (pixel dossier section 4.2's body-opening contract; section 6.1: the
+// suppression styles alone hide it, so it needs no ghost-table wrapper to
+// work, and MJML's mj-preview, R6, solves the same problem without one
+// either). It writes nothing when preheader is empty, so a template that
+// never sets one keeps rendering byte-identically to WP5.1 in both modes.
+func writePreheader(b *strings.Builder, preheader string) {
+	if preheader == "" {
+		return
+	}
+	b.WriteString(`<div style="display:none; overflow:hidden; line-height:1px; opacity:0; max-height:0; max-width:0;">`)
+	b.WriteString(escapeText(preheader))
+	remaining := preheaderTargetChars - utf8.RuneCountInString(preheader)
+	for ; remaining >= 2; remaining -= 2 {
+		b.WriteString(`&nbsp;&zwnj;`)
+	}
+	if remaining == 1 {
+		b.WriteString(`&nbsp;`)
+	}
+	b.WriteString("</div>\n")
+}
+
 // writeBodyOpenParity is WP1's exact body-open writer, byte-for-byte
-// (design spec section 6.4). It stays untouched so WriteOptions{Outlook:
-// "off"} keeps pinning the original bytes (the gridiron invite DOM-parity
-// guard).
-func writeBodyOpenParity(b *strings.Builder, theme Theme, shell doc.ResolvedShell) {
+// (design spec section 6.4), plus the one WP5.2 addition the parity
+// guarantee still allows: writePreheader, which writes nothing when
+// preheader is empty. WriteOptions{Outlook: "off"} with no preheader set
+// keeps pinning the original bytes (the gridiron invite DOM-parity guard);
+// setting a preheader in parity mode is a deliberate, additive exception,
+// since the suppression-style div needs no ghost-table wrapper to work.
+func writeBodyOpenParity(b *strings.Builder, theme Theme, shell doc.ResolvedShell, preheader string) {
 	width := strconv.Itoa(theme.CardWidth)
 
 	b.WriteString(`<body style="margin:0; padding:0; background-color:`)
 	b.WriteString(theme.ColorGround)
 	b.WriteString(`;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:`)
+`)
+	writePreheader(b, preheader)
+	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:`)
 	b.WriteString(theme.ColorGround)
 	b.WriteString(`; margin:0; padding:0;">
 <tr>
@@ -295,12 +425,12 @@ func writeBodyClose(b *strings.Builder, hard bool) {
 `)
 }
 
-func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard bool) {
+func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard, adaptive bool) {
 	switch v := block.(type) {
 	case doc.ResolvedSignal:
 		writeSignal(b, theme, v)
 	case doc.ResolvedHeadline:
-		writeHeadline(b, theme, v, hard)
+		writeHeadline(b, theme, v, hard, adaptive)
 	case doc.ResolvedPanel:
 		writePanel(b, theme, v, hard)
 	case doc.ResolvedCTA:
@@ -338,8 +468,9 @@ func writeSignal(b *strings.Builder, theme Theme, s doc.ResolvedSignal) {
 // writeHeadline writes email.Headline. Hardened mode promotes the title to
 // a semantic <h1> with margins zeroed (pixel dossier section 4.3, point
 // 2): screen-reader navigation gains a heading at no visual cost. Parity
-// mode keeps WP1's <div> title, byte-for-byte.
-func writeHeadline(b *strings.Builder, theme Theme, h doc.ResolvedHeadline, hard bool) {
+// mode keeps WP1's <div> title, byte-for-byte. adaptive additionally marks
+// the title with the gsx-ink class hook (pixel dossier section 5.2).
+func writeHeadline(b *strings.Builder, theme Theme, h doc.ResolvedHeadline, hard, adaptive bool) {
 	titleTag := "div"
 	titleStyleExtra := ""
 	if hard {
@@ -350,6 +481,7 @@ func writeHeadline(b *strings.Builder, theme Theme, h doc.ResolvedHeadline, hard
 <td style="padding:14px 32px 0 32px;">
 <`)
 	b.WriteString(titleTag)
+	b.WriteString(classAttrIf(adaptive, "gsx-ink"))
 	b.WriteString(` style="`)
 	b.WriteString(titleStyleExtra)
 	b.WriteString(`color:`)

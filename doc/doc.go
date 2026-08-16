@@ -16,13 +16,29 @@ type EmailDoc struct {
 }
 
 // Shell carries the frame fields every email shares: header wordmark and
-// badge, document title, and language.
+// badge, document title, and language, plus the two WP5.2 per-Shell
+// options (design spec section 15, WP5.2; pixel dossier section 4.2 and
+// section 6.1):
+//
+//   - Preheader is the hidden inbox-preview text, authored on the Shell
+//     tag itself (like MJML's mj-preview) rather than passed at Render
+//     time — the emailkit precedent kept subjects out of templates, but a
+//     preheader is presentation, not delivery metadata, so it stays
+//     template-owned and can read props like any other Shell field.
+//   - Outlook is a plain string, not an Expr: the ghost-table output
+//     contract is a structural, compile-time choice a template author
+//     makes once, never a value computed from props. "" defers to the
+//     Set-level Options.Outlook default; "ghost-tables" or "off" override
+//     it for this one template. lower.lowerShell reads it as a static
+//     attribute value.
 type Shell struct {
 	Wordmark  Expr
 	ShortCode Expr
 	Tagline   Expr
 	Title     Expr
 	Lang      Expr
+	Preheader Expr
+	Outlook   string
 }
 
 // Block is one content primitive inside a Shell. The set of implementations
