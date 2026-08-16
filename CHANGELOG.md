@@ -4,6 +4,27 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (structural verification, WP5.1)
+
+- `internal/structverify`: a test-layer-only package that re-parses
+  gsxmail's own rendered HTML with gotreesitter's HTML grammar and proves
+  the WP5.1 output contract holds mechanically — zero parse-error nodes,
+  balanced `<!--[if mso]>` conditional comments, layout-table nesting
+  under a 12-level cap, and (for hardened-mode output) that a
+  `role="presentation"` table always carries `border="0" cellpadding="0"
+  cellspacing="0"` and never has a `<th>` descendant. This is the pixel
+  dossier's "structural verification pass" (section 7.2). Its findings use
+  the dossier's reserved EM131-EM134 codes.
+- New root-level tests: `TestStructuralPassOnGoldens`,
+  `TestStructuralPassOnBlockCorpus`, and
+  `TestStructuralPassOnInviteAndRecapRenders` run the pass over every
+  golden and the full `testdata/allblocks` block corpus, in both output
+  contracts. `TestGotreesitterIsolatedFromCorePath` is a module-graph
+  proof: no gsxmail render-path or CLI package directly imports
+  gotreesitter or `internal/structverify` outside of `_test.go` files.
+  `github.com/odvcencio/gotreesitter` moves from an indirect to a direct
+  `go.mod` dependency as a result.
+
 ### Changed
 
 - `[bytes]` `testdata/recap.html` is regenerated for the WP5.1 hardened
