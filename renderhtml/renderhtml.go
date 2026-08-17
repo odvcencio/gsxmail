@@ -585,7 +585,7 @@ func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard, 
 	case doc.ResolvedColumns:
 		writeColumns(b, theme, v, hard, adaptive)
 	case doc.ResolvedHero:
-		writeHero(b, v)
+		writeHero(b, theme, v, adaptive)
 	case doc.ResolvedSpacer:
 		writeSpacer(b, v)
 	case doc.ResolvedBadge:
@@ -1067,14 +1067,23 @@ func writeColumns(b *strings.Builder, theme Theme, v doc.ResolvedColumns, hard, 
 // an optional title, and an optional body text, each sized for a fluid-
 // hybrid column's own narrower width rather than the full card (design
 // note: doc.Column's own doc comment on why Column stays a leaf). The
-// title carries the gsx-ink adaptive class hook and the body text carries
-// gsx-copy, the same hooks every other ink- and body-
-// colored element in the card carries — Columns nests ordinary card
-// content, so the adaptive dark-mode coverage extends into it for free.
+// image's own alt text, the title, and the body text each carry an
+// adaptive class hook: gsx-copy on the image (issue #3, styling its alt
+// text the same body-copy voice as Hero — writeHero's own doc comment),
+// gsx-ink on the title, and gsx-copy again on the body text — the same
+// hooks every other ink- and body-colored element in the card carries —
+// Columns nests ordinary card content, so the adaptive dark-mode
+// coverage extends into it for free.
 func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn, hard, adaptive bool) {
 	_ = hard
 	if col.ImgSrc != "" {
-		b.WriteString(`<img src="`)
+		// Issue #3: font-family/font-size/color on the img itself, same as
+		// Hero (writeHero's own doc comment) — a blocked or missing column
+		// image's alt text reads in the template's body-copy voice instead
+		// of a client default, gsx-copy hook included.
+		b.WriteString(`<img`)
+		b.WriteString(classAttrIf(adaptive, "gsx-copy"))
+		b.WriteString(` src="`)
 		b.WriteString(escapeAttr(col.ImgSrc))
 		b.WriteString(`" width="`)
 		b.WriteString(escapeAttr(col.ImgWidth))
@@ -1084,7 +1093,11 @@ func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn,
 		b.WriteString(escapeAttr(col.ImgAlt))
 		b.WriteString(`" style="display:block; width:100%; max-width:`)
 		b.WriteString(escapeAttr(col.ImgWidth))
-		b.WriteString(`px; height:auto; border:0; margin-bottom:12px;">
+		b.WriteString(`px; height:auto; border:0; margin-bottom:12px; color:`)
+		b.WriteString(theme.ColorBody)
+		b.WriteString(`; font-family:`)
+		b.WriteString(theme.FontSans)
+		b.WriteString(`; font-size:14px;">
 `)
 	}
 	if col.Title != "" {
@@ -1123,12 +1136,22 @@ func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn,
 // resolution with display-size width/height attributes plus the
 // max-width/height:auto Outlook workaround (R15). Hero has no original
 // byte stream to protect, so it renders one contract regardless of the
-// hard flag. It carries no
-// theme color of its own, so it needs no adaptive class hook.
-func writeHero(b *strings.Builder, v doc.ResolvedHero) {
+// hard flag. Its own box (width, height, border) carries no theme color,
+// but issue #3 gave its alt text one: font-family, font-size, and color
+// now style the fallback text a blocked or missing image shows, so it
+// reads in the template's own body-copy voice instead of a client's
+// default (typically blue, serif) alt-text style. color uses
+// theme.ColorBody, the same token every other body-copy element already
+// carries, and picks up the gsx-copy adaptive class hook those elements
+// share (writeDarkStyleLayer's own doc comment) — an <img> with no
+// picture to show renders its alt text exactly like any other run of
+// body copy, dark mode included.
+func writeHero(b *strings.Builder, theme Theme, v doc.ResolvedHero, adaptive bool) {
 	b.WriteString(`<tr>
 <td style="padding:0;">
-<img src="`)
+<img`)
+	b.WriteString(classAttrIf(adaptive, "gsx-copy"))
+	b.WriteString(` src="`)
 	b.WriteString(escapeAttr(v.Src))
 	b.WriteString(`" width="`)
 	b.WriteString(escapeAttr(v.Width))
@@ -1138,7 +1161,11 @@ func writeHero(b *strings.Builder, v doc.ResolvedHero) {
 	b.WriteString(escapeAttr(v.Alt))
 	b.WriteString(`" style="display:block; width:100%; max-width:`)
 	b.WriteString(escapeAttr(v.Width))
-	b.WriteString(`px; height:auto; border:0;">
+	b.WriteString(`px; height:auto; border:0; color:`)
+	b.WriteString(theme.ColorBody)
+	b.WriteString(`; font-family:`)
+	b.WriteString(theme.FontSans)
+	b.WriteString(`; font-size:14px;">
 </td>
 </tr>
 `)
