@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 
 	"m31labs.dev/gsxmail"
@@ -169,6 +171,77 @@ func TestGalleryStructuralPass(t *testing.T) {
 			}
 			if len(findings) > 0 {
 				t.Errorf("%s (parity) is not well-formed:\n%s", tc.template, joinFindings(findings))
+			}
+		})
+	}
+}
+
+// TestGalleryShellIsFluidBelowCardWidth is issue #1's own regression
+// guard (github.com/odvcencio/gsxmail/issues/1, "Shell does not reflow
+// below 600px"): the hardened (modern-client) card table must carry a
+// fluid width form — width="100%" plus style="width:100%; max-width:
+// <CardWidth>px" — so no viewport narrower than the card's own
+// CardWidth token forces a horizontal scrollbar. The parity (Outlook
+// "off") card table, and the hardened contract's own "[if mso | IE]"
+// ghost table, must both stay fixed-width and byte-unchanged: Outlook
+// desktop ignores media queries and needs a fixed-width ghost table to
+// lay the card out at all.
+func TestGalleryShellIsFluidBelowCardWidth(t *testing.T) {
+	for _, tc := range galleryCases() {
+		t.Run(tc.dir, func(t *testing.T) {
+			props, err := tc.props()
+			if err != nil {
+				t.Fatalf("decoding fixture: %v", err)
+			}
+			width := strconv.Itoa(tc.theme.CardWidth)
+
+			hardSet, err := gsxmail.Load(os.DirFS(tc.dir), gsxmail.Options{Theme: tc.theme})
+			if err != nil {
+				t.Fatalf("Load (hardened): %v", err)
+			}
+			hardParts, err := hardSet.Render(tc.template, props)
+			if err != nil {
+				t.Fatalf("Render (hardened): %v", err)
+			}
+
+			fluidCard := `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="gsx-card`
+			if !strings.Contains(hardParts.HTML, fluidCard) {
+				t.Errorf("%s (hardened): card table is not fluid; want a %q table, got:\n%s", tc.template, fluidCard, hardParts.HTML)
+			}
+			fluidStyle := `style="width:100%; max-width:` + width + `px;`
+			if !strings.Contains(hardParts.HTML, fluidStyle) {
+				t.Errorf("%s (hardened): card table style is not fluid; want %q", tc.template, fluidStyle)
+			}
+			fixedCard := `<table role="presentation" width="` + width + `" cellpadding="0" cellspacing="0" border="0" class="gsx-card`
+			if strings.Contains(hardParts.HTML, fixedCard) {
+				t.Errorf("%s (hardened): card table regressed to a fixed %q width", tc.template, fixedCard)
+			}
+
+			// The Outlook ghost table stays fixed-width in every hardened
+			// render: Outlook desktop never applies width:100%/max-width, so
+			// it needs the "[if mso | IE]" wrapper's own hardcoded pixel
+			// width to lay the card out correctly at all.
+			ghostTable := `<table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="` + width + `" style="width:` + width + `px;">`
+			if !strings.Contains(hardParts.HTML, ghostTable) {
+				t.Errorf("%s (hardened): Outlook ghost table is missing or no longer fixed-width; want %q", tc.template, ghostTable)
+			}
+
+			// The parity ("off") contract renders the original byte stream:
+			// its card table must stay fixed-width, unchanged by this fix.
+			paritySet, err := gsxmail.Load(os.DirFS(tc.dir), gsxmail.Options{Theme: tc.theme, Outlook: "off"})
+			if err != nil {
+				t.Fatalf("Load (parity): %v", err)
+			}
+			parityParts, err := paritySet.Render(tc.template, props)
+			if err != nil {
+				t.Fatalf("Render (parity): %v", err)
+			}
+			parityFixedStyle := `style="width:` + width + `px; max-width:` + width + `px;`
+			if !strings.Contains(parityParts.HTML, parityFixedStyle) {
+				t.Errorf("%s (parity): card table must stay fixed-width; want %q", tc.template, parityFixedStyle)
+			}
+			if strings.Contains(parityParts.HTML, `style="width:100%; max-width:`) {
+				t.Errorf("%s (parity): card table must not gain the fluid form; parity mode pins the original bytes", tc.template)
 			}
 		})
 	}

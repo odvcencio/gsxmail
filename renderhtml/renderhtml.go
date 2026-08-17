@@ -298,15 +298,11 @@ func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, har
 	b.WriteString(`" style="width:`)
 	b.WriteString(width)
 	b.WriteString(`px;"><tr><td><![endif]-->
-<table role="presentation" width="`)
-	b.WriteString(width)
-	b.WriteString(`" cellpadding="0" cellspacing="0" border="0" class="gsx-card`)
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="gsx-card`)
 	if adaptive {
 		b.WriteString(` gsx-border`)
 	}
-	b.WriteString(`" style="width:`)
-	b.WriteString(width)
-	b.WriteString(`px; max-width:`)
+	b.WriteString(`" style="width:100%; max-width:`)
 	b.WriteString(width)
 	b.WriteString(`px; background-color:`)
 	b.WriteString(theme.ColorCard)
