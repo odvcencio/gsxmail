@@ -1,6 +1,12 @@
 package renderhtml
 
-import "testing"
+import (
+	"regexp"
+	"strings"
+	"testing"
+
+	"m31labs.dev/gsxmail/internal/doc"
+)
 
 // TestBadgeToneColorClearsWCAGAA is M2's own closing proof (launch-gate
 // findings): every status tone's light-card and dark-card variant must
@@ -70,5 +76,83 @@ func TestLinkButtonSpacerWidth(t *testing.T) {
 				t.Errorf("linkButtonSpacerWidth(%d, %q) = %d, must never be negative", tc.widthPx, tc.label, got)
 			}
 		})
+	}
+}
+
+// imgTagPattern finds every emitted <img ...> tag, hero and column images
+// alike (issue #3's own two sites — writeHero and writeColumnContent).
+var imgTagPattern = regexp.MustCompile(`<img\b[^>]*>`)
+
+// heroColumnFixture is one Resolved doc carrying both of issue #3's
+// img-emitting sites: a Hero and a Columns block with one Column image.
+func heroColumnFixture() *doc.Resolved {
+	return &doc.Resolved{
+		Shell: doc.ResolvedShell{Title: "issue-3 fixture", Lang: "en"},
+		Blocks: []doc.ResolvedBlock{
+			doc.ResolvedHero{
+				Src: "https://example.com/hero@2x.png", Alt: "hero alt text",
+				Width: "598", Height: "240",
+			},
+			doc.ResolvedColumns{Columns: []doc.ResolvedColumn{{
+				ImgSrc: "https://example.com/col@2x.png", ImgAlt: "column alt text",
+				ImgWidth: "120", ImgHeight: "80",
+			}}},
+		},
+	}
+}
+
+// TestImgAltTextIsStyled is issue #3's own structural proof: every emitted
+// <img> — Hero's and Column's, gsxmail's only two synthesized img sites
+// (Custom's raw <img> pass-through is deliberately out of scope, per
+// writeCustomNode's own doc comment) — carries font-family, font-size,
+// and color in its style attribute, so a blocked or missing image's alt
+// text renders in the template's own font and ink color instead of a
+// mail client's default (typically blue, serif) alt-text style.
+func TestImgAltTextIsStyled(t *testing.T) {
+	for _, hard := range []bool{true, false} {
+		html, _ := WriteWithOptions(heroColumnFixture(), DefaultTheme(), WriteOptions{Outlook: map[bool]string{true: "", false: "off"}[hard]})
+		imgs := imgTagPattern.FindAllString(html, -1)
+		if len(imgs) != 2 {
+			t.Fatalf("hard=%v: got %d <img> tags, want 2 (one Hero, one Column)", hard, len(imgs))
+		}
+		for _, img := range imgs {
+			for _, want := range []string{"font-family:", "font-size:", "color:"} {
+				if !strings.Contains(img, want) {
+					t.Errorf("hard=%v: <img> tag missing %q in its style:\n%s", hard, want, img)
+				}
+			}
+		}
+	}
+}
+
+// TestImgAltTextDarkModeHook proves the adaptive dark-mode class hook
+// (gsx-copy, the same token every other body-copy element carries —
+// writeDarkStyleLayer's own doc comment) reaches an img's alt-text color
+// exactly when the active theme's own DarkStrategy is "adaptive", and
+// never otherwise — DefaultTheme's "none" strategy must render byte-
+// identically to before this fix on that axis: no class attribute at all.
+func TestImgAltTextDarkModeHook(t *testing.T) {
+	adaptiveTheme := LedgerTheme() // DarkMode "adaptive" (theme.go)
+	html, _ := Write(heroColumnFixture(), adaptiveTheme)
+	imgs := imgTagPattern.FindAllString(html, -1)
+	if len(imgs) != 2 {
+		t.Fatalf("got %d <img> tags, want 2", len(imgs))
+	}
+	for _, img := range imgs {
+		if !strings.Contains(img, `class="gsx-copy"`) {
+			t.Errorf("adaptive theme: <img> tag missing the gsx-copy dark-mode hook:\n%s", img)
+		}
+	}
+
+	noneTheme := DefaultTheme() // DarkMode "none"
+	html, _ = Write(heroColumnFixture(), noneTheme)
+	imgs = imgTagPattern.FindAllString(html, -1)
+	if len(imgs) != 2 {
+		t.Fatalf("got %d <img> tags, want 2", len(imgs))
+	}
+	for _, img := range imgs {
+		if strings.Contains(img, "class=") {
+			t.Errorf("DarkMode \"none\" theme: <img> tag must carry no class attribute:\n%s", img)
+		}
 	}
 }
