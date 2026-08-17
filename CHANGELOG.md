@@ -4,6 +4,34 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Fixed (M1, M2, M3: link buttons, badge contrast, href diagnostics) [bytes]
+
+- **M1.** `email.Button` variant="link"'s two Outlook-only balancing runs
+  now each carry half of `(width - estimatedTextWidth)`, floored at 0
+  (reusing the existing per-rune width estimate), instead of the full
+  button width each. The old shape pushed the label to the right edge of
+  its own click box in Outlook; the label now centers there the way
+  `text-align:center` already centers it everywhere else.
+  `renderhtml.linkButtonSpacerWidth`'s own test pins the formula;
+  `testdata/newblocks*.html` are regenerated.
+- **M2.** Badge's `positive`/`warning`/`critical` tones now carry two
+  hex values each — one verified >=4.5:1 against a light card
+  (`#FFFFFF`), one against a dark card (`#101611`, Terminal's own
+  `ColorCard`) — selected by `renderhtml.cardIsDark(theme.ColorCard)`. A
+  single flat hex cannot clear 4.5:1 against both: the WCAG 2 formula has
+  no solution that does, confirmed by direct computation before picking
+  replacements. `lint.CheckTheme`'s EM141 now also checks badge tones
+  against `ColorCard`, under every theme, not just `locked`/`adaptive`.
+  Affected goldens (`examples/gallery/alert`, `examples/gallery/receipt`,
+  `testdata/newblocks*.html`) are regenerated.
+- **M3.** A CTA/Button href that fails the scheme allowlist (EM110) now
+  appends a warn-severity `Diagnostic` to `Parts.Diagnostics` instead of
+  dropping the link silently — visible, never fatal: a mid-send loop
+  must not die for one bad optional link. `renderhtml.Write`/
+  `WriteWithOptions` now return `(string, []RenderFinding)`, a breaking
+  signature change (pre-tag). README's "Two layers, one guarantee"
+  section states the corrected behavior.
+
 ### Fixed (m9: caniemail's actual data license — MIT, not CC BY 4.0)
 
 - Verified directly against caniemail's own maintained repository

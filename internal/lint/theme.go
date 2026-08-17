@@ -3,6 +3,7 @@ package lint
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -69,7 +70,42 @@ func CheckTheme(theme renderhtml.Theme) []Diagnostic {
 		}
 	}
 
+	// M2 (launch-gate findings): Badge's status tones render against
+	// theme.ColorCard under every DarkMode strategy — "none" included, a
+	// plain light theme's white card is exactly where a badge tone most
+	// often appears — so this check is unconditional, unlike EM141 above.
+	checkBadgeToneContrast(&diags, theme)
+
 	return diags
+}
+
+// checkBadgeToneContrast implements EM141's badge-tone extension (M2,
+// launch-gate findings): renderhtml.BadgeToneColors already picked the
+// light- or dark-card variant that should clear 4.5:1 against
+// theme.ColorCard; this re-verifies that at Load time, against the
+// caller's own theme, rather than trusting the two variants' own
+// hard-coded verification comments to stay correct forever.
+func checkBadgeToneContrast(diags *[]Diagnostic, theme renderhtml.Theme) {
+	colors := renderhtml.BadgeToneColors(theme)
+	tones := make([]string, 0, len(colors))
+	for tone := range colors {
+		tones = append(tones, tone)
+	}
+	sort.Strings(tones)
+	for _, tone := range tones {
+		hex := colors[tone]
+		ratio, ok := contrastRatio(hex, theme.ColorCard)
+		if !ok {
+			continue
+		}
+		if ratio < 4.5 {
+			*diags = append(*diags, Diagnostic{
+				Code: "EM141", Severity: "error",
+				Message: fmt.Sprintf("theme contrast Badge.%s (%s) on ColorCard (%s) is %.1f:1; body text requires 4.5:1 (WCAG AA)",
+					tone, hex, theme.ColorCard, ratio),
+			})
+		}
+	}
 }
 
 func themeColorMap(t renderhtml.Theme) map[string]string {

@@ -17,6 +17,7 @@
 package renderhtml
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -56,15 +57,26 @@ func (opts WriteOptions) hardened() bool {
 	return opts.Outlook != "off"
 }
 
+// RenderFinding is one render-time finding WriteWithOptions produces
+// alongside the rendered HTML string — today, only EM110 (launch-gate
+// M3): a CTA or Button href that fails hasSafeHrefScheme drops the link
+// and renders the label alone, visibly (a mid-send loop must not die for
+// one bad optional link), but no longer silently. gsxmail.Set.Render
+// copies each RenderFinding into the returned Parts.Diagnostics.
+type RenderFinding struct {
+	Code    string
+	Message string
+}
+
 // Write renders resolved to a full HTML document string using theme, in
 // the hardened output contract (WriteOptions{}'s default).
-func Write(resolved *doc.Resolved, theme Theme) string {
+func Write(resolved *doc.Resolved, theme Theme) (string, []RenderFinding) {
 	return WriteWithOptions(resolved, theme, WriteOptions{})
 }
 
 // WriteWithOptions is Write with an explicit WriteOptions (added WP5.1;
 // see the package doc and WriteOptions for the two output contracts).
-func WriteWithOptions(resolved *doc.Resolved, theme Theme, opts WriteOptions) string {
+func WriteWithOptions(resolved *doc.Resolved, theme Theme, opts WriteOptions) (string, []RenderFinding) {
 	hard := opts.hardened()
 	// adaptive gates every WP5.2/B2 class-hook site (pixel dossier section
 	// 5.2's adaptive style layer): parity mode never gains new markup, and
@@ -72,13 +84,14 @@ func WriteWithOptions(resolved *doc.Resolved, theme Theme, opts WriteOptions) st
 	// the classes only appear when both conditions hold.
 	adaptive := hard && theme.DarkStrategy() == "adaptive"
 	var b strings.Builder
+	var findings []RenderFinding
 	writeHead(&b, theme, resolved.Shell, hard)
 	writeBodyOpen(&b, theme, resolved.Shell, hard, adaptive, opts.Preheader)
 	for _, block := range resolved.Blocks {
-		writeBlock(&b, theme, block, hard, adaptive)
+		writeBlock(&b, theme, block, hard, adaptive, &findings)
 	}
 	writeBodyClose(&b, hard)
-	return b.String()
+	return b.String(), findings
 }
 
 func writeHead(b *strings.Builder, theme Theme, shell doc.ResolvedShell, hard bool) {
@@ -504,7 +517,7 @@ func writeBodyClose(b *strings.Builder, hard bool) {
 `)
 }
 
-func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard, adaptive bool) {
+func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard, adaptive bool, findings *[]RenderFinding) {
 	switch v := block.(type) {
 	case doc.ResolvedSignal:
 		writeSignal(b, theme, v, adaptive)
@@ -513,7 +526,7 @@ func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard, 
 	case doc.ResolvedPanel:
 		writePanel(b, theme, v, hard, adaptive)
 	case doc.ResolvedCTA:
-		writeCTA(b, theme, v, hard, adaptive)
+		writeCTA(b, theme, v, hard, adaptive, "email.CTA", findings)
 	case doc.ResolvedPickList:
 		writePickList(b, theme, v, adaptive)
 	case doc.ResolvedFooter:
@@ -527,7 +540,7 @@ func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard, 
 	case doc.ResolvedCustom:
 		writeCustomNode(b, v.Root)
 	case doc.ResolvedButton:
-		writeButton(b, theme, v, hard, adaptive)
+		writeButton(b, theme, v, hard, adaptive, findings)
 	case doc.ResolvedColumns:
 		writeColumns(b, theme, v, hard, adaptive)
 	case doc.ResolvedHero:
@@ -688,8 +701,12 @@ func writePanel(b *strings.Builder, theme Theme, p doc.ResolvedPanel, hard, adap
 // padding. Parity mode keeps WP1's padded-<a>-only markup, byte-for-byte.
 // adaptive marks the face td (gsx-accent-bg) and the label itself
 // (gsx-ground, since the label's own color is Theme.ColorGround — the
-// button's inverse-of-fill text token, launch-gate B2).
-func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard, adaptive bool) {
+// button's inverse-of-fill text token, launch-gate B2). A disallowed
+// href drops the link (the label still renders, unclickable) and
+// appends an EM110 RenderFinding to findings, naming component ("email.
+// CTA" or "email.Button", whichever actually called this) — visible,
+// not silent (launch-gate M3).
+func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard, adaptive bool, component string, findings *[]RenderFinding) {
 	b.WriteString(`<tr>
 <td align="center" style="padding:28px 32px 0 32px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
@@ -725,6 +742,7 @@ func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard, adaptive
 		b.WriteString(`</a>
 `)
 	} else {
+		appendHrefRejected(findings, component, c.Href)
 		b.WriteString(`<span`)
 		b.WriteString(faceClass)
 		b.WriteString(` style="`)
@@ -742,6 +760,25 @@ func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard, adaptive
 `)
 }
 
+// appendHrefRejected records an EM110 RenderFinding for one CTA/Button
+// element whose Href failed hasSafeHrefScheme (launch-gate M3): the
+// writer already drops the link and renders the label alone,
+// unclickable — this makes that drop visible in Parts.Diagnostics
+// instead of silent. findings may be nil (a caller — today, only tests —
+// driving the writer directly with no interest in findings); appending
+// to a nil *[]RenderFinding is a deliberate no-op, not a panic.
+func appendHrefRejected(findings *[]RenderFinding, component, href string) {
+	if findings == nil {
+		return
+	}
+	*findings = append(*findings, RenderFinding{
+		Code: "EM110",
+		Message: fmt.Sprintf(
+			"%s href %q uses a disallowed scheme (allowed: https, http, mailto); rendering the label without a link",
+			component, href),
+	})
+}
+
 // writeButton writes email.Button (WP5.3; pixel dossier section 4.4). The
 // "primary" variant (the default) calls straight through to writeCTA,
 // unchanged above, so email.CTA and email.Button variant="primary" are
@@ -749,14 +786,14 @@ func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard, adaptive
 // alias, not a parallel reimplementation that could drift. "secondary" and
 // "link" are new WP5.3 shapes with no WP1 byte stream to protect, so both
 // render one contract regardless of hard.
-func writeButton(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard, adaptive bool) {
+func writeButton(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard, adaptive bool, findings *[]RenderFinding) {
 	switch v.Variant {
 	case "secondary":
-		writeButtonSecondary(b, theme, v, hard, adaptive)
+		writeButtonSecondary(b, theme, v, hard, adaptive, findings)
 	case "link":
-		writeButtonLink(b, theme, v, adaptive)
+		writeButtonLink(b, theme, v, adaptive, findings)
 	default: // "primary", and "" defensively (resolve.go already defaults it)
-		writeCTA(b, theme, doc.ResolvedCTA{Label: v.Label, Href: v.Href}, hard, adaptive)
+		writeCTA(b, theme, doc.ResolvedCTA{Label: v.Label, Href: v.Href}, hard, adaptive, "email.Button", findings)
 	}
 }
 
@@ -767,7 +804,9 @@ func writeButton(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard, ad
 // Outlook needs the td's own border to draw the visual box a border-only
 // <a> cannot give it. adaptive marks the face td's border (gsx-accent-
 // border) and the label's own accent text (gsx-accent) — launch-gate B2.
-func writeButtonSecondary(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard, adaptive bool) {
+// A disallowed href appends an EM110 RenderFinding, same as writeCTA
+// (launch-gate M3).
+func writeButtonSecondary(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard, adaptive bool, findings *[]RenderFinding) {
 	b.WriteString(`<tr>
 <td align="center" style="padding:28px 32px 0 32px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
@@ -803,6 +842,7 @@ func writeButtonSecondary(b *strings.Builder, theme Theme, v doc.ResolvedButton,
 		b.WriteString(`</a>
 `)
 	} else {
+		appendHrefRejected(findings, "email.Button", v.Href)
 		b.WriteString(`<span`)
 		b.WriteString(faceClass)
 		b.WriteString(` style="`)
@@ -820,41 +860,81 @@ func writeButtonSecondary(b *strings.Builder, theme Theme, v doc.ResolvedButton,
 `)
 }
 
+// linkGlyphWidthPx is the per-rune pixel estimate both
+// linkButtonDefaultWidth and linkButtonSpacerWidth reuse: gsxmail cannot
+// measure real glyph widths without a font-metrics dependency the render
+// path does not carry, so this is a documented approximation (README's
+// Button section states the same caveat) — set width="..." explicitly
+// for an exact click target.
+const linkGlyphWidthPx = 9
+
 // linkButtonDefaultWidth estimates the "link" variant's clickable width in
 // pixels from its label's rune count, when a template does not set
-// Button's own width attribute. gsxmail cannot measure real glyph widths
-// without a font-metrics dependency the render path does not carry, so
-// this is a documented approximation (README's Button section states the
-// same caveat) — set width="..." explicitly for an exact click target.
+// Button's own width attribute.
 func linkButtonDefaultWidth(label string) int {
 	n := utf8.RuneCountInString(label)
-	w := n*9 + 60
+	w := n*linkGlyphWidthPx + 60
 	if w < 120 {
 		return 120
 	}
 	return w
 }
 
+// linkButtonSpacerWidth computes each of writeButtonLink's two balancing
+// invisible-run widths (launch-gate M1): half of whatever room remains
+// once the label's own estimated rendered width (linkGlyphWidthPx per
+// rune, the same estimate linkButtonDefaultWidth uses for the whole
+// button) is subtracted from widthPx, floored at 0. Outlook lays the
+// anchor's own content out left to right with no text-align effect on
+// the hidden runs themselves, so one full-width run before the label (the
+// WP5.3 shape) pushes the label to the right edge of its own click box
+// instead of centering it; splitting that width in half and running one
+// spacer on each side keeps the label centered the way `text-align:
+// center` already centers it in every other client.
+func linkButtonSpacerWidth(widthPx int, label string) int {
+	n := utf8.RuneCountInString(label)
+	spacer := (widthPx - n*linkGlyphWidthPx) / 2
+	if spacer < 0 {
+		return 0
+	}
+	return spacer
+}
+
 // writeButtonLink writes the "link" variant: goodemailcode's full-click
 // glyph-spacing technique (pixel dossier section 4.4, R11). Unlike
 // primary/secondary, there is no wrapping table-cell background to give
-// Outlook a clickable box; instead, an MSO-only hidden run stretched with
-// a negative mso-font-width fakes the anchor's own minimum width, so the
-// whole box — not just the text — is clickable there too. New in WP5.3,
-// one contract regardless of hard: the technique is inert everywhere
-// outside Outlook (the <i> runs sit inside "[if mso]" conditional
-// comments), so there is nothing for a parity mode to strip. adaptive
-// marks the face (gsx-accent-bg, gsx-ground) — launch-gate B2.
-func writeButtonLink(b *strings.Builder, theme Theme, v doc.ResolvedButton, adaptive bool) {
-	width := strings.TrimSpace(v.Width)
-	if width == "" {
-		width = strconv.Itoa(linkButtonDefaultWidth(v.Label))
+// Outlook a clickable box; instead, two MSO-only hidden runs stretched
+// with a negative mso-font-width fake the anchor's own minimum width, so
+// the whole box — not just the text — is clickable there too. Each run's
+// own width is linkButtonSpacerWidth's own balancing half (launch-gate
+// M1), not the full button width: a single full-width run pushed the
+// label to the right edge of its own click box in Outlook, instead of
+// centering it the way text-align:center already centers it everywhere
+// else. New in WP5.3, one contract regardless of hard: the technique is
+// inert everywhere outside Outlook (the <i> runs sit inside "[if mso]"
+// conditional comments), so there is nothing for a parity mode to strip.
+// adaptive marks the face (gsx-accent-bg, gsx-ground) — launch-gate B2.
+func writeButtonLink(b *strings.Builder, theme Theme, v doc.ResolvedButton, adaptive bool, findings *[]RenderFinding) {
+	widthStr := strings.TrimSpace(v.Width)
+	widthPx := 0
+	if widthStr == "" {
+		widthPx = linkButtonDefaultWidth(v.Label)
+		widthStr = strconv.Itoa(widthPx)
+	} else if n, err := strconv.Atoi(widthStr); err == nil {
+		// doc.Resolve's resolvePositiveInt already guarantees a non-empty
+		// Width is a positive decimal integer (B1), so this Atoi only
+		// fails defensively (a raw ResolvedButton built outside Resolve,
+		// as a test fixture might): the spacer floors at 0 either way.
+		widthPx = n
 	}
+	spacer := strconv.Itoa(linkButtonSpacerWidth(widthPx, v.Label))
+	width := widthStr
 	faceClass := classAttrIf2(adaptive, "gsx-accent-bg", "gsx-ground")
 	b.WriteString(`<tr>
 <td align="center" style="padding:28px 32px 0 32px;">
 `)
 	if !hasSafeHrefScheme(v.Href) {
+		appendHrefRejected(findings, "email.Button", v.Href)
 		b.WriteString(`<span`)
 		b.WriteString(faceClass)
 		b.WriteString(` style="background-color:`)
@@ -885,13 +965,13 @@ func writeButtonLink(b *strings.Builder, theme Theme, v doc.ResolvedButton, adap
 	b.WriteString(escapeAttr(width))
 	b.WriteString(`px; -webkit-text-size-adjust:none;">
 <!--[if mso]><i style="letter-spacing:`)
-	b.WriteString(escapeAttr(width))
+	b.WriteString(escapeAttr(spacer))
 	b.WriteString(`px; mso-font-width:-100%; mso-text-raise:22pt;" hidden>&nbsp;</i><![endif]-->
 <span style="mso-text-raise:15pt;">`)
 	b.WriteString(escapeText(v.Label))
 	b.WriteString(`</span>
 <!--[if mso]><i style="letter-spacing:`)
-	b.WriteString(escapeAttr(width))
+	b.WriteString(escapeAttr(spacer))
 	b.WriteString(`px; mso-font-width:-100%;" hidden>&nbsp;</i><![endif]-->
 </a>
 </td>
@@ -1040,26 +1120,64 @@ func writeSpacer(b *strings.Builder, v doc.ResolvedSpacer) {
 `)
 }
 
-// badgeToneColor gives each Badge tone a fixed, theme-independent color
-// (pixel dossier section 4.11's own worked example: a green "PAID" badge
-// against the neutral Paper theme's blue accent). Status semantics should
-// read the same green/amber/red regardless of a template's brand palette
-// or its light/dark presentation (M2 handles picking those three fixed
-// hexes so they clear contrast on both a light and a dark card).
-// "neutral" is the one tone that does track the active theme, using its
-// muted token, since it carries no status meaning of its own to protect —
-// so it is also the one tone with an adaptive class hook (writeBadge).
+// badgeToneVariant is one status tone's two fixed hex values (M2,
+// launch-gate findings): light is for a light card (verified >=4.5:1
+// against #FFFFFF), dark is for a dark card (verified >=4.5:1 against
+// #101611, Terminal theme's own ColorCard). One flat hex cannot clear
+// 4.5:1 against both: the WCAG 2 contrast formula has no solution that
+// does (a color light enough to read on #101611 is, by construction, too
+// light to also clear 4.5:1 on white, and vice versa) — computed
+// directly, not assumed, so each tone carries the two nearest-hue values
+// that do clear their own card.
+type badgeToneVariant struct {
+	light, dark string
+}
+
+// badgeTones is the closed set of Badge's three status tones. Status
+// semantics should read the same green/amber/red regardless of a
+// template's brand palette; only the light/dark variant selection tracks
+// the active theme's own card (badgeToneColor), never the theme's other
+// tokens. "neutral" is not here: it tracks the active theme's own muted
+// token instead, since it carries no status meaning of its own to
+// protect (badgeToneColor's own default case).
+var badgeTones = map[string]badgeToneVariant{
+	"positive": {light: "#28873A", dark: "#2F9E44"}, // vs #FFFFFF 4.55:1, vs #101611 5.32:1
+	"warning":  {light: "#AA6600", dark: "#B76E00"}, // vs #FFFFFF 4.56:1, vs #101611 4.58:1
+	"critical": {light: "#C92A2A", dark: "#DA4E4E"}, // vs #FFFFFF 5.46:1, vs #101611 4.53:1
+}
+
+// BadgeToneColors returns the status-tone hex badgeToneColor would select
+// for each of Badge's three status tones under theme's own ColorCard —
+// "neutral" is deliberately absent, since it always tracks
+// theme.ColorMuted rather than one of the fixed pairs, and lint's own
+// checkPalette (EM141, M2) already checks ColorMuted against ColorCard
+// through Theme's regular token set. Exported so package lint can extend
+// EM141 to cover badge tones too, without lint reimplementing
+// badgeToneVariant's own light/dark table.
+func BadgeToneColors(theme Theme) map[string]string {
+	out := make(map[string]string, len(badgeTones))
+	for tone := range badgeTones {
+		out[tone] = badgeToneColor(theme, tone)
+	}
+	return out
+}
+
+// badgeToneColor gives each Badge tone a color that clears WCAG AA
+// (4.5:1) against theme.ColorCard, the card it actually renders on: a
+// light-card and a dark-card variant per tone (badgeToneVariant),
+// selected by cardIsDark. "neutral" is the one tone that does track the
+// active theme's own token (ColorMuted) rather than a fixed pair, since
+// it carries no status meaning of its own to protect — so it is also the
+// one tone with an adaptive class hook (writeBadge).
 func badgeToneColor(theme Theme, tone string) string {
-	switch tone {
-	case "positive":
-		return "#2F9E44"
-	case "warning":
-		return "#B76E00"
-	case "critical":
-		return "#C92A2A"
-	default: // "neutral"
+	variant, ok := badgeTones[tone]
+	if !ok { // "neutral", and "" defensively (resolve.go already defaults it)
 		return theme.ColorMuted
 	}
+	if cardIsDark(theme.ColorCard) {
+		return variant.dark
+	}
+	return variant.light
 }
 
 // writeBadge writes email.Badge (pixel dossier section 4.11): a bordered,

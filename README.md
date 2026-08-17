@@ -674,16 +674,21 @@ place outside a `_test.go` file that gsxmail imports gotreesitter; see
 
 gsxmail checks props twice, on purpose:
 
-1. **Load time (`typesafe/`).** `Load` resolves each template's declared
-   props struct with `go/types`. It then type-checks every expression
-   against that struct: a missing field is EM012, and a non-scalar field
-   interpolated as text is EM013. This catches almost every problem
-   before a template ever renders.
-2. **Render time (`doc.Resolve`, `renderhtml`).** `Render` still resolves
-   every field by reflection, against the actual props value it receives.
-   The HTML writer still re-checks every href scheme too. A
-   `map[string]any` props value, or any mismatch between what `Load` saw
-   and what `Render` receives, still fails closed.
+1. **Load time (`internal/typesafe`).** `Load` resolves each template's
+   declared props struct with `go/types`. It then type-checks every
+   expression against that struct: a missing field is EM012, and a
+   non-scalar field interpolated as text is EM013. This catches almost
+   every problem before a template ever renders.
+2. **Render time (`internal/doc`'s `Resolve`, `renderhtml`).** `Render`
+   still resolves every field by reflection, against the actual props
+   value it receives. A `map[string]any` props value, or any mismatch
+   between what `Load` saw and what `Render` receives, still fails closed.
+   The HTML writer still re-checks every href scheme too — but a rejected
+   href does not fail closed the way a bad props value does: it drops
+   just that one link (the label still renders, unclickable) and reports
+   it as an EM110 warning in `Parts.Diagnostics`, visible but not fatal, so
+   one bad optional link in a batch send does not take the whole loop
+   down (M3, launch-gate findings).
 
 Load-time checking is the fast, precise path: it gives a real diagnostic.
 Render-time checking is the fallback guarantee, and it holds even when

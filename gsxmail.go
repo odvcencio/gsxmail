@@ -28,11 +28,13 @@ type Parts struct {
 	Text string
 
 	// Diagnostics carries any warning Render itself produced for this one
-	// call — today, only EM121 (the HTML part crossed the 90,000-byte
-	// warning line but stayed under budget; design spec section 8). It is
-	// empty on every Render call that has nothing to report. An
-	// error-severity finding never lands here: it makes Render return an
-	// error instead (see SizeBudgetError), with a zero Parts.
+	// call: EM110 (a CTA/Button href failed the allowed-scheme check;
+	// design spec section 8; launch-gate M3 — the link drops, the label
+	// still renders, and this is why), and EM121 (the HTML part crossed
+	// the 90,000-byte warning line but stayed under budget). It is empty
+	// on every Render call that has nothing to report. An error-severity
+	// finding never lands here: it makes Render return an error instead
+	// (see SizeBudgetError), with a zero Parts.
 	Diagnostics []Diagnostic
 }
 
@@ -283,12 +285,19 @@ func (s *Set) Render(name string, props any) (Parts, error) {
 	if resolved.Shell.Outlook != "" {
 		outlook = resolved.Shell.Outlook
 	}
+	html, renderFindings := renderhtml.WriteWithOptions(resolved, s.opts.Theme, renderhtml.WriteOptions{
+		Outlook:   outlook,
+		Preheader: resolved.Shell.Preheader,
+	})
 	parts := Parts{
-		HTML: renderhtml.WriteWithOptions(resolved, s.opts.Theme, renderhtml.WriteOptions{
-			Outlook:   outlook,
-			Preheader: resolved.Shell.Preheader,
-		}),
+		HTML: html,
 		Text: rendertext.Write(resolved),
+	}
+	// M3 (launch-gate findings): a disallowed href (EM110) is a visible,
+	// non-fatal Diagnostic — a mid-send loop must not die for one bad
+	// optional link — never a silently dropped one.
+	for _, f := range renderFindings {
+		parts.Diagnostics = append(parts.Diagnostics, Diagnostic{Code: f.Code, Message: f.Message, Severity: "warn"})
 	}
 	diag, sizeErr := checkHTMLBudget(name, parts.HTML, s.opts.MaxHTMLBytes)
 	if sizeErr != nil {

@@ -185,7 +185,11 @@ func TestEscapingHrefAttribute(t *testing.T) {
 
 // T4 (scheme allowlist): a javascript: URL is not on the CTA href
 // allowlist (https, http, mailto). The CTA renders its label without a
-// clickable link rather than emitting an unsafe href.
+// clickable link rather than emitting an unsafe href, and — since M3
+// (launch-gate findings) — Render surfaces that drop as a visible EM110
+// entry in Parts.Diagnostics instead of doing it silently: a mid-send
+// loop must not die for one bad optional link, but the caller should
+// still be able to notice and fix it.
 func TestEscapingUnsafeHrefScheme(t *testing.T) {
 	set := loadInviteSet(t)
 	props := InviteProps{
@@ -209,5 +213,15 @@ func TestEscapingUnsafeHrefScheme(t *testing.T) {
 	}
 	if strings.Contains(parts.Text, "javascript:") {
 		t.Error("text part emits a javascript: URL; the CTA href scheme allowlist did not reject it")
+	}
+
+	var found bool
+	for _, d := range parts.Diagnostics {
+		if d.Code == "EM110" && d.Severity == "warn" && strings.Contains(d.Message, "javascript:alert(document.cookie)") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("Parts.Diagnostics has no EM110 warning naming the rejected href; got:\n%s", diagnosticsList(parts.Diagnostics))
 	}
 }
