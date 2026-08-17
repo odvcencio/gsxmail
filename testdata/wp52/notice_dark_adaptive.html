@@ -27,12 +27,29 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 .gsx-col{display:block !important;width:100% !important;max-width:100% !important;}
 }
 @media (prefers-color-scheme: dark) {
-.gsx-body, .gsx-card { background-color:#101014 !important; }
+.gsx-body { background-color:#0A0A0D !important; }
+.gsx-card { background-color:#101014 !important; }
 .gsx-ink { color:#F2F2F5 !important; }
-.gsx-muted { color:#9C9CA8 !important; }
+.gsx-muted { color:#9C9CA8 !important; border-color:#9C9CA8 !important; }
+.gsx-copy { color:#D6D6DE !important; }
+.gsx-faint { color:#6B6B76 !important; }
+.gsx-panel { background-color:#17171C !important; }
+.gsx-border { border-color:#2A2A33 !important; }
+.gsx-accent { color:#6E8CFF !important; }
+.gsx-accent-bg { background-color:#6E8CFF !important; }
+.gsx-accent-border { border-color:#6E8CFF !important; }
+.gsx-ground { color:#0A0A0D !important; }
 }
 [data-ogsc] .gsx-ink { color:#F2F2F5 !important; }
+[data-ogsc] .gsx-muted { color:#9C9CA8 !important; }
+[data-ogsc] .gsx-copy { color:#D6D6DE !important; }
+[data-ogsc] .gsx-faint { color:#6B6B76 !important; }
+[data-ogsc] .gsx-accent { color:#6E8CFF !important; }
+[data-ogsc] .gsx-ground { color:#0A0A0D !important; }
+[data-ogsb] .gsx-body { background-color:#0A0A0D !important; }
 [data-ogsb] .gsx-card { background-color:#101014 !important; }
+[data-ogsb] .gsx-panel { background-color:#17171C !important; }
+[data-ogsb] .gsx-accent-bg { background-color:#6E8CFF !important; }
 </style>
 </head>
 <body class="gsx-body" style="margin:0; padding:0; background-color:#F4F4F6;">
@@ -41,13 +58,13 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 <tr>
 <td align="center" style="padding:32px 16px;">
 <!--[if mso | IE]><table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="width:600px;"><tr><td><![endif]-->
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="gsx-card" style="width:600px; max-width:600px; background-color:#FFFFFF; border:1px solid #E2E2E8; border-radius:4px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="gsx-card gsx-border" style="width:600px; max-width:600px; background-color:#FFFFFF; border:1px solid #E2E2E8; border-radius:4px;">
 <tr>
-<td style="padding:24px 32px 20px 32px; border-bottom:1px solid #E2E2E8;">
+<td class="gsx-border" style="padding:24px 32px 20px 32px; border-bottom:1px solid #E2E2E8;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td width="44" valign="middle" style="width:44px; padding-right:12px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #3452FF; border-radius:2px;"><tr><td style="width:40px; height:40px; text-align:center; vertical-align:middle; color:#3452FF; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:13px; font-weight:700;">NTC</td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" class="gsx-accent-border" style="border:1px solid #3452FF; border-radius:2px;"><tr><td class="gsx-accent" style="width:40px; height:40px; text-align:center; vertical-align:middle; color:#3452FF; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:13px; font-weight:700;">NTC</td></tr></table>
 </td>
 <td valign="middle">
 <div class="gsx-ink" style="color:#16161D; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:19px; font-weight:800; letter-spacing:-0.02em; text-transform:uppercase;">NOTICE CO</div>
@@ -60,15 +77,15 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 <tr>
 <td style="padding:14px 32px 0 32px;">
 <h1 class="gsx-ink" style="margin:0; color:#16161D; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:32px; font-weight:800; letter-spacing:-0.03em; text-transform:uppercase; line-height:1.08;">EVERYTHING'S GREEN.</h1>
-<div style="color:#3C3C46; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; margin-top:12px;">No incidents in the last seven days. Full report attached below.</div>
+<div class="gsx-copy" style="color:#3C3C46; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; margin-top:12px;">No incidents in the last seven days. Full report attached below.</div>
 </td>
 </tr>
 <tr>
 <td align="center" style="padding:28px 32px 0 32px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td style="border-radius:2px; background-color:#3452FF; mso-padding-alt:14px 30px;">
-<a href="https://notice.example/report" style="display:inline-block; padding:14px 30px; mso-padding-alt:0; color:#F4F4F6; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; text-decoration:none; border-radius:2px;">VIEW REPORT →</a>
+<td class="gsx-accent-bg" style="border-radius:2px; background-color:#3452FF; mso-padding-alt:14px 30px;">
+<a href="https://notice.example/report" class="gsx-ground" style="display:inline-block; padding:14px 30px; mso-padding-alt:0; color:#F4F4F6; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px; font-weight:800; letter-spacing:0.04em; text-transform:uppercase; text-decoration:none; border-radius:2px;">VIEW REPORT →</a>
 </td>
 </tr>
 </table>
@@ -76,8 +93,8 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 </tr>
 <tr>
 <td style="padding:28px 32px 32px 32px;">
-<div style="border-top:1px solid #E2E2E8; padding-top:20px; color:#3C3C46; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">— The Systems Team</div>
-<div style="color:#9C9CA8; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:10px; letter-spacing:0.04em; text-transform:uppercase; margin-top:10px;">NOTICE CO · Automated message, no reply needed.</div>
+<div class="gsx-border gsx-copy" style="border-top:1px solid #E2E2E8; padding-top:20px; color:#3C3C46; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">— The Systems Team</div>
+<div class="gsx-faint" style="color:#9C9CA8; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:10px; letter-spacing:0.04em; text-transform:uppercase; margin-top:10px;">NOTICE CO · Automated message, no reply needed.</div>
 </td>
 </tr>
 </table>

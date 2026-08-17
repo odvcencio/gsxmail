@@ -4,6 +4,33 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Fixed (launch-gate B2: complete the adaptive dark-mode class-hook sweep) [bytes]
+
+- `DarkMode: "adaptive"` now swaps every one of `Theme.Dark`'s nine
+  tokens at every site the writer emits that token's matching inline
+  color, not just the Shell wordmark/tagline and Headline title WP5.2
+  shipped. Five new class hooks join the existing `gsx-ink`/`gsx-muted`:
+  `gsx-copy` (body copy), `gsx-panel` (panel backgrounds), `gsx-border`
+  (structural borders), `gsx-accent`/`gsx-accent-bg`/`gsx-accent-border`
+  (accent text, backgrounds, and borders), `gsx-faint` (footer fine
+  print), and `gsx-ground` (a primary/link button's own inverse face
+  text). `gsx-body` (the page background) now swaps to `Dark.ColorGround`
+  instead of sharing `gsx-card`'s `Dark.ColorCard` rule (m1, folded in
+  here).
+- Before this fix, the digest gallery's body copy rendered at 1.73:1
+  contrast against a forced-dark card (WCAG AA requires 4.5:1) with no
+  adaptive hook at all — `EM141`'s own body-on-card contrast check was
+  validating a token pair the writer never actually emitted. It is
+  10.85:1 now; `examples/gallery/dark_contrast_test.go`'s
+  `TestDigestDarkContrastMeetsWCAGAA` computes and pins the ratio
+  programmatically against the rendered golden, not just the theme
+  value in isolation.
+- Regenerated goldens: `examples/gallery/digest/digest.html` (the one
+  shipped adaptive-mode gallery example) and
+  `testdata/wp52/notice_dark_adaptive.html`. No other golden changed —
+  every other fixture uses a `"none"` or `"locked"` theme, neither of
+  which this sweep touches.
+
 ### Fixed (launch-gate B3: props resolution false EM012s, importer output outside its module)
 
 - A props type whose own package fails to resolve (most often an

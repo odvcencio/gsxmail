@@ -66,10 +66,10 @@ func Write(resolved *doc.Resolved, theme Theme) string {
 // see the package doc and WriteOptions for the two output contracts).
 func WriteWithOptions(resolved *doc.Resolved, theme Theme, opts WriteOptions) string {
 	hard := opts.hardened()
-	// adaptive gates the WP5.2 gsx-ink/gsx-muted class hooks (pixel dossier
-	// section 5.2's adaptive style layer): parity mode never gains new
-	// markup, and "none"/"locked" have no swapped-in class-driven colors to
-	// hook, so the classes only appear when both conditions hold.
+	// adaptive gates every WP5.2/B2 class-hook site (pixel dossier section
+	// 5.2's adaptive style layer): parity mode never gains new markup, and
+	// "none"/"locked" have no swapped-in class-driven colors to hook, so
+	// the classes only appear when both conditions hold.
 	adaptive := hard && theme.DarkStrategy() == "adaptive"
 	var b strings.Builder
 	writeHead(&b, theme, resolved.Shell, hard)
@@ -148,11 +148,47 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 // "locked" adds one :root rule (Apple Mail 16+ honors color-scheme only on
 // the root element — caniemail css-color-scheme, R2 — so this is the one
 // place a locked theme can declare itself). "adaptive" adds the
-// @media(prefers-color-scheme:dark) block that swaps Theme.Dark's tokens
-// into the gsx-body/gsx-card/gsx-ink/gsx-muted class hooks, plus the
+// @media(prefers-color-scheme:dark) block that swaps every one of
+// Theme.Dark's nine tokens into its own class hook (launch-gate B2: the
+// WP5.2 release only wired gsx-ink/gsx-muted plus one merged gsx-body/
+// gsx-card background rule, leaving five of Theme.Dark's nine fields dead
+// and EM141's own ColorBody-on-ColorCard check validating a pair the
+// writer never actually emitted), plus the best-effort
 // [data-ogsc]/[data-ogsb] Outlook-app inversion hooks Litmus documents
-// (R14) — both best-effort, never claiming control of a forced transform
-// (pixel dossier section 5.1).
+// (R14) for every one of them — both best-effort, never claiming control
+// of a forced transform (pixel dossier section 5.1).
+//
+// The eleven class hooks, and the Dark token each swaps in:
+//
+//   - gsx-body (background-color): Dark.ColorGround — the page background
+//     outside the card. Folded in here from m1: WP5.2 merged this into
+//     gsx-card's own rule, so a light Theme.ColorGround/ColorCard pair
+//     that differ (the shipped default does) rendered the wrong tone
+//     outside the card under "adaptive".
+//   - gsx-card (background-color): Dark.ColorCard — the card itself.
+//   - gsx-ink (color): Dark.ColorInk — headline/wordmark text.
+//   - gsx-muted (color, border-color): Dark.ColorMuted — mono labels; the
+//     border-color half is Badge's neutral tone, which borders and colors
+//     the same span with the same token (a no-op on every gsx-muted site
+//     that has no border to begin with).
+//   - gsx-copy (color): Dark.ColorBody — body copy. The launch-gate B2
+//     finding's headline case: ColorBody rendered at 1.73:1 against the
+//     dark card with no hook at all before this.
+//   - gsx-faint (color): Dark.ColorFaint — the footer's fine print.
+//   - gsx-panel (background-color): Dark.ColorPanel — Panel/Note/marked
+//     StatTable row backgrounds.
+//   - gsx-border (border-color): Dark.ColorBorder — every structural rule
+//     and cell border.
+//   - gsx-accent (color): Dark.ColorAccent — Signal text, PickList
+//     numerals, a marked StatTable row, Button's secondary-variant text.
+//   - gsx-accent-bg (background-color): Dark.ColorAccent — CTA/Button
+//     primary and link faces.
+//   - gsx-accent-border (border-color): Dark.ColorAccent — the Shell icon
+//     box, Button's secondary variant, Note's border-left bar.
+//   - gsx-ground (color): Dark.ColorGround — the primary/link button
+//     face's own inverse text color (design intent: it always tracks
+//     whichever Ground the active presentation uses, light or dark, the
+//     same way it already does in every non-adaptive render).
 func writeDarkStyleLayer(b *strings.Builder, theme Theme, strategy string) {
 	switch strategy {
 	case "locked":
@@ -171,17 +207,30 @@ func writeDarkStyleLayer(b *strings.Builder, theme Theme, strategy string) {
 			return
 		}
 		d := theme.Dark
-		b.WriteString("@media (prefers-color-scheme: dark) {\n.gsx-body, .gsx-card { background-color:")
-		b.WriteString(d.ColorCard)
-		b.WriteString(" !important; }\n.gsx-ink { color:")
-		b.WriteString(d.ColorInk)
-		b.WriteString(" !important; }\n.gsx-muted { color:")
-		b.WriteString(d.ColorMuted)
-		b.WriteString(" !important; }\n}\n[data-ogsc] .gsx-ink { color:")
-		b.WriteString(d.ColorInk)
-		b.WriteString(" !important; }\n[data-ogsb] .gsx-card { background-color:")
-		b.WriteString(d.ColorCard)
-		b.WriteString(" !important; }\n")
+		b.WriteString("@media (prefers-color-scheme: dark) {\n")
+		b.WriteString(".gsx-body { background-color:" + d.ColorGround + " !important; }\n")
+		b.WriteString(".gsx-card { background-color:" + d.ColorCard + " !important; }\n")
+		b.WriteString(".gsx-ink { color:" + d.ColorInk + " !important; }\n")
+		b.WriteString(".gsx-muted { color:" + d.ColorMuted + " !important; border-color:" + d.ColorMuted + " !important; }\n")
+		b.WriteString(".gsx-copy { color:" + d.ColorBody + " !important; }\n")
+		b.WriteString(".gsx-faint { color:" + d.ColorFaint + " !important; }\n")
+		b.WriteString(".gsx-panel { background-color:" + d.ColorPanel + " !important; }\n")
+		b.WriteString(".gsx-border { border-color:" + d.ColorBorder + " !important; }\n")
+		b.WriteString(".gsx-accent { color:" + d.ColorAccent + " !important; }\n")
+		b.WriteString(".gsx-accent-bg { background-color:" + d.ColorAccent + " !important; }\n")
+		b.WriteString(".gsx-accent-border { border-color:" + d.ColorAccent + " !important; }\n")
+		b.WriteString(".gsx-ground { color:" + d.ColorGround + " !important; }\n")
+		b.WriteString("}\n")
+		b.WriteString("[data-ogsc] .gsx-ink { color:" + d.ColorInk + " !important; }\n")
+		b.WriteString("[data-ogsc] .gsx-muted { color:" + d.ColorMuted + " !important; }\n")
+		b.WriteString("[data-ogsc] .gsx-copy { color:" + d.ColorBody + " !important; }\n")
+		b.WriteString("[data-ogsc] .gsx-faint { color:" + d.ColorFaint + " !important; }\n")
+		b.WriteString("[data-ogsc] .gsx-accent { color:" + d.ColorAccent + " !important; }\n")
+		b.WriteString("[data-ogsc] .gsx-ground { color:" + d.ColorGround + " !important; }\n")
+		b.WriteString("[data-ogsb] .gsx-body { background-color:" + d.ColorGround + " !important; }\n")
+		b.WriteString("[data-ogsb] .gsx-card { background-color:" + d.ColorCard + " !important; }\n")
+		b.WriteString("[data-ogsb] .gsx-panel { background-color:" + d.ColorPanel + " !important; }\n")
+		b.WriteString("[data-ogsb] .gsx-accent-bg { background-color:" + d.ColorAccent + " !important; }\n")
 	}
 }
 
@@ -233,7 +282,11 @@ func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, har
 	b.WriteString(`px;"><tr><td><![endif]-->
 <table role="presentation" width="`)
 	b.WriteString(width)
-	b.WriteString(`" cellpadding="0" cellspacing="0" border="0" class="gsx-card" style="width:`)
+	b.WriteString(`" cellpadding="0" cellspacing="0" border="0" class="gsx-card`)
+	if adaptive {
+		b.WriteString(` gsx-border`)
+	}
+	b.WriteString(`" style="width:`)
 	b.WriteString(width)
 	b.WriteString(`px; max-width:`)
 	b.WriteString(width)
@@ -243,15 +296,21 @@ func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, har
 	b.WriteString(theme.ColorBorder)
 	b.WriteString(`; border-radius:4px;">
 <tr>
-<td style="padding:24px 32px 20px 32px; border-bottom:1px solid `)
+<td`)
+	b.WriteString(classAttrIf(adaptive, "gsx-border"))
+	b.WriteString(` style="padding:24px 32px 20px 32px; border-bottom:1px solid `)
 	b.WriteString(theme.ColorBorder)
 	b.WriteString(`;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td width="44" valign="middle" style="width:44px; padding-right:12px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border:1px solid `)
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"`)
+	b.WriteString(classAttrIf(adaptive, "gsx-accent-border"))
+	b.WriteString(` style="border:1px solid `)
 	b.WriteString(theme.ColorAccent)
-	b.WriteString(`; border-radius:2px;"><tr><td style="width:40px; height:40px; text-align:center; vertical-align:middle; color:`)
+	b.WriteString(`; border-radius:2px;"><tr><td`)
+	b.WriteString(classAttrIf(adaptive, "gsx-accent"))
+	b.WriteString(` style="width:40px; height:40px; text-align:center; vertical-align:middle; color:`)
 	b.WriteString(theme.ColorAccent)
 	b.WriteString(`; font-family:`)
 	b.WriteString(theme.FontMono)
@@ -287,16 +346,36 @@ func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, har
 }
 
 // classAttrIf returns ` class="name"` when cond holds, or "" otherwise —
-// the WP5.2 adaptive-mode gsx-ink/gsx-muted class hook (pixel dossier
-// section 5.2), applied only at the Shell wordmark/tagline and Headline
-// title (the highest-visibility ink/muted text): a template-wide sweep
-// over every ink- or muted-colored element is a natural follow-on, not
-// required for the strategy to work end to end.
+// the WP5.2 adaptive-mode class hook (pixel dossier section 5.2), applied
+// at every site that writes one of Theme's nine color tokens inline
+// (launch-gate B2's completed sweep — see writeDarkStyleLayer's own doc
+// comment for the full class-to-token table).
 func classAttrIf(cond bool, name string) string {
 	if !cond {
 		return ""
 	}
 	return ` class="` + name + `"`
+}
+
+// classAttrIf2 is classAttrIf for the handful of sites that need two
+// adaptive class hooks on the same element at once (a StatTable cell that
+// is both bordered and, when marked, accent-colored, for instance).
+// Either name may be empty, in which case it is skipped.
+func classAttrIf2(cond bool, name1, name2 string) string {
+	if !cond {
+		return ""
+	}
+	var names []string
+	if name1 != "" {
+		names = append(names, name1)
+	}
+	if name2 != "" {
+		names = append(names, name2)
+	}
+	if len(names) == 0 {
+		return ""
+	}
+	return ` class="` + strings.Join(names, " ") + `"`
 }
 
 // preheaderTargetChars is the decoded-character length the hidden
@@ -428,27 +507,27 @@ func writeBodyClose(b *strings.Builder, hard bool) {
 func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard, adaptive bool) {
 	switch v := block.(type) {
 	case doc.ResolvedSignal:
-		writeSignal(b, theme, v)
+		writeSignal(b, theme, v, adaptive)
 	case doc.ResolvedHeadline:
 		writeHeadline(b, theme, v, hard, adaptive)
 	case doc.ResolvedPanel:
-		writePanel(b, theme, v, hard)
+		writePanel(b, theme, v, hard, adaptive)
 	case doc.ResolvedCTA:
-		writeCTA(b, theme, v, hard)
+		writeCTA(b, theme, v, hard, adaptive)
 	case doc.ResolvedPickList:
-		writePickList(b, theme, v)
+		writePickList(b, theme, v, adaptive)
 	case doc.ResolvedFooter:
-		writeFooter(b, theme, v)
+		writeFooter(b, theme, v, adaptive)
 	case doc.ResolvedNote:
-		writeNote(b, theme, v, hard)
+		writeNote(b, theme, v, hard, adaptive)
 	case doc.ResolvedDivider:
-		writeDivider(b, theme, v, hard)
+		writeDivider(b, theme, v, hard, adaptive)
 	case doc.ResolvedStatTable:
-		writeStatTable(b, theme, v, hard)
+		writeStatTable(b, theme, v, hard, adaptive)
 	case doc.ResolvedCustom:
 		writeCustomNode(b, v.Root)
 	case doc.ResolvedButton:
-		writeButton(b, theme, v, hard)
+		writeButton(b, theme, v, hard, adaptive)
 	case doc.ResolvedColumns:
 		writeColumns(b, theme, v, hard, adaptive)
 	case doc.ResolvedHero:
@@ -456,14 +535,16 @@ func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard, 
 	case doc.ResolvedSpacer:
 		writeSpacer(b, v)
 	case doc.ResolvedBadge:
-		writeBadge(b, theme, v)
+		writeBadge(b, theme, v, adaptive)
 	}
 }
 
-func writeSignal(b *strings.Builder, theme Theme, s doc.ResolvedSignal) {
+func writeSignal(b *strings.Builder, theme Theme, s doc.ResolvedSignal, adaptive bool) {
 	b.WriteString(`<tr>
 <td style="padding:20px 32px 0 32px;">
-<div style="color:`)
+<div`)
+	b.WriteString(classAttrIf(adaptive, "gsx-accent"))
+	b.WriteString(` style="color:`)
 	b.WriteString(theme.ColorAccent)
 	b.WriteString(`; font-family:`)
 	b.WriteString(theme.FontMono)
@@ -479,7 +560,8 @@ func writeSignal(b *strings.Builder, theme Theme, s doc.ResolvedSignal) {
 // a semantic <h1> with margins zeroed (pixel dossier section 4.3, point
 // 2): screen-reader navigation gains a heading at no visual cost. Parity
 // mode keeps WP1's <div> title, byte-for-byte. adaptive additionally marks
-// the title with the gsx-ink class hook (pixel dossier section 5.2).
+// the title with gsx-ink and the lede with gsx-copy (pixel dossier section
+// 5.2; launch-gate B2).
 func writeHeadline(b *strings.Builder, theme Theme, h doc.ResolvedHeadline, hard, adaptive bool) {
 	titleTag := "div"
 	titleStyleExtra := ""
@@ -503,7 +585,9 @@ func writeHeadline(b *strings.Builder, theme Theme, h doc.ResolvedHeadline, hard
 	b.WriteString(`</`)
 	b.WriteString(titleTag)
 	b.WriteString(`>
-<div style="color:`)
+<div`)
+	b.WriteString(classAttrIf(adaptive, "gsx-copy"))
+	b.WriteString(` style="color:`)
 	b.WriteString(theme.ColorBody)
 	b.WriteString(`; font-family:`)
 	b.WriteString(theme.FontSans)
@@ -520,10 +604,15 @@ func writeHeadline(b *strings.Builder, theme Theme, h doc.ResolvedHeadline, hard
 // (pixel dossier section 4.3, point 1): Outlook Windows does not support
 // display:inline-block, so a td pair aligns natively where a fixed-width
 // inline-block does not. Parity mode keeps WP1's span pair, byte-for-byte.
-func writePanel(b *strings.Builder, theme Theme, p doc.ResolvedPanel, hard bool) {
+// adaptive marks the outer table (gsx-border, gsx-panel), each row's
+// border, each label (gsx-muted), and each value (gsx-ink) — launch-gate
+// B2: none of Panel's own color sites carried an adaptive hook before.
+func writePanel(b *strings.Builder, theme Theme, p doc.ResolvedPanel, hard, adaptive bool) {
 	b.WriteString(`<tr>
 <td style="padding:24px 32px 0 32px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid `)
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"`)
+	b.WriteString(classAttrIf2(adaptive, "gsx-border", "gsx-panel"))
+	b.WriteString(` style="width:100%; border:1px solid `)
 	b.WriteString(theme.ColorBorder)
 	b.WriteString(`; border-radius:4px; background-color:`)
 	b.WriteString(theme.ColorPanel)
@@ -531,12 +620,16 @@ func writePanel(b *strings.Builder, theme Theme, p doc.ResolvedPanel, hard bool)
 `)
 	for i, row := range p.Rows {
 		border := ""
+		borderClass := ""
 		if i < len(p.Rows)-1 {
 			border = ` border-bottom:1px solid ` + theme.ColorBorder + `;`
+			borderClass = "gsx-border"
 		}
 		if hard {
 			b.WriteString(`<tr>
-<td width="108" valign="top" style="padding:16px 0 16px 20px; width:108px; color:`)
+<td width="108" valign="top"`)
+			b.WriteString(classAttrIf2(adaptive, "gsx-muted", borderClass))
+			b.WriteString(` style="padding:16px 0 16px 20px; width:108px; color:`)
 			b.WriteString(theme.ColorMuted)
 			b.WriteString(`; font-family:`)
 			b.WriteString(theme.FontMono)
@@ -545,7 +638,9 @@ func writePanel(b *strings.Builder, theme Theme, p doc.ResolvedPanel, hard bool)
 			b.WriteString(`">`)
 			b.WriteString(escapeText(row.Label))
 			b.WriteString(`</td>
-<td valign="top" style="padding:16px 20px 16px 0; color:`)
+<td valign="top"`)
+			b.WriteString(classAttrIf2(adaptive, "gsx-ink", borderClass))
+			b.WriteString(` style="padding:16px 20px 16px 0; color:`)
 			b.WriteString(theme.ColorInk)
 			b.WriteString(`; font-family:`)
 			b.WriteString(theme.FontSans)
@@ -591,12 +686,17 @@ func writePanel(b *strings.Builder, theme Theme, p doc.ResolvedPanel, hard bool)
 // default technique, MJML's shipped pattern): Outlook gets the visual
 // button box the padding gives every other client, without double
 // padding. Parity mode keeps WP1's padded-<a>-only markup, byte-for-byte.
-func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard bool) {
+// adaptive marks the face td (gsx-accent-bg) and the label itself
+// (gsx-ground, since the label's own color is Theme.ColorGround — the
+// button's inverse-of-fill text token, launch-gate B2).
+func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard, adaptive bool) {
 	b.WriteString(`<tr>
 <td align="center" style="padding:28px 32px 0 32px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td style="border-radius:2px; background-color:`)
+<td`)
+	b.WriteString(classAttrIf(adaptive, "gsx-accent-bg"))
+	b.WriteString(` style="border-radius:2px; background-color:`)
 	b.WriteString(theme.ColorAccent)
 	if hard {
 		b.WriteString(`; mso-padding-alt:14px 30px;">
@@ -605,6 +705,7 @@ func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard bool) {
 		b.WriteString(`;">
 `)
 	}
+	faceClass := classAttrIf(adaptive, "gsx-ground")
 	faceStyle := "display:inline-block; padding:14px 30px; "
 	if hard {
 		faceStyle += "mso-padding-alt:0; "
@@ -615,14 +716,18 @@ func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard bool) {
 	if hasSafeHrefScheme(c.Href) {
 		b.WriteString(`<a href="`)
 		b.WriteString(escapeAttr(c.Href))
-		b.WriteString(`" style="`)
+		b.WriteString(`"`)
+		b.WriteString(faceClass)
+		b.WriteString(` style="`)
 		b.WriteString(faceStyle)
 		b.WriteString(`">`)
 		b.WriteString(escapeText(c.Label))
 		b.WriteString(`</a>
 `)
 	} else {
-		b.WriteString(`<span style="`)
+		b.WriteString(`<span`)
+		b.WriteString(faceClass)
+		b.WriteString(` style="`)
 		b.WriteString(faceStyle)
 		b.WriteString(`">`)
 		b.WriteString(escapeText(c.Label))
@@ -644,14 +749,14 @@ func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard bool) {
 // alias, not a parallel reimplementation that could drift. "secondary" and
 // "link" are new WP5.3 shapes with no WP1 byte stream to protect, so both
 // render one contract regardless of hard.
-func writeButton(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard bool) {
+func writeButton(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard, adaptive bool) {
 	switch v.Variant {
 	case "secondary":
-		writeButtonSecondary(b, theme, v, hard)
+		writeButtonSecondary(b, theme, v, hard, adaptive)
 	case "link":
-		writeButtonLink(b, theme, v)
+		writeButtonLink(b, theme, v, adaptive)
 	default: // "primary", and "" defensively (resolve.go already defaults it)
-		writeCTA(b, theme, doc.ResolvedCTA{Label: v.Label, Href: v.Href}, hard)
+		writeCTA(b, theme, doc.ResolvedCTA{Label: v.Label, Href: v.Href}, hard, adaptive)
 	}
 }
 
@@ -660,13 +765,16 @@ func writeButton(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard boo
 // primary's solid accent fill. It mirrors writeCTA's own hard/parity split
 // (mso-padding-alt only under the hardened contract) for the same reason:
 // Outlook needs the td's own border to draw the visual box a border-only
-// <a> cannot give it.
-func writeButtonSecondary(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard bool) {
+// <a> cannot give it. adaptive marks the face td's border (gsx-accent-
+// border) and the label's own accent text (gsx-accent) — launch-gate B2.
+func writeButtonSecondary(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard, adaptive bool) {
 	b.WriteString(`<tr>
 <td align="center" style="padding:28px 32px 0 32px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td style="border-radius:2px; border:1px solid `)
+<td`)
+	b.WriteString(classAttrIf(adaptive, "gsx-accent-border"))
+	b.WriteString(` style="border-radius:2px; border:1px solid `)
 	b.WriteString(theme.ColorAccent)
 	if hard {
 		b.WriteString(`; mso-padding-alt:13px 29px;">
@@ -675,6 +783,7 @@ func writeButtonSecondary(b *strings.Builder, theme Theme, v doc.ResolvedButton,
 		b.WriteString(`;">
 `)
 	}
+	faceClass := classAttrIf(adaptive, "gsx-accent")
 	faceStyle := "display:inline-block; padding:13px 29px; "
 	if hard {
 		faceStyle += "mso-padding-alt:0; "
@@ -685,14 +794,18 @@ func writeButtonSecondary(b *strings.Builder, theme Theme, v doc.ResolvedButton,
 	if hasSafeHrefScheme(v.Href) {
 		b.WriteString(`<a href="`)
 		b.WriteString(escapeAttr(v.Href))
-		b.WriteString(`" style="`)
+		b.WriteString(`"`)
+		b.WriteString(faceClass)
+		b.WriteString(` style="`)
 		b.WriteString(faceStyle)
 		b.WriteString(`">`)
 		b.WriteString(escapeText(v.Label))
 		b.WriteString(`</a>
 `)
 	} else {
-		b.WriteString(`<span style="`)
+		b.WriteString(`<span`)
+		b.WriteString(faceClass)
+		b.WriteString(` style="`)
 		b.WriteString(faceStyle)
 		b.WriteString(`">`)
 		b.WriteString(escapeText(v.Label))
@@ -730,17 +843,21 @@ func linkButtonDefaultWidth(label string) int {
 // whole box — not just the text — is clickable there too. New in WP5.3,
 // one contract regardless of hard: the technique is inert everywhere
 // outside Outlook (the <i> runs sit inside "[if mso]" conditional
-// comments), so there is nothing for a parity mode to strip.
-func writeButtonLink(b *strings.Builder, theme Theme, v doc.ResolvedButton) {
+// comments), so there is nothing for a parity mode to strip. adaptive
+// marks the face (gsx-accent-bg, gsx-ground) — launch-gate B2.
+func writeButtonLink(b *strings.Builder, theme Theme, v doc.ResolvedButton, adaptive bool) {
 	width := strings.TrimSpace(v.Width)
 	if width == "" {
 		width = strconv.Itoa(linkButtonDefaultWidth(v.Label))
 	}
+	faceClass := classAttrIf2(adaptive, "gsx-accent-bg", "gsx-ground")
 	b.WriteString(`<tr>
 <td align="center" style="padding:28px 32px 0 32px;">
 `)
 	if !hasSafeHrefScheme(v.Href) {
-		b.WriteString(`<span style="background-color:`)
+		b.WriteString(`<span`)
+		b.WriteString(faceClass)
+		b.WriteString(` style="background-color:`)
 		b.WriteString(theme.ColorAccent)
 		b.WriteString(`; border-radius:2px; color:`)
 		b.WriteString(theme.ColorGround)
@@ -756,7 +873,9 @@ func writeButtonLink(b *strings.Builder, theme Theme, v doc.ResolvedButton) {
 	}
 	b.WriteString(`<a href="`)
 	b.WriteString(escapeAttr(v.Href))
-	b.WriteString(`" style="background-color:`)
+	b.WriteString(`"`)
+	b.WriteString(faceClass)
+	b.WriteString(` style="background-color:`)
 	b.WriteString(theme.ColorAccent)
 	b.WriteString(`; border-radius:2px; color:`)
 	b.WriteString(theme.ColorGround)
@@ -830,10 +949,10 @@ func writeColumns(b *strings.Builder, theme Theme, v doc.ResolvedColumns, hard, 
 // an optional title, and an optional body text, each sized for a fluid-
 // hybrid column's own narrower width rather than the full card (design
 // note: doc.Column's own doc comment on why Column stays a leaf). The
-// title carries the gsx-ink adaptive class hook under DarkMode "adaptive"
-// (pixel dossier section 5.2), the same hook every other ink-colored
-// heading in the card carries — Columns nests ordinary card content, so
-// WP5.2's dark-mode coverage extends into it for free.
+// title carries the gsx-ink adaptive class hook and the body text carries
+// gsx-copy (launch-gate B2), the same hooks every other ink- and body-
+// colored element in the card carries — Columns nests ordinary card
+// content, so WP5.2's dark-mode coverage extends into it for free.
 func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn, hard, adaptive bool) {
 	_ = hard
 	if col.ImgSrc != "" {
@@ -867,7 +986,9 @@ func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn,
 		if col.Title != "" {
 			topMargin = " margin-top:6px;"
 		}
-		b.WriteString(`<div style="color:`)
+		b.WriteString(`<div`)
+		b.WriteString(classAttrIf(adaptive, "gsx-copy"))
+		b.WriteString(` style="color:`)
 		b.WriteString(theme.ColorBody)
 		b.WriteString(`; font-family:`)
 		b.WriteString(theme.FontSans)
@@ -884,7 +1005,8 @@ func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn,
 // resolution with display-size width/height attributes plus the
 // max-width/height:auto Outlook workaround (pixel dossier section 4.10;
 // R15). Hero is new in WP5.3 — there is no WP1 byte stream to protect —
-// so it renders one contract regardless of the hard flag.
+// so it renders one contract regardless of the hard flag. It carries no
+// theme color of its own, so it needs no adaptive class hook.
 func writeHero(b *strings.Builder, v doc.ResolvedHero) {
 	b.WriteString(`<tr>
 <td style="padding:0;">
@@ -907,7 +1029,8 @@ func writeHero(b *strings.Builder, v doc.ResolvedHero) {
 // writeSpacer writes email.Spacer: an exact-height gap row (pixel dossier
 // section 4.8's spacer-table technique — font-size:0, line-height:0, and
 // mso-line-height-rule:exactly pin the box everywhere a bare margin or an
-// empty div does not). New in WP5.3, one contract regardless of hard.
+// empty div does not). New in WP5.3, one contract regardless of hard. It
+// carries no theme color of its own, so it needs no adaptive class hook.
 func writeSpacer(b *strings.Builder, v doc.ResolvedSpacer) {
 	b.WriteString(`<tr><td height="`)
 	b.WriteString(escapeAttr(v.Height))
@@ -920,9 +1043,12 @@ func writeSpacer(b *strings.Builder, v doc.ResolvedSpacer) {
 // badgeToneColor gives each Badge tone a fixed, theme-independent color
 // (pixel dossier section 4.11's own worked example: a green "PAID" badge
 // against the neutral Paper theme's blue accent). Status semantics should
-// read the same green/amber/red regardless of a template's brand palette.
+// read the same green/amber/red regardless of a template's brand palette
+// or its light/dark presentation (M2 handles picking those three fixed
+// hexes so they clear contrast on both a light and a dark card).
 // "neutral" is the one tone that does track the active theme, using its
-// muted token, since it carries no status meaning of its own to protect.
+// muted token, since it carries no status meaning of its own to protect —
+// so it is also the one tone with an adaptive class hook (writeBadge).
 func badgeToneColor(theme Theme, tone string) string {
 	switch tone {
 	case "positive":
@@ -939,12 +1065,17 @@ func badgeToneColor(theme Theme, tone string) string {
 // writeBadge writes email.Badge (pixel dossier section 4.11): a bordered,
 // inline status label. Outlook drops border-radius and inline-block; the
 // degrade is bordered inline text, still legible. New in WP5.3, one
-// contract regardless of hard.
-func writeBadge(b *strings.Builder, theme Theme, v doc.ResolvedBadge) {
+// contract regardless of hard. adaptive marks a "neutral" badge with
+// gsx-muted (both its border and its text share theme.ColorMuted, and
+// the gsx-muted rule swaps both — launch-gate B2); the three fixed-hex
+// tones are deliberately theme-independent, so they carry no hook.
+func writeBadge(b *strings.Builder, theme Theme, v doc.ResolvedBadge, adaptive bool) {
 	color := badgeToneColor(theme, v.Tone)
 	b.WriteString(`<tr>
 <td style="padding:20px 32px 0 32px;">
-<span style="display:inline-block; padding:2px 8px; border:1px solid `)
+<span`)
+	b.WriteString(classAttrIf(adaptive && v.Tone == "neutral", "gsx-muted"))
+	b.WriteString(` style="display:inline-block; padding:2px 8px; border:1px solid `)
 	b.WriteString(color)
 	b.WriteString(`; border-radius:2px; color:`)
 	b.WriteString(color)
@@ -958,12 +1089,17 @@ func writeBadge(b *strings.Builder, theme Theme, v doc.ResolvedBadge) {
 `)
 }
 
-func writePickList(b *strings.Builder, theme Theme, p doc.ResolvedPickList) {
+// writePickList writes email.PickList. adaptive marks the title
+// (gsx-muted), each item's numeral (gsx-accent), and each item's own text
+// (gsx-copy) — launch-gate B2.
+func writePickList(b *strings.Builder, theme Theme, p doc.ResolvedPickList, adaptive bool) {
 	b.WriteString(`<tr>
 <td style="padding:28px 32px 0 32px;">
 `)
 	if p.Title != "" {
-		b.WriteString(`<div style="color:`)
+		b.WriteString(`<div`)
+		b.WriteString(classAttrIf(adaptive, "gsx-muted"))
+		b.WriteString(` style="color:`)
 		b.WriteString(theme.ColorMuted)
 		b.WriteString(`; font-family:`)
 		b.WriteString(theme.FontMono)
@@ -975,11 +1111,15 @@ func writePickList(b *strings.Builder, theme Theme, p doc.ResolvedPickList) {
 	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 `)
 	for i, item := range p.Items {
-		b.WriteString(`<tr><td style="padding:5px 0; color:`)
+		b.WriteString(`<tr><td`)
+		b.WriteString(classAttrIf(adaptive, "gsx-copy"))
+		b.WriteString(` style="padding:5px 0; color:`)
 		b.WriteString(theme.ColorBody)
 		b.WriteString(`; font-family:`)
 		b.WriteString(theme.FontSans)
-		b.WriteString(`; font-size:14px;"><span style="color:`)
+		b.WriteString(`; font-size:14px;"><span`)
+		b.WriteString(classAttrIf(adaptive, "gsx-accent"))
+		b.WriteString(` style="color:`)
 		b.WriteString(theme.ColorAccent)
 		b.WriteString(`; font-family:`)
 		b.WriteString(theme.FontMono)
@@ -999,8 +1139,12 @@ func writePickList(b *strings.Builder, theme Theme, p doc.ResolvedPickList) {
 // writeNote writes email.Note. Hardened mode marks the aside structurally
 // (pixel dossier section 4.7): a border-left accent bar and a tinted
 // background, never a color-only cue. Parity mode keeps WP1's plain
-// paragraph, byte-for-byte.
-func writeNote(b *strings.Builder, theme Theme, n doc.ResolvedNote, hard bool) {
+// paragraph, byte-for-byte — and, since adaptive is only ever true when
+// hard is (WriteWithOptions's own adaptive computation), the parity
+// branch below needs no class hooks of its own. Hardened mode's adaptive
+// hooks: gsx-panel (background), gsx-accent-border (the left bar), and
+// gsx-copy (text) — launch-gate B2.
+func writeNote(b *strings.Builder, theme Theme, n doc.ResolvedNote, hard, adaptive bool) {
 	if !hard {
 		b.WriteString(`<tr>
 <td style="padding:24px 32px 0 32px;">
@@ -1020,7 +1164,9 @@ func writeNote(b *strings.Builder, theme Theme, n doc.ResolvedNote, hard bool) {
 <td style="padding:24px 32px 0 32px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
 <tr>
-<td style="padding:12px 16px; background-color:`)
+<td`)
+	b.WriteString(classAttrIf(adaptive, "gsx-panel"))
+	b.WriteString(` style="padding:12px 16px; background-color:`)
 	b.WriteString(theme.ColorPanel)
 	b.WriteString(`; border-left:3px solid `)
 	b.WriteString(theme.ColorAccent)
@@ -1042,8 +1188,10 @@ func writeNote(b *strings.Builder, theme Theme, n doc.ResolvedNote, hard bool) {
 // technique (pixel dossier section 4.8): a td with font-size:0,
 // line-height:0, and mso-line-height-rule:exactly pins an exact-height
 // rule across every client; a plain border-top div does not. Parity mode
-// keeps WP1's bare border-top div, byte-for-byte.
-func writeDivider(b *strings.Builder, theme Theme, _ doc.ResolvedDivider, hard bool) {
+// keeps WP1's bare border-top div, byte-for-byte (and needs no class
+// hook, for the same reason writeNote's parity branch does not).
+// Hardened mode's rule gets gsx-border (launch-gate B2).
+func writeDivider(b *strings.Builder, theme Theme, _ doc.ResolvedDivider, hard, adaptive bool) {
 	if !hard {
 		b.WriteString(`<tr>
 <td style="padding:20px 32px 0 32px;">
@@ -1058,7 +1206,9 @@ func writeDivider(b *strings.Builder, theme Theme, _ doc.ResolvedDivider, hard b
 	b.WriteString(`<tr>
 <td style="padding:28px 32px 0 32px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
-<tr><td style="border-top:1px solid `)
+<tr><td`)
+	b.WriteString(classAttrIf(adaptive, "gsx-border"))
+	b.WriteString(` style="border-top:1px solid `)
 	b.WriteString(theme.ColorBorder)
 	b.WriteString(`; font-size:0; line-height:0; mso-line-height-rule:exactly;">&nbsp;</td></tr>
 </table>
@@ -1077,12 +1227,20 @@ func writeDivider(b *strings.Builder, theme Theme, _ doc.ResolvedDivider, hard b
 // table, never role="presentation", and its header cells are <th
 // scope="col">, not <td>. Parity mode keeps WP1's role="presentation" and
 // <td> header cells, byte-for-byte.
-func writeStatTable(b *strings.Builder, theme Theme, s doc.ResolvedStatTable, hard bool) {
+//
+// adaptive marks the title (gsx-muted), the outer table (gsx-border), the
+// header row's border and muted text (gsx-border, gsx-muted), and each
+// data row's border plus its own color — gsx-copy normally, gsx-accent on
+// the one marked row, alongside gsx-panel for that row's own background —
+// launch-gate B2.
+func writeStatTable(b *strings.Builder, theme Theme, s doc.ResolvedStatTable, hard, adaptive bool) {
 	b.WriteString(`<tr>
 <td style="padding:24px 32px 0 32px;">
 `)
 	if s.Title != "" {
-		b.WriteString(`<div style="color:`)
+		b.WriteString(`<div`)
+		b.WriteString(classAttrIf(adaptive, "gsx-muted"))
+		b.WriteString(` style="color:`)
 		b.WriteString(theme.ColorMuted)
 		b.WriteString(`; font-family:`)
 		b.WriteString(theme.FontMono)
@@ -1092,10 +1250,12 @@ func writeStatTable(b *strings.Builder, theme Theme, s doc.ResolvedStatTable, ha
 `)
 	}
 	if hard {
-		b.WriteString(`<table width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid `)
+		b.WriteString(`<table width="100%" cellpadding="0" cellspacing="0" border="0"`)
 	} else {
-		b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid `)
+		b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"`)
 	}
+	b.WriteString(classAttrIf(adaptive, "gsx-border"))
+	b.WriteString(` style="width:100%; border:1px solid `)
 	b.WriteString(theme.ColorBorder)
 	b.WriteString(`; border-radius:4px;">
 `)
@@ -1111,6 +1271,7 @@ func writeStatTable(b *strings.Builder, theme Theme, s doc.ResolvedStatTable, ha
 			b.WriteByte('<')
 			b.WriteString(headerTag)
 			b.WriteString(headerTagAttrs)
+			b.WriteString(classAttrIf2(adaptive, "gsx-border", "gsx-muted"))
 			b.WriteString(` style="padding:10px 14px; border-bottom:1px solid `)
 			b.WriteString(theme.ColorBorder)
 			b.WriteString(`; color:`)
@@ -1127,20 +1288,30 @@ func writeStatTable(b *strings.Builder, theme Theme, s doc.ResolvedStatTable, ha
 	}
 	for i, row := range s.Rows {
 		rowColor := theme.ColorBody
+		rowColorClass := "gsx-copy"
 		background := ""
+		rowClass := ""
 		if i+1 == s.MarkRow {
 			rowColor = theme.ColorAccent
+			rowColorClass = "gsx-accent"
 			background = ` background-color:` + theme.ColorPanel + `;`
+			rowClass = classAttrIf(adaptive, "gsx-panel")
 		}
 		border := ""
+		borderClass := ""
 		if i < len(s.Rows)-1 {
 			border = ` border-bottom:1px solid ` + theme.ColorBorder + `;`
+			borderClass = "gsx-border"
 		}
-		b.WriteString(`<tr style="`)
+		b.WriteString(`<tr`)
+		b.WriteString(rowClass)
+		b.WriteString(` style="`)
 		b.WriteString(background)
 		b.WriteString("\">\n")
 		for _, cell := range row.Cells {
-			b.WriteString(`<td style="padding:10px 14px;`)
+			b.WriteString(`<td`)
+			b.WriteString(classAttrIf2(adaptive, rowColorClass, borderClass))
+			b.WriteString(` style="padding:10px 14px;`)
 			b.WriteString(border)
 			b.WriteString(` color:`)
 			b.WriteString(rowColor)
@@ -1192,10 +1363,16 @@ func writeCustomNode(b *strings.Builder, n doc.ResolvedCustomNode) {
 	b.WriteByte('>')
 }
 
-func writeFooter(b *strings.Builder, theme Theme, f doc.ResolvedFooter) {
+// writeFooter writes email.Footer. adaptive marks the border-top rule
+// (gsx-border), the signoff (gsx-copy), and the fine-print note
+// (gsx-faint) — launch-gate B2: the first hook for ColorFaint anywhere in
+// the writer.
+func writeFooter(b *strings.Builder, theme Theme, f doc.ResolvedFooter, adaptive bool) {
 	b.WriteString(`<tr>
 <td style="padding:28px 32px 32px 32px;">
-<div style="border-top:1px solid `)
+<div`)
+	b.WriteString(classAttrIf2(adaptive, "gsx-border", "gsx-copy"))
+	b.WriteString(` style="border-top:1px solid `)
 	b.WriteString(theme.ColorBorder)
 	b.WriteString(`; padding-top:20px; color:`)
 	b.WriteString(theme.ColorBody)
@@ -1204,7 +1381,9 @@ func writeFooter(b *strings.Builder, theme Theme, f doc.ResolvedFooter) {
 	b.WriteString(`; font-size:14px;">`)
 	b.WriteString(escapeText(f.Signoff))
 	b.WriteString(`</div>
-<div style="color:`)
+<div`)
+	b.WriteString(classAttrIf(adaptive, "gsx-faint"))
+	b.WriteString(` style="color:`)
 	b.WriteString(theme.ColorFaint)
 	b.WriteString(`; font-family:`)
 	b.WriteString(theme.FontMono)

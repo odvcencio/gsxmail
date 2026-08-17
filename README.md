@@ -217,11 +217,14 @@ pixel parity, in your own product copy too.
 - **`"adaptive"`**. The `Theme` carries both a light presentation (its own
   fields) and a dark one (`Theme.Dark`, a `DarkPalette`). `Render` emits a
   `light dark` meta pair and an `@media (prefers-color-scheme:dark)` layer
-  that swaps `Theme.Dark`'s tokens into the Shell wordmark, tagline, and
-  Headline title, plus best-effort `[data-ogsc]`/`[data-ogsb]` hooks for
-  Outlook's own app-level inversion. Apple Mail, iOS Mail, and Outlook.com
-  switch cleanly; Gmail ignores the media query and applies its own forced
-  transform regardless.
+  that swaps every one of `Theme.Dark`'s nine tokens into its own class
+  hook, at every site the writer emits that token's matching inline
+  color: the page background, the card, borders, panel backgrounds, ink
+  and body-copy text, muted labels, accent text/backgrounds/borders, and
+  footer fine print — plus best-effort `[data-ogsc]`/`[data-ogsb]` hooks
+  for Outlook's own app-level inversion. Apple Mail, iOS Mail, and
+  Outlook.com switch cleanly; Gmail ignores the media query and applies
+  its own forced transform regardless.
 
 `Load` checks a Set's `Theme` before it renders anything:
 

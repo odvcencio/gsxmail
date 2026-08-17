@@ -27,12 +27,29 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 .gsx-col{display:block !important;width:100% !important;max-width:100% !important;}
 }
 @media (prefers-color-scheme: dark) {
-.gsx-body, .gsx-card { background-color:#1E1913 !important; }
+.gsx-body { background-color:#17130E !important; }
+.gsx-card { background-color:#1E1913 !important; }
 .gsx-ink { color:#F3E9DA !important; }
-.gsx-muted { color:#A08F79 !important; }
+.gsx-muted { color:#A08F79 !important; border-color:#A08F79 !important; }
+.gsx-copy { color:#D8CAB8 !important; }
+.gsx-faint { color:#6E6153 !important; }
+.gsx-panel { background-color:#241E17 !important; }
+.gsx-border { border-color:#3A2F23 !important; }
+.gsx-accent { color:#E08A52 !important; }
+.gsx-accent-bg { background-color:#E08A52 !important; }
+.gsx-accent-border { border-color:#E08A52 !important; }
+.gsx-ground { color:#17130E !important; }
 }
 [data-ogsc] .gsx-ink { color:#F3E9DA !important; }
+[data-ogsc] .gsx-muted { color:#A08F79 !important; }
+[data-ogsc] .gsx-copy { color:#D8CAB8 !important; }
+[data-ogsc] .gsx-faint { color:#6E6153 !important; }
+[data-ogsc] .gsx-accent { color:#E08A52 !important; }
+[data-ogsc] .gsx-ground { color:#17130E !important; }
+[data-ogsb] .gsx-body { background-color:#17130E !important; }
 [data-ogsb] .gsx-card { background-color:#1E1913 !important; }
+[data-ogsb] .gsx-panel { background-color:#241E17 !important; }
+[data-ogsb] .gsx-accent-bg { background-color:#E08A52 !important; }
 </style>
 </head>
 <body class="gsx-body" style="margin:0; padding:0; background-color:#FBF7EF;">
@@ -42,13 +59,13 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 <tr>
 <td align="center" style="padding:32px 16px;">
 <!--[if mso | IE]><table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="width:600px;"><tr><td><![endif]-->
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="gsx-card" style="width:600px; max-width:600px; background-color:#FFFFFF; border:1px solid #E7DECB; border-radius:4px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="gsx-card gsx-border" style="width:600px; max-width:600px; background-color:#FFFFFF; border:1px solid #E7DECB; border-radius:4px;">
 <tr>
-<td style="padding:24px 32px 20px 32px; border-bottom:1px solid #E7DECB;">
+<td class="gsx-border" style="padding:24px 32px 20px 32px; border-bottom:1px solid #E7DECB;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td width="44" valign="middle" style="width:44px; padding-right:12px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #B4451F; border-radius:2px;"><tr><td style="width:40px; height:40px; text-align:center; vertical-align:middle; color:#B4451F; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:13px; font-weight:700;">DIG</td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" class="gsx-accent-border" style="border:1px solid #B4451F; border-radius:2px;"><tr><td class="gsx-accent" style="width:40px; height:40px; text-align:center; vertical-align:middle; color:#B4451F; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:13px; font-weight:700;">DIG</td></tr></table>
 </td>
 <td valign="middle">
 <div class="gsx-ink" style="color:#26201A; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:19px; font-weight:800; letter-spacing:-0.02em; text-transform:uppercase;">Acme</div>
@@ -66,7 +83,7 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 <tr>
 <td style="padding:14px 32px 0 32px;">
 <h1 class="gsx-ink" style="margin:0; color:#26201A; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:32px; font-weight:800; letter-spacing:-0.03em; text-transform:uppercase; line-height:1.08;">THIS WEEK.</h1>
-<div style="color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; margin-top:12px;">Week of August 10, 2026</div>
+<div class="gsx-copy" style="color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; margin-top:12px;">Week of August 10, 2026</div>
 </td>
 </tr>
 <tr>
@@ -75,13 +92,13 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 <div class="gsx-col" style="display:inline-block; width:100%; max-width:268px; vertical-align:top; text-align:left; font-size:14px;">
 <img src="https://cdn.acme.example/digest-col-release@2x.png" width="120" height="80" alt="New release icon" style="display:block; width:100%; max-width:120px; height:auto; border:0; margin-bottom:12px;">
 <div class="gsx-ink" style="color:#26201A; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:800; letter-spacing:-0.01em;">New release</div>
-<div style="color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:1.5; margin-top:6px;">Version 4.2 ships faster search and a redesigned dashboard.</div>
+<div class="gsx-copy" style="color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:1.5; margin-top:6px;">Version 4.2 ships faster search and a redesigned dashboard.</div>
 </div>
 <!--[if mso | IE]></td><td width="268" valign="top"><![endif]-->
 <div class="gsx-col" style="display:inline-block; width:100%; max-width:268px; vertical-align:top; text-align:left; font-size:14px;">
 <img src="https://cdn.acme.example/digest-col-community@2x.png" width="120" height="80" alt="Community icon" style="display:block; width:100%; max-width:120px; height:auto; border:0; margin-bottom:12px;">
 <div class="gsx-ink" style="color:#26201A; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:800; letter-spacing:-0.01em;">Community picks</div>
-<div style="color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:1.5; margin-top:6px;">Three workflows the community shared this week, curated by the team.</div>
+<div class="gsx-copy" style="color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:1.5; margin-top:6px;">Three workflows the community shared this week, curated by the team.</div>
 </div>
 <!--[if mso | IE]></td></tr></table><![endif]-->
 </td>
@@ -89,40 +106,40 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 <tr>
 <td style="padding:28px 32px 0 32px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;">
-<tr><td style="border-top:1px solid #E7DECB; font-size:0; line-height:0; mso-line-height-rule:exactly;">&nbsp;</td></tr>
+<tr><td class="gsx-border" style="border-top:1px solid #E7DECB; font-size:0; line-height:0; mso-line-height-rule:exactly;">&nbsp;</td></tr>
 </table>
 </td>
 </tr>
 <tr>
 <td style="padding:24px 32px 0 32px;">
-<div style="color:#8A7E6C; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px;">BY THE NUMBERS //</div>
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border:1px solid #E7DECB; border-radius:4px;">
+<div class="gsx-muted" style="color:#8A7E6C; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px;">BY THE NUMBERS //</div>
+<table width="100%" cellpadding="0" cellspacing="0" border="0" class="gsx-border" style="width:100%; border:1px solid #E7DECB; border-radius:4px;">
 <tr>
-<th align="left" scope="col" style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#8A7E6C; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">METRIC</th>
-<th align="left" scope="col" style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#8A7E6C; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">THIS WEEK</th>
+<th align="left" scope="col" class="gsx-border gsx-muted" style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#8A7E6C; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">METRIC</th>
+<th align="left" scope="col" class="gsx-border gsx-muted" style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#8A7E6C; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">THIS WEEK</th>
 </tr>
 <tr style="">
-<td style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">Active workspaces</td>
-<td style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">1,204</td>
+<td class="gsx-copy gsx-border" style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">Active workspaces</td>
+<td class="gsx-copy gsx-border" style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">1,204</td>
 </tr>
 <tr style="">
-<td style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">Reports generated</td>
-<td style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">8,930</td>
+<td class="gsx-copy gsx-border" style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">Reports generated</td>
+<td class="gsx-copy gsx-border" style="padding:10px 14px; border-bottom:1px solid #E7DECB; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">8,930</td>
 </tr>
 <tr style="">
-<td style="padding:10px 14px; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">Uptime</td>
-<td style="padding:10px 14px; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">99.98%</td>
+<td class="gsx-copy" style="padding:10px 14px; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">Uptime</td>
+<td class="gsx-copy" style="padding:10px 14px; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;">99.98%</td>
 </tr>
 </table>
 </td>
 </tr>
 <tr>
 <td style="padding:28px 32px 0 32px;">
-<div style="color:#8A7E6C; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px;">ALSO THIS WEEK</div>
+<div class="gsx-muted" style="color:#8A7E6C; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px;">ALSO THIS WEEK</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-<tr><td style="padding:5px 0; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;"><span style="color:#B4451F; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-weight:700;">1.</span>&nbsp; Read the top story</td></tr>
-<tr><td style="padding:5px 0; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;"><span style="color:#B4451F; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-weight:700;">2.</span>&nbsp; Catch up on the comment threads</td></tr>
-<tr><td style="padding:5px 0; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;"><span style="color:#B4451F; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-weight:700;">3.</span>&nbsp; Check this week's leaderboard</td></tr>
+<tr><td class="gsx-copy" style="padding:5px 0; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;"><span class="gsx-accent" style="color:#B4451F; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-weight:700;">1.</span>&nbsp; Read the top story</td></tr>
+<tr><td class="gsx-copy" style="padding:5px 0; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;"><span class="gsx-accent" style="color:#B4451F; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-weight:700;">2.</span>&nbsp; Catch up on the comment threads</td></tr>
+<tr><td class="gsx-copy" style="padding:5px 0; color:#4A4038; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px;"><span class="gsx-accent" style="color:#B4451F; font-family:'SFMono-Regular',Consolas,Menlo,monospace; font-weight:700;">3.</span>&nbsp; Check this week's leaderboard</td></tr>
 </table>
 </td>
 </tr>
