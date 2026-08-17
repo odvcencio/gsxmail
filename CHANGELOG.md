@@ -2,6 +2,31 @@
 
 All notable changes to gsxmail are documented in this file.
 
+## Unreleased
+
+### Fixed (issue #1: Shell does not reflow below 600px) [bytes]
+
+- The hardened (modern-client) card table now renders fluid:
+  `width="100%"` plus `style="width:100%; max-width:<CardWidth>px;"`,
+  instead of a hardcoded `width="<CardWidth>"` and
+  `style="width:<CardWidth>px; max-width:<CardWidth>px;"`. Below
+  `CardWidth` (600px by default), the shell no longer forces a
+  horizontal scrollbar; a StatTable or Columns row inside it no longer
+  clips its own right-hand content. The Outlook `[if mso | IE]` ghost
+  table stays fixed-width and byte-unchanged: Outlook desktop ignores
+  media queries and needs the fixed pixel width to lay the card out at
+  all. Parity mode (`Options.Outlook: "off"`) is untouched — its own
+  card table stays fixed-width, unchanged.
+- `examples/gallery/*/*.html`, `testdata/newblocks.html`,
+  `testdata/recap.html`, and `testdata/wp52/notice_*.html` are
+  regenerated to match: every hardened-contract golden that renders a
+  Shell.
+- `examples/gallery/gallery_test.go`'s new
+  `TestGalleryShellIsFluidBelowCardWidth` pins the fluid card-table
+  form in the hardened contract, the fixed-width Outlook ghost table
+  in that same contract, and the fixed-width card table in parity
+  mode, across the whole gallery.
+
 ## v0.1.0 (2026-08-16)
 
 The first release: write email templates as GoSX components and get
