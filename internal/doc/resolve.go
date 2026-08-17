@@ -18,9 +18,8 @@ func (d *EmailDoc) Resolve(props any) (*Resolved, error) {
 
 // ResolveWithHelpers is Resolve plus a helpers map: Options.Helpers,
 // passed straight from Set.Render, so a template that calls a registered
-// helper (design spec section 6.1; section 15, WP3's "wire actual
-// invocation through doc.Resolve") actually invokes it here, not just
-// passes Load-time's registration/arity check.
+// helper actually invokes it here, not just passes Load-time's
+// registration/arity check.
 func (d *EmailDoc) ResolveWithHelpers(props any, helpers map[string]any) (*Resolved, error) {
 	val := reflect.ValueOf(props)
 	for val.Kind() == reflect.Pointer {
@@ -234,8 +233,8 @@ func (sc *scope) resolveBlockInto(block Block, out *[]ResolvedBlock) error {
 		}
 		*out = append(*out, ResolvedBadge{Text: text, Tone: tone})
 	case Each:
-		// design spec section 6.5 / section 15 WP3: Of must resolve to a
-		// slice; an empty slice contributes nothing. Every element gets
+		// Of must resolve to a slice; an empty slice contributes nothing.
+		// Every element gets
 		// its own extended scope (withBinding never shares state across
 		// iterations), so Body's own field reads and any nested <Each> or
 		// <If> see the right element.
@@ -268,9 +267,9 @@ func (sc *scope) resolveBlockInto(block Block, out *[]ResolvedBlock) error {
 // resolveStatTable resolves a StatTable's title, optional header, and
 // every row — literal <email.StatRow> children resolved directly, <Each>
 // children expanded once per slice element — in source order, then
-// derives MarkRow from whichever resolved row (if any) has Mark true
-// (design spec section 6.5, "Mark semantics match emailkit's MarkRow":
-// 1-based, 0 meaning none). A template that marks more than one row is not
+// derives MarkRow from whichever resolved row (if any) has Mark true —
+// emailkit's own MarkRow semantics, 1-based, 0 meaning none. A template
+// that marks more than one row is not
 // rejected — that is an authoring choice, not a dialect violation — but
 // only the first marked row's index becomes MarkRow, since both writers
 // render exactly one marked row.
@@ -454,8 +453,8 @@ func fieldValue(container reflect.Value, name string) (reflect.Value, bool) {
 
 // formatValue renders a scalar field to its string form. Structs, slices,
 // and other non-scalar types are rejected: interpolated values must already
-// be strings, integers, floats, or bools (spec section 8, EM013's rule;
-// enforced here at render time as the reflection-based second layer of the
+// be strings, integers, floats, or bools (EM013's rule; enforced here at
+// render time as the reflection-based second layer of the
 // guarantee typesafe/ already checked at Load time).
 func formatValue(fv reflect.Value) (string, error) {
 	for fv.Kind() == reflect.Interface {

@@ -10,8 +10,8 @@ type Resolved struct {
 
 // ResolvedShell is Shell with every field evaluated to a plain string.
 // Preheader resolves like any other text field; Outlook carries straight
-// through unevaluated (design spec section 15, WP5.2: it is already a
-// plain string on Shell, never an Expr).
+// through unevaluated: it is already a plain string on Shell, never an
+// Expr.
 type ResolvedShell struct {
 	Wordmark  string
 	ShortCode string
@@ -23,7 +23,7 @@ type ResolvedShell struct {
 }
 
 // ResolvedBlock mirrors Block with plain-string fields. The implementations
-// are the closed set of stdlib blocks WP1 ships.
+// are the closed set of stdlib blocks gsxmail ships.
 type ResolvedBlock interface {
 	isResolvedBlock()
 }
@@ -76,9 +76,9 @@ type ResolvedStatRow struct {
 
 // ResolvedStatTable is StatTable after every Expr and FieldPath has been
 // evaluated. MarkRow is the 1-based index of the first row whose Mark
-// resolved true, or 0 when none did — emailkit's MarkRow shape (design
-// spec section 6.5, "Mark semantics match emailkit's MarkRow"), derived
-// once here so both writers key off the same field rather than re-scanning
+// resolved true, or 0 when none did — emailkit's own MarkRow shape,
+// derived once here so both writers key off the same field rather than
+// re-scanning
 // Rows themselves.
 type ResolvedStatTable struct {
 	Title   string

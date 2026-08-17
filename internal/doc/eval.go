@@ -11,9 +11,9 @@ import (
 // whole call; bindings grows by one entry per <Each> nesting level
 // (withBinding never mutates its receiver's map, so sibling iterations of
 // the same <Each> never see each other's binding). helpers is
-// Options.Helpers, passed straight through from Set.Render — this is WP3's
-// "wire actual invocation through doc.Resolve" (design spec section 15):
-// Load-time typesafe already proved every call's registration and arity;
+// Options.Helpers, passed straight through from Set.Render, wiring actual
+// invocation through doc.Resolve: Load-time typesafe already proved
+// every call's registration and arity;
 // scope.callHelper still re-resolves the function value from the same map
 // Render was given, so a Set rendered with different Helpers (a caller
 // bug, not a template bug) still fails closed here rather than panicking.
@@ -59,8 +59,8 @@ func (sc *scope) resolveFieldRaw(binding, field string) (reflect.Value, error) {
 	return fv, nil
 }
 
-// resolveFieldPathElements resolves fp (design spec section 6.1's bare
-// slice path — <Each of=...>, StatTable.Header, StatRow.Cells) to its
+// resolveFieldPathElements resolves fp (a bare slice path — <Each of=...>,
+// StatTable.Header, StatRow.Cells) to its
 // slice or array elements, each still a raw reflect.Value: Each's own
 // caller binds them one at a time; resolveFieldPathStrings formats them.
 func (sc *scope) resolveFieldPathElements(fp FieldPath) ([]reflect.Value, error) {
@@ -190,8 +190,8 @@ func (sc *scope) resolveLen(e Expr) (int, error) {
 // resolveText evaluates e for a text-interpolation hole (Signal.Text,
 // PanelRow.Value, ...): an ExprConcat joins its Parts' scalar-string forms
 // in order; any other Kind resolves as one scalar. Every resolved value —
-// concatenated or bare — passes through textSafe (design spec section 9's
-// control-character scrub, ported from gridiron's internal/emailkit),
+// concatenated or bare — passes through textSafe (a control-character
+// scrub, ported from gridiron's internal/emailkit),
 // exactly once, at the end.
 func (sc *scope) resolveText(e Expr) (string, error) {
 	if e.Kind == ExprConcat {

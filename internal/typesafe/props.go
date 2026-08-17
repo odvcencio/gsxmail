@@ -1,6 +1,6 @@
 // Package typesafe resolves a gsxmail template's declared props struct with
-// go/types and type-checks the email dialect's expression grammar (design
-// spec section 6.1, section 15 WP2) against the resolved fields. It replaces
+// go/types and type-checks the email dialect's expression grammar
+// against the resolved fields. It replaces
 // render-time reflection for everything it can decide at Load time: which
 // props fields exist, what type each one has, and whether an expression is
 // in the email dialect at all. It never touches props values — only types
@@ -82,8 +82,8 @@ type Field struct {
 	// element is itself a struct (nil otherwise, including for a scalar
 	// element type). <Each as="row"> over such a field binds "row" to a
 	// value whose own fields (row.Cells, row.IsKeystone, ...) this drives —
-	// the email dialect's answer to "nested prop reads" for loop bodies
-	// (design spec section 6.1), scoped to one level of nesting.
+	// the email dialect's answer to "nested prop reads" for loop bodies,
+	// scoped to one level of nesting.
 	ElemProps *Props
 }
 
@@ -113,7 +113,7 @@ type Props struct {
 type Resolver struct {
 	fsys fs.FS
 	// root is the real, on-disk absolute directory fsys is rooted at, when
-	// known (NewResolverAt's own doc comment; launch-gate B3). Empty means
+	// known (see NewResolverAt's own doc comment). Empty means
 	// "unknown" — buildPackage then falls back to the CWD-relative
 	// resolution every prior release used.
 	root  string
@@ -141,7 +141,7 @@ func NewResolver(fsys fs.FS) *Resolver {
 // place). root may be relative or absolute; NewResolverAt makes it
 // absolute internally.
 //
-// This is the launch-gate B3 fix's first half: a props.go file that
+// Setting root matters because a props.go file that
 // imports another package — the module gsxmail itself lives in, a
 // third-party dependency, even the standard library — needs go/types'
 // underlying source importer to resolve that import from a real
@@ -152,7 +152,7 @@ func NewResolver(fsys fs.FS) *Resolver {
 // relative walk-up reaches it from) and fails everywhere else, with no
 // clue why (this is exactly the failure mode `gsxmail check` on an
 // importer-generated template hit outside its own module — see
-// CHANGELOG's B3 entry). With root set, every parsed file's recorded
+// CHANGELOG.md for the full history). With root set, every parsed file's recorded
 // position carries its real absolute path instead, so resolution no
 // longer depends on the process's working directory at all.
 //
@@ -175,13 +175,12 @@ func NewResolverAt(fsys fs.FS, root string) *Resolver {
 
 // Resolve returns the struct type named typeName declared among the *.go
 // files in dir (a template's own directory: gsxmail templates are one
-// fs.FS-loadable package per directory, spec section 6.1). typeName may
+// fs.FS-loadable package per directory). typeName may
 // carry a leading "*" (a pointer props parameter); it is stripped before
 // lookup. An empty typeName, or a typeName that is not a plain identifier
 // (a map type, a generic instantiation, and so on), returns (nil, nil): the
 // caller then skips every Load-time field/type check for that template and
-// relies on doc.Resolve's render-time reflection path alone, exactly as
-// WP1 did for every template.
+// relies on doc.Resolve's render-time reflection path alone.
 func (r *Resolver) Resolve(dir, typeName string) (*Props, error) {
 	typeName = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(typeName), "*"))
 	if typeName == "" || !isPlainIdent(typeName) {
@@ -213,8 +212,8 @@ func (r *Resolver) Resolve(dir, typeName string) (*Props, error) {
 // exported fields, classified against qualifier. depth bounds how many
 // further levels of KindSlice-of-struct elements classifyField resolves
 // into an ElemProps of their own (Resolve's top-level call passes 1: one
-// level of <Each> loop-body nesting, matching the design spec's "props
-// field paths, including nested reads" scope for v1 — a KindSlice field
+// level of <Each> loop-body nesting — nested props field reads only go
+// this one level deep — a KindSlice field
 // whose own element is a struct that itself declares a KindSlice field
 // does not recurse further, avoiding unbounded work on a recursive type).
 func propsFromStruct(name string, st *types.Struct, qualifier types.Qualifier, depth int) *Props {
@@ -321,8 +320,8 @@ var chdirMu sync.Mutex
 // returns a func that changes it back. It is a no-op (an immediate,
 // harmless restore func) when r.root is unknown.
 //
-// This is the launch-gate B3 fix's second half, alongside astFilename in
-// buildPackage: go/importer's "source" mode resolves a module-path import
+// This works alongside astFilename in buildPackage: go/importer's
+// "source" mode resolves a module-path import
 // (m31labs.dev/gsxmail, a third-party dependency, even the standard
 // library once modules are involved) by discovering the enclosing
 // module's go.mod starting from the process's own current directory —
@@ -448,8 +447,8 @@ func ParseBareSelector(src string) (root, field string, ok bool) {
 // ResolveFieldPath resolves a bare selector's root/field pair (as
 // ParseBareSelector returns them) against propsName and bindings: root ==
 // propsName reads props.field; root naming a bindings key reads that loop
-// variable's own field (design spec section 6.1's "the binding
-// participates in expression resolution inside the body"). field == ""
+// variable's own field — the binding participates in expression
+// resolution inside the body. field == ""
 // (a bare loop-variable reference with no selector, such as <Each of=...
 // as="tag"> then {tag}) resolves to the binding's own Kind, with no
 // further Fields — a scalar-element loop has nothing to select from. ok is

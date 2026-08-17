@@ -16,9 +16,7 @@ type EmailDoc struct {
 }
 
 // Shell carries the frame fields every email shares: header wordmark and
-// badge, document title, and language, plus the two WP5.2 per-Shell
-// options (design spec section 15, WP5.2; pixel dossier section 4.2 and
-// section 6.1):
+// badge, document title, and language, plus two per-Shell options:
 //
 //   - Preheader is the hidden inbox-preview text, authored on the Shell
 //     tag itself (like MJML's mj-preview) rather than passed at Render
@@ -43,8 +41,8 @@ type Shell struct {
 
 // Block is one content primitive inside a Shell. The set of implementations
 // is closed to this package's own types (email.Signal, email.Headline, and
-// so on map one-to-one to a Block type), matching the stdlib component list
-// WP1 ships (spec section 15, WP1).
+// so on map one-to-one to a Block type), matching the stdlib component
+// list gsxmail ships.
 type Block interface {
 	isBlock()
 }
@@ -130,8 +128,7 @@ type StatRow struct {
 }
 
 // EachRows is <Each>'s shape inside a StatTable body: it binds As to each
-// element of the slice at Of and resolves Row once per element, in order
-// (design spec section 6.5's worked example).
+// element of the slice at Of and resolves Row once per element, in order.
 type EachRows struct {
 	Of  FieldPath
 	As  string
@@ -152,8 +149,7 @@ type RowSpec struct {
 // StatTable is a bordered data table: an optional mono kicker title, an
 // optional header row (a slice-valued props or binding path — no header
 // when Header is the zero FieldPath), and its rows, built from a mix of
-// literal <email.StatRow> children and <Each>-driven ones (email.StatTable,
-// design spec section 6.5, section 15 WP3).
+// literal <email.StatRow> children and <Each>-driven ones (email.StatTable).
 type StatTable struct {
 	Title  Expr
 	Header FieldPath
@@ -163,8 +159,8 @@ type StatTable struct {
 func (StatTable) isBlock() {}
 
 // Each iterates Of (a props- or binding-rooted slice) and resolves Body
-// once per element, with As bound to the current element (design spec
-// section 6.5's <Each of={...} as="...">). It expands to zero
+// once per element, with As bound to the current element
+// (<Each of={...} as="...">). It expands to zero
 // ResolvedBlocks when Of resolves to an empty slice; a nested control
 // construct inside Body (another Each, an If) resolves normally against
 // the extended binding scope.
@@ -177,7 +173,7 @@ type Each struct {
 func (Each) isBlock() {}
 
 // If resolves Body when Cond evaluates true, and to nothing otherwise
-// (design spec section 6.5's <If cond={...}>). EM031 (lint) already
+// (<If cond={...}>). EM031 (lint) already
 // guarantees every child is an element, never bare text, so Body's
 // resolution never needs to invent placement for raw text.
 type If struct {
@@ -188,11 +184,10 @@ type If struct {
 func (If) isBlock() {}
 
 // Custom is a raw-element subtree: the escape hatch for markup the
-// email.* stdlib does not express (design spec section 7.2). Every
-// literal style property inside it is linted like any other raw element
-// (EM101-EM104, section 8); gsxmail carries the subtree through
-// unmodified at render time and derives its text form structurally
-// (section 9).
+// email.* stdlib does not express. Every literal style property inside
+// it is linted like any other raw element (EM101-EM104); gsxmail
+// carries the subtree through unmodified at render time and derives its
+// text form structurally.
 type Custom struct {
 	Root CustomNode
 }
@@ -219,14 +214,14 @@ type CustomNode struct {
 // CustomAttr is one attribute on a Custom element. A "text" attribute is
 // not special-cased here: it is a plain attribute lowered like any other;
 // the text writer's derivation (package rendertext) is what gives it its
-// override meaning (design spec section 9).
+// override meaning.
 type CustomAttr struct {
 	Name  string
 	Value Expr
 }
 
 // Button is a call-to-action link rendered as a button-shaped element in
-// one of three variants (pixel dossier section 4.4, WP5.3): "primary"
+// one of three variants: "primary"
 // (the default; a solid accent face, MJML's mso-padding-alt pattern —
 // byte-identical to email.CTA's own long-shipped hardened and parity
 // output, since lower.lowerBlock's "CTA" case and renderhtml's writeButton
@@ -255,7 +250,7 @@ func (Button) isBlock() {}
 // component, not a nested Block container: a fluid-hybrid column is
 // roughly 40% of the card's own width, so reusing a top-level block's
 // full-card padding and font sizes inside one would misrender; a richer
-// per-column layout is a later work package's scope, not WP5.3's.
+// per-column layout is a later release's scope.
 type Column struct {
 	ImgSrc, ImgAlt      Expr
 	ImgWidth, ImgHeight Expr
@@ -263,8 +258,8 @@ type Column struct {
 	Text                Expr
 }
 
-// Columns is a two-to-four-wide fluid-hybrid row (pixel dossier section
-// 4.9, email.Columns/email.Column): inline-block max-width divs stack
+// Columns is a two-to-four-wide fluid-hybrid row (email.Columns/
+// email.Column): inline-block max-width divs stack
 // under a 480px viewport without depending on a surviving <style> block,
 // wrapped in an "[if mso | IE]" ghost table for Outlook, which never
 // applies inline-block at all (caniemail css-display).
@@ -274,10 +269,10 @@ type Columns struct {
 
 func (Columns) isBlock() {}
 
-// Hero is a full-width retina image (pixel dossier section 4.10): Src is
+// Hero is a full-width retina image: Src is
 // served at 2x pixels; Width and Height are the display-size HTML
-// attributes the retina rule requires (both attributes, not srcset, which
-// the dossier rejects at 24.39% caniemail support). Alt is mandatory
+// attributes the retina rule requires (both attributes, not srcset,
+// which caniemail's own 24.39% support figure rules out). Alt is mandatory
 // (lint's checkHero reuses EM111/EM112, the existing raw-<img> rules) and
 // is the text twin's sole derived content.
 type Hero struct {
@@ -287,8 +282,8 @@ type Hero struct {
 
 func (Hero) isBlock() {}
 
-// Spacer is a fixed-height vertical gap (pixel dossier section 4.8's
-// spacer-table technique): a td at Height pixels, with font-size:0,
+// Spacer is a fixed-height vertical gap: a spacer-table technique using
+// a td at Height pixels, with font-size:0,
 // line-height:0, and mso-line-height-rule:exactly pinning an exact-height
 // box across clients that a bare margin or empty div does not (caniemail
 // css-margin's own partial-support note).
@@ -298,8 +293,8 @@ type Spacer struct {
 
 func (Spacer) isBlock() {}
 
-// Badge is a small bordered status label (pixel dossier section 4.11):
-// Tone selects a fixed, theme-independent semantic color ("positive"
+// Badge is a small bordered status label: Tone selects a fixed,
+// theme-independent semantic color ("positive"
 // green, "warning" amber, "critical" red) or the active theme's own muted
 // token ("neutral", the default — the one tone with no status meaning of
 // its own to protect from a template's brand palette).

@@ -1,7 +1,7 @@
 package doc
 
 // Expr is one compiled template value: an expression tree in the email
-// dialect (design spec section 6.1). The same tree shape serves every
+// dialect. The same tree shape serves every
 // expression-typed hole — text interpolation (Signal.Text, PanelRow.Value,
 // ...) and the bool context <If cond> and StatRow.Mark need — because both
 // contexts share one grammar: literals, a props or loop-binding field

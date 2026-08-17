@@ -20,7 +20,7 @@ func (v *Violation) Error() string { return v.Code + ": " + v.Message }
 
 // CheckExpr type-checks src — a raw Go expression, as recorded on an
 // ir.Attr's Expr field or an ir.Node's NodeExpr Text — against the v1 email
-// dialect (design spec section 6.1): props field reads, the loop bindings
+// dialect: props field reads, the loop bindings
 // an enclosing <Each as="name"> introduces (including one level of field
 // reads on a struct-element binding, "row.Cells"), string/int/float
 // literals, string + concatenation, comparisons on scalars, len(), and
@@ -84,8 +84,7 @@ func propsTypeName(props *Props) string {
 
 // CheckSlicePath type-checks src as a bare slice-valued path — the shape
 // <Each of={...}>, <email.StatTable header={...}>, and <email.StatRow
-// cells={...}> all require (design spec section 8, EM032; section 15,
-// WP3): a bare props or loop-binding field read whose resolved Kind is
+// cells={...}> all require (EM032): a bare props or loop-binding field read whose resolved Kind is
 // KindSlice. label names the attribute for the message, exactly as it
 // should read inside "<%s> requires a slice or array props path" — "Each
 // of" reproduces EM032's original, pinned wording for <Each>; StatTable
