@@ -1,7 +1,3 @@
-// Package gsxmail compiles gosx email templates to a deterministic
-// multipart pair: pixel-targeted HTML plus a 72-column plain-text twin,
-// from one source tree. See the package README for the full pitch and
-// guarantees.
 package gsxmail
 
 import (
@@ -203,7 +199,7 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 		}
 		prog, err := gosx.Compile(src)
 		if err != nil {
-			return fmt.Errorf("gsxmail: compiling %s: %w", p, err)
+			return fmt.Errorf("%w: compiling %s: %w", ErrCompile, p, err)
 		}
 		files = append(files, compiledFile{path: p, prog: prog})
 		return nil
@@ -256,10 +252,10 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 		for _, c := range cf.prog.Components {
 			emailDoc, err := lower.Lower(cf.prog, c.Name)
 			if err != nil {
-				return nil, fmt.Errorf("gsxmail: %s: %w", cf.path, err)
+				return nil, fmt.Errorf("%w: %s: %w", ErrLower, cf.path, err)
 			}
 			if _, dup := templates[c.Name]; dup {
-				return nil, fmt.Errorf("gsxmail: %s: template %q is already declared in another file", cf.path, c.Name)
+				return nil, fmt.Errorf("%w: %s: template %q is already declared in another file", ErrDuplicateTemplate, cf.path, c.Name)
 			}
 			templates[c.Name] = &compiledTemplate{doc: emailDoc, propsType: c.PropsType}
 		}
@@ -311,7 +307,7 @@ func hasErrorDiagnostic(diags []Diagnostic) bool {
 func (s *Set) Render(name string, props any) (Parts, error) {
 	tmpl, ok := s.templates[name]
 	if !ok {
-		return Parts{}, fmt.Errorf("gsxmail: no template named %q (loaded: %s)", name, strings.Join(s.names, ", "))
+		return Parts{}, fmt.Errorf("%w: no template named %q (loaded: %s)", ErrUnknownTemplate, name, strings.Join(s.names, ", "))
 	}
 	if tmpl.propsType != "" {
 		if err := checkPropsType(props, tmpl.propsType); err != nil {
@@ -320,7 +316,7 @@ func (s *Set) Render(name string, props any) (Parts, error) {
 	}
 	resolved, err := tmpl.doc.ResolveWithHelpers(props, s.opts.Helpers)
 	if err != nil {
-		return Parts{}, err
+		return Parts{}, fmt.Errorf("%w: %w", ErrResolve, err)
 	}
 	// The rendered template's own <email.Shell outlook="..."> attribute
 	// (design spec section 15, WP5.2; pixel dossier section 4.2) overrides
@@ -437,7 +433,7 @@ func checkPropsType(props any, declared string) error {
 	v := reflect.ValueOf(props)
 	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
-			return fmt.Errorf("gsxmail: props is a nil pointer")
+			return fmt.Errorf("%w: props is a nil pointer", ErrNilProps)
 		}
 		v = v.Elem()
 	}
@@ -445,7 +441,7 @@ func checkPropsType(props any, declared string) error {
 		return nil
 	}
 	if got := v.Type().Name(); got != "" && got != declared {
-		return fmt.Errorf("gsxmail: props type %s does not match template's declared props type %s", got, declared)
+		return fmt.Errorf("%w: props type %s does not match template's declared props type %s", ErrPropsMismatch, got, declared)
 	}
 	return nil
 }

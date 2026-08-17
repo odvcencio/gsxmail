@@ -580,7 +580,7 @@ package gsxmail
 type Parts struct {
     HTML        string
     Text        string
-    Diagnostics []Diagnostic // today, only ever an EM121 size warning
+    Diagnostics []Diagnostic // EM110 (dropped href), EM121 (size warning), EM200 (preheader truncated)
 }
 
 type Options struct {
@@ -625,6 +625,38 @@ gsxmail still fails closed at render time. An unknown props field, an
 unsupported expression, or a disallowed href scheme is a returned error.
 It is never a silently empty or unsafe value. See "Two layers, one
 guarantee" below for why both checks exist.
+
+### Error taxonomy
+
+Every error `Load` and `Render` can return wraps one of these sentinel
+values (polish item 6, launch-gate findings), so you can classify a
+failure with `errors.Is` instead of matching an error message's own
+text, which this package makes no promise to keep stable:
+
+```go
+var (
+    ErrCompile           error // a *.gsx file does not parse as gosx source at all
+    ErrLower             error // a template cleared the lint, but Lower still rejects it
+    ErrDuplicateTemplate error // two components across the loaded *.gsx files share one name
+    ErrUnknownTemplate   error // Render was given a name Load never found
+    ErrPropsMismatch     error // props is a named struct, but not the template's declared one
+    ErrNilProps          error // props is a nil pointer to the template's declared props type
+    ErrResolve           error // any other doc.Resolve failure at render time
+)
+```
+
+```go
+parts, err := set.Render("Welcome", nilProps)
+if errors.Is(err, gsxmail.ErrNilProps) {
+    // handle a nil props pointer specifically
+}
+```
+
+`*gsxmail.LintError` (`Load`'s own fail-closed return) and
+`*gsxmail.SizeBudgetError` (`Render`'s own `EM120`) are not sentinel
+values — both carry structured data (`Diagnostics`, a single
+`Diagnostic`) a caller inspects directly with `errors.As` instead, the
+same pattern the earlier examples on this page already use.
 
 ### Props type resolution
 

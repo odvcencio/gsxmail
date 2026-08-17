@@ -4,6 +4,23 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (polish items 2, 4, 6)
+
+- **Item 6.** New sentinel errors — `ErrCompile`, `ErrLower`,
+  `ErrDuplicateTemplate`, `ErrUnknownTemplate`, `ErrPropsMismatch`,
+  `ErrNilProps`, `ErrResolve` — wrap every error `Load` and `Render` can
+  return, so a caller classifies a failure with `errors.Is` instead of
+  matching an error message's own text. README gains a new "Error
+  taxonomy" section.
+- **Item 2.** Four runnable `Example` functions (`ExampleLoad`,
+  `ExampleSet_Render`, `ExampleSet_Check`, `ExampleTerminalTheme`) — real
+  usage, checked by `go test` on every run, and the first thing a reader
+  sees on pkg.go.dev.
+- **Item 4.** A new root `doc.go`: the three-stage `Load` pipeline, the
+  two check layers, the two output contracts, and the package map, in
+  one place — the package overview `godoc`/pkg.go.dev show first. The
+  package-level doc comment moves out of `gsxmail.go` into this file.
+
 ### Added (polish items 9, 11) [bytes]
 
 - **Item 9.** `gsxmail check` now sorts every finding by file, then line,
