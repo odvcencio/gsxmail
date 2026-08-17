@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"m31labs.dev/gsxmail/doc"
+	"m31labs.dev/gsxmail/internal/doc"
 )
 
 // Write renders resolved to the plain-text part.

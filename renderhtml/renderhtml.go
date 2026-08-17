@@ -21,7 +21,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"m31labs.dev/gsxmail/doc"
+	"m31labs.dev/gsxmail/internal/doc"
 )
 
 // WriteOptions configures Write's output contract (design spec section 15,

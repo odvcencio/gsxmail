@@ -3,7 +3,7 @@ package importer
 import (
 	"strings"
 
-	"m31labs.dev/gsxmail/lint"
+	"m31labs.dev/gsxmail/internal/lint"
 )
 
 // styleDecl is one parsed "prop: value" pair from a style attribute.

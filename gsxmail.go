@@ -14,12 +14,12 @@ import (
 
 	"m31labs.dev/gosx"
 	"m31labs.dev/gosx/ir"
-	"m31labs.dev/gsxmail/doc"
-	"m31labs.dev/gsxmail/lint"
-	"m31labs.dev/gsxmail/lower"
+	"m31labs.dev/gsxmail/internal/doc"
+	"m31labs.dev/gsxmail/internal/lint"
+	"m31labs.dev/gsxmail/internal/lower"
+	"m31labs.dev/gsxmail/internal/typesafe"
 	"m31labs.dev/gsxmail/renderhtml"
 	"m31labs.dev/gsxmail/rendertext"
-	"m31labs.dev/gsxmail/typesafe"
 )
 
 // Parts is one rendered multipart email.

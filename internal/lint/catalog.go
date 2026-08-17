@@ -8,9 +8,9 @@ import (
 	"unicode/utf8"
 
 	"m31labs.dev/gosx/ir"
-	"m31labs.dev/gsxmail/lower"
+	"m31labs.dev/gsxmail/internal/lower"
+	"m31labs.dev/gsxmail/internal/typesafe"
 	"m31labs.dev/gsxmail/renderhtml"
-	"m31labs.dev/gsxmail/typesafe"
 )
 
 // elementAllowlist is the EM003 allowlist (design spec section 8): the

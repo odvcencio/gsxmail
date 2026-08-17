@@ -3,7 +3,7 @@ package lint_test
 import (
 	"testing"
 
-	"m31labs.dev/gsxmail/lint"
+	"m31labs.dev/gsxmail/internal/lint"
 	"m31labs.dev/gsxmail/renderhtml"
 )
 

@@ -4,6 +4,19 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Changed (M8: narrow the public surface before the tag)
+
+- `doc/`, `lower/`, and `typesafe/` move to `internal/doc/`,
+  `internal/lower/`, and `internal/typesafe/`. `lint/` (the check-time
+  rule catalog) moves to `internal/lint/`. None of these were part of the
+  documented public API; `gsxmail.Diagnostic` (a type alias for
+  `lint.Diagnostic`) stays at the root, unchanged for every caller.
+  `renderhtml`, `rendertext`, and `importer` stay public: `importer` is a
+  consumer surface (`gsxmail import`'s own package), and `renderhtml`/
+  `rendertext` were not in scope for this move.
+- Every import path across the module is updated accordingly; no public
+  API changed.
+
 ### Fixed (launch-gate B2: complete the adaptive dark-mode class-hook sweep) [bytes]
 
 - `DarkMode: "adaptive"` now swaps every one of `Theme.Dark`'s nine

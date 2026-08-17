@@ -34,12 +34,12 @@ import (
 // import to any of gsxmail's own render-path packages.
 var corePackages = []string{
 	"m31labs.dev/gsxmail",
-	"m31labs.dev/gsxmail/doc",
-	"m31labs.dev/gsxmail/lower",
+	"m31labs.dev/gsxmail/internal/doc",
+	"m31labs.dev/gsxmail/internal/lower",
 	"m31labs.dev/gsxmail/renderhtml",
 	"m31labs.dev/gsxmail/rendertext",
-	"m31labs.dev/gsxmail/typesafe",
-	"m31labs.dev/gsxmail/lint",
+	"m31labs.dev/gsxmail/internal/typesafe",
+	"m31labs.dev/gsxmail/internal/lint",
 }
 
 // TestGotreesitterIsolatedFromCorePath is the module-graph proof the

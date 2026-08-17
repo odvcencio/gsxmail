@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"m31labs.dev/gsxmail/lint"
+	"m31labs.dev/gsxmail/internal/lint"
 )
 
 // caniemailDataURL is the one network call gsxmail ever makes. Every other

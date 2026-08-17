@@ -3,7 +3,7 @@ package rendertext
 import (
 	"strings"
 
-	"m31labs.dev/gsxmail/doc"
+	"m31labs.dev/gsxmail/internal/doc"
 )
 
 // customBlockTags are the Custom-subtree elements (design spec section 9)

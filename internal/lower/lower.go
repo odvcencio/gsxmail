@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"m31labs.dev/gosx/ir"
-	"m31labs.dev/gsxmail/doc"
+	"m31labs.dev/gsxmail/internal/doc"
 )
 
 // Lower finds the component named name in prog and lowers it to an
