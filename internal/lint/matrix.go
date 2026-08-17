@@ -36,11 +36,19 @@ type PropertySupport struct {
 // Snapshot is the embedded, dated caniemail client-support dataset (spec
 // section 8's "snapshot %s"), trimmed to the CSS-property features and the
 // client/platform pairs the default supported-client set needs.
+//
+// License and Attribution record the caniemail dataset's own terms (m9,
+// launch-gate findings): the maintained source
+// (https://github.com/HTeuMeuLeu/caniemail) states "MIT Licence" in its
+// own README, not the CC BY 4.0 this project once assumed — verified by
+// fetching that README directly, not carried over from memory.
 type Snapshot struct {
-	Date       string                     `json:"date"`
-	Source     string                     `json:"source"`
-	Clients    []Client                   `json:"clients"`
-	Properties map[string]PropertySupport `json:"properties"`
+	Date        string                     `json:"date"`
+	Source      string                     `json:"source"`
+	License     string                     `json:"license"`
+	Attribution string                     `json:"attribution"`
+	Clients     []Client                   `json:"clients"`
+	Properties  map[string]PropertySupport `json:"properties"`
 }
 
 // ParseSnapshot decodes b as a Snapshot and validates its shape (T7's
@@ -55,6 +63,9 @@ func ParseSnapshot(b []byte) (*Snapshot, error) {
 	}
 	if s.Date == "" {
 		return nil, fmt.Errorf("gsxmail: caniemail snapshot has no date")
+	}
+	if s.License == "" {
+		return nil, fmt.Errorf("gsxmail: caniemail snapshot has no license")
 	}
 	if len(s.Clients) == 0 {
 		return nil, fmt.Errorf("gsxmail: caniemail snapshot declares no clients")
@@ -101,6 +112,12 @@ func NewMatrix(s *Snapshot) *Matrix {
 // SnapshotDate is the caniemail dataset date the wrapped Snapshot was
 // captured from.
 func (m *Matrix) SnapshotDate() string { return m.snap.Date }
+
+// SnapshotAttribution is the caniemail dataset's own license and
+// attribution line (m9, launch-gate findings), for a caller that wants to
+// surface it (the README's "Prior art and attribution" section carries
+// the same text).
+func (m *Matrix) SnapshotAttribution() string { return m.snap.Attribution }
 
 // Clients lists the default supported-client set, in the snapshot's
 // declared order.

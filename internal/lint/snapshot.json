@@ -1,6 +1,8 @@
 {
  "date": "2026-08-10",
  "source": "https://www.caniemail.com/api/data.json",
+ "license": "MIT",
+ "attribution": "Client-support data from caniemail (https://www.caniemail.com), maintained at https://github.com/HTeuMeuLeu/caniemail, Copyright (c) 2019 Rémi Parmentier, MIT License.",
  "clients": [
   {
    "id": "gmail-web",

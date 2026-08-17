@@ -4,6 +4,22 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Fixed (m9: caniemail's actual data license — MIT, not CC BY 4.0)
+
+- Verified directly against caniemail's own maintained repository
+  (https://github.com/HTeuMeuLeu/caniemail): its README states "MIT
+  Licence," not the CC BY 4.0 this project had assumed. `Snapshot` gains
+  `License` and `Attribution` fields; `gsxmail matrix refresh` writes
+  both into every regenerated `snapshot.json`; the embedded
+  `snapshot.json` is patched with both, unchanged otherwise.
+- README gains a new "Prior art and attribution" section (also polish
+  item 8): MJML, react-email, goodemailcode, Maizzle, and Litmus's own
+  guides, alongside caniemail's license and attribution line. No NOTICE
+  file: MIT requires only that the license and copyright notice travel
+  with the software itself, and gsxmail redistributes a trimmed subset
+  of caniemail's data, not its code — README's own attribution and
+  `snapshot.json`'s new fields already carry the required notice.
+
 ### Added (M9: CI, version, gosx skew guard)
 
 - `.github/workflows/ci.yml`: build, vet, gofmt, and `go test -race`,

@@ -715,7 +715,44 @@ spec's proposal only. Widen or narrow it with a `gsxmail matrix refresh`
 code change.
 
 Every test runs against the embedded snapshot. Only `gsxmail matrix
-refresh` fetches fresh data.
+refresh` fetches fresh data. See "Prior art and attribution" below for
+the dataset's own license.
+
+## Prior art and attribution
+
+gsxmail's hardened HTML contract is not invented from scratch: every
+technique it emits is the one at least one shipped tool already proved
+in production, verified against that tool's own compiled source or
+documentation before gsxmail's writer copied it.
+
+- **[MJML](https://documentation.mjml.io/)** — the Outlook ghost-table
+  wrapper, `mso-padding-alt` button padding, and the shared `<style>`
+  reset block (`#outlook a`, `mso-table-lspace`/`rspace`,
+  `o:PixelsPerInch`) all match MJML's own compiled output.
+- **[react-email](https://react.email/)** — the component-catalog gallery
+  strategy, and the hidden preheader div's suppression styles plus its
+  150-character whitespace padding, match react-email's shipped
+  `Preview` component.
+- **[goodemailcode](https://www.goodemailcode.com/)** — the `role="button"`-aware
+  link-button technique (`mso-font-width`/`mso-text-raise`), the
+  `role="article"` accessible wrapper, and the fluid-hybrid Columns
+  technique all match goodemailcode's own reference markup.
+- **[Maizzle](https://maizzle.com/)** — informed the post-processing
+  transformer list a hardened build's own pipeline mirrors.
+- **[Litmus](https://www.litmus.com/blog)**'s dark-mode and retina guides
+  — the three-behavior dark-mode client landscape, the
+  `[data-ogsc]`/`[data-ogsb]` Outlook-app inversion hooks, and the 2x
+  retina export convention (display-size `width`/`height` attributes,
+  Outlook's `max-width` workaround) all follow Litmus's own published
+  guidance.
+- **[caniemail](https://www.caniemail.com/)** (maintained at
+  [HTeuMeuLeu/caniemail](https://github.com/HTeuMeuLeu/caniemail)) —
+  EM101/EM102's client-support matrix is a trimmed, dated copy of
+  caniemail's own dataset. caniemail's data and code are **MIT
+  licensed** (Copyright (c) 2019 Rémi Parmentier — verified from that
+  repository's own README, not assumed). `lint/snapshot.json` records
+  the license and this same attribution in its own `license` and
+  `attribution` fields, alongside the capture date.
 
 ## License
 

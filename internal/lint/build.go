@@ -9,6 +9,16 @@ import (
 	"strings"
 )
 
+// caniemailLicense and caniemailAttribution record the caniemail
+// dataset's own terms (m9, launch-gate findings), verified by fetching
+// https://github.com/HTeuMeuLeu/caniemail's own README directly: it
+// states "MIT Licence" (with a link to its own MIT LICENSE file), not
+// the CC BY 4.0 this project once assumed. `gsxmail matrix refresh`
+// writes both into every regenerated snapshot.json.
+const caniemailLicense = "MIT"
+
+const caniemailAttribution = "Client-support data from caniemail (https://www.caniemail.com), maintained at https://github.com/HTeuMeuLeu/caniemail, Copyright (c) 2019 Rémi Parmentier, MIT License."
+
 // clientSpec names one client/platform pair in the caniemail dataset's own
 // vocabulary (family + platform slugs) alongside the label and ID the
 // trimmed Snapshot exposes it under.
@@ -129,10 +139,12 @@ func BuildSnapshot(raw []byte) (*Snapshot, []byte, error) {
 	}
 
 	snap := &Snapshot{
-		Date:       date,
-		Source:     "https://www.caniemail.com/api/data.json",
-		Clients:    clients,
-		Properties: props,
+		Date:        date,
+		Source:      "https://www.caniemail.com/api/data.json",
+		License:     caniemailLicense,
+		Attribution: caniemailAttribution,
+		Clients:     clients,
+		Properties:  props,
 	}
 	out, err := json.MarshalIndent(snap, "", " ")
 	if err != nil {
