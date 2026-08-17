@@ -4,6 +4,21 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (polish items 9, 11) [bytes]
+
+- **Item 9.** `gsxmail check` now sorts every finding by file, then line,
+  then column, so findings in the same file print together, in source
+  order. A new `--severity all|warn|error` flag narrows what prints
+  (`--severity error` for a CI gate that only cares about hard failures);
+  the exit code still reflects the full, unfiltered finding list.
+- **Item 11.** The preheader pad tail is now raw UTF-8 (a literal NBSP
+  and ZWNJ) instead of the `&nbsp;&zwnj;` entity spelling — 5 bytes per
+  pair instead of 12, and 2 bytes instead of 6 for a lone trailing NBSP.
+  Same two decoded characters every client sees; cheaper on the wire, and
+  the difference compounds up to 74 pairs per preheader. Every affected
+  golden (five gallery templates, `testdata/wp52/notice_preheader.html`)
+  is regenerated.
+
 ### Fixed (minors: m2, m4, m7, m8, m10, m11, m12, m16, m18, m19)
 
 - **m2.** `Theme.DarkMode`'s doc comment and README now state that

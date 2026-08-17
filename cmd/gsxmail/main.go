@@ -54,10 +54,14 @@ verbs:
       <Template>.html and <Template>.txt under --out (default: the
       current directory), or streams one part to stdout.
 
-  check [--dir emails] [--format text|json]
-      Runs Load and prints every lint finding (spec section 8). Exits 1
-      if any finding is error-severity. --format json feeds CI
-      annotations. This verb never calls the network; it cannot see a
+  check [--dir emails] [--format text|json] [--severity all|warn|error]
+      Runs Load and prints every lint finding (spec section 8), sorted by
+      file, then line, then column, so findings in the same file group
+      together. Exits 1 if any finding is error-severity, even when
+      --severity hides it from the printed list. --format json feeds CI
+      annotations. --severity narrows the printed list only ("warn"
+      prints warn and error; "error" prints error only; "all" is the
+      default). This verb never calls the network; it cannot see a
       consumer's registered helpers, so EM014/EM015 findings here mean
       only "the CLI cannot verify this," not "this helper is missing" —
       validate helper bindings with Set.Check() in your own test instead.

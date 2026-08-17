@@ -413,6 +413,21 @@ func classAttrIf2(cond bool, name1, name2 string) string {
 // truncates to this same limit there instead (launch-gate M4).
 const preheaderTargetChars = 150
 
+// preheaderPadPair and preheaderPadNBSP are writePreheader's own pad-tail
+// characters, written as raw UTF-8 (polish item 11) instead of the
+// "&nbsp;&zwnj;"/"&nbsp;" entity spelling: the document already declares
+// UTF-8 (<meta charset="utf-8">, writeHead's own first line), so a raw
+// U+00A0 (non-breaking space) plus U+200C (zero-width non-joiner) costs 5
+// bytes per pair instead of 12, and a lone trailing NBSP costs 2 bytes
+// instead of 6 — the same two decoded characters, cheaper on the wire,
+// at up to 74 pairs per preheader. This is purely a byte-cost choice for
+// gsxmail's own synthesized padding, not a change to escapeText's own
+// entity-spelled NBSP in real interpolated text (that rule protects diff
+// visibility for props-driven content; this padding is never diffed
+// against anything).
+const preheaderPadPair = " ‌"
+const preheaderPadNBSP = " "
+
 // writePreheader writes the hidden inbox-preview div — react-email's
 // shipped suppression style set (R5) plus an alternating &nbsp;/&zwnj; pad
 // tail bringing the decoded text to exactly preheaderTargetChars
@@ -450,10 +465,10 @@ func writePreheader(b *strings.Builder, preheader string, findings *[]RenderFind
 	b.WriteString(escapeText(preheader))
 	remaining := preheaderTargetChars - utf8.RuneCountInString(preheader)
 	for ; remaining >= 2; remaining -= 2 {
-		b.WriteString(`&nbsp;&zwnj;`)
+		b.WriteString(preheaderPadPair)
 	}
 	if remaining == 1 {
-		b.WriteString(`&nbsp;`)
+		b.WriteString(preheaderPadNBSP)
 	}
 	b.WriteString("</div>\n")
 }

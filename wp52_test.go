@@ -135,6 +135,27 @@ func TestNoticePreheaderGolden(t *testing.T) {
 	}
 }
 
+// TestNoticePreheaderPadIsRawUTF8 is polish item 11's own proof: the
+// preheader pad tail is raw UTF-8 (NBSP, ZWNJ), not the "&nbsp;&zwnj;"
+// entity spelling — 5 bytes per pair instead of 12, the same two decoded
+// characters, cheaper on the wire. The document already declares UTF-8.
+func TestNoticePreheaderPadIsRawUTF8(t *testing.T) {
+	set := loadNoticeSet(t, gsxmail.Options{})
+	props := noticeFixtureProps()
+	props.Preheader = "Your weekly system digest is ready to review"
+
+	parts, err := set.Render("Notice", props)
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if strings.Contains(parts.HTML, "&nbsp;") || strings.Contains(parts.HTML, "&zwnj;") {
+		t.Error("HTML part still carries the entity-spelled pad tail; want raw UTF-8 NBSP/ZWNJ")
+	}
+	if !strings.Contains(parts.HTML, " ‌") {
+		t.Error("HTML part is missing the raw NBSP+ZWNJ pad pair")
+	}
+}
+
 // TestNoticeDarkLockedGolden is the "hardened+dark" (locked strategy)
 // golden variant.
 func TestNoticeDarkLockedGolden(t *testing.T) {

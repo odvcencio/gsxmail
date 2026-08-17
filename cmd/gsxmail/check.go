@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 
 	"m31labs.dev/gsxmail"
 )
@@ -26,6 +27,7 @@ func runCheck(args []string) error {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
 	dir := fs.String("dir", "emails", "directory of *.gsx templates to check")
 	format := fs.String("format", "text", `output format: "text" or "json"`)
+	severity := fs.String("severity", "all", `minimum severity to print: "all", "warn", or "error"`)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -34,6 +36,9 @@ func runCheck(args []string) error {
 	}
 	if *format != "text" && *format != "json" {
 		return fmt.Errorf("check: --format must be \"text\" or \"json\", got %q", *format)
+	}
+	if *severity != "all" && *severity != "warn" && *severity != "error" {
+		return fmt.Errorf("check: --severity must be \"all\", \"warn\", or \"error\", got %q", *severity)
 	}
 
 	set, loadErr := gsxmail.Load(os.DirFS(*dir), gsxmail.Options{Dir: *dir})
@@ -49,6 +54,12 @@ func runCheck(args []string) error {
 		return fmt.Errorf("loading %s: %w", *dir, loadErr)
 	}
 
+	// hasErrorSeverity always sees the full, unfiltered list: --severity
+	// only narrows what prints, never the exit code a CI job depends on.
+	exitNonZero := hasErrorSeverity(diags)
+
+	diags = sortDiagnostics(filterSeverity(diags, *severity))
+
 	if *format == "json" {
 		if err := printDiagnosticsJSON(diags); err != nil {
 			return err
@@ -57,10 +68,45 @@ func runCheck(args []string) error {
 		printDiagnosticsText(diags, *dir)
 	}
 
-	if hasErrorSeverity(diags) {
+	if exitNonZero {
 		os.Exit(1)
 	}
 	return nil
+}
+
+// filterSeverity keeps only diags at or above min ("all" keeps
+// everything, "warn" keeps warn and error, "error" keeps error only) —
+// polish item 9's own `--severity` flag.
+func filterSeverity(diags []gsxmail.Diagnostic, min string) []gsxmail.Diagnostic {
+	if min == "all" {
+		return diags
+	}
+	out := diags[:0:0]
+	for _, d := range diags {
+		if min == "error" && d.Severity != "error" {
+			continue
+		}
+		out = append(out, d)
+	}
+	return out
+}
+
+// sortDiagnostics orders diags by file, then line, then column — grouped
+// by file, and in source order within each file (polish item 9) — a
+// stable sort, so two findings at the same position keep whatever order
+// the lint walker itself produced them in.
+func sortDiagnostics(diags []gsxmail.Diagnostic) []gsxmail.Diagnostic {
+	sort.SliceStable(diags, func(i, j int) bool {
+		a, b := diags[i], diags[j]
+		if a.File != b.File {
+			return a.File < b.File
+		}
+		if a.Line != b.Line {
+			return a.Line < b.Line
+		}
+		return a.Col < b.Col
+	})
+	return diags
 }
 
 func hasErrorSeverity(diags []gsxmail.Diagnostic) bool {

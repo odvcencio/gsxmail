@@ -521,13 +521,18 @@ one.
 ```sh
 gsxmail check --dir emails
 gsxmail check --dir emails --format json
+gsxmail check --dir emails --severity error
 ```
 
 `check` runs `Load` and prints every finding from the email lint (design
-spec section 8). Each line shows the file, line, column, EM code, and
-exact message. It exits 1 if any finding is error-severity, and 0
-otherwise. `--format json` prints the same findings as a JSON array for
-CI annotations.
+spec section 8), sorted by file, then line, then column — every finding
+in one file prints together, in source order. Each line shows the file,
+line, column, EM code, and exact message. It exits 1 if any finding is
+error-severity, and 0 otherwise — `--severity` only narrows what prints,
+never that exit code. `--format json` prints the same findings as a JSON
+array for CI annotations. `--severity warn` prints warn and error
+findings; `--severity error` prints error findings only; the default,
+`--severity all`, prints everything.
 
 `check` never calls the network. It also cannot see your registered
 helpers: it always runs with an empty `Options.Helpers`. It cannot tell a
