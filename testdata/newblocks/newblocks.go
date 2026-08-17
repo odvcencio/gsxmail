@@ -1,10 +1,9 @@
-// Package newblocks is the WP5.3 block-corpus fixture (design spec section
-// 15, WP5.3): one template exercising every new component this work
-// package adds — email.Button (all three variants), email.Columns/Column,
-// email.Hero, email.Spacer, and email.Badge (every tone) — so their
-// sentinels, goldens, and the structural verification pass all run
-// against one source tree, the same shape testdata/allblocks already
-// established for the WP1-WP5.2 stdlib.
+// Package newblocks is a block-corpus fixture: one template exercising
+// every new component — email.Button (all three variants),
+// email.Columns/Column, email.Hero, email.Spacer, and email.Badge
+// (every tone) — so their sentinels, goldens, and the structural
+// verification pass all run against one source tree, the same shape
+// testdata/allblocks already established for the earlier stdlib.
 package newblocks
 
 // NewBlocksProps fills NewBlocks. Every field is a unique sentinel string

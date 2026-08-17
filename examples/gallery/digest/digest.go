@@ -1,5 +1,5 @@
-// Package digest is the gallery's weekly-digest template (pixel dossier
-// section 8.1): Shell, Hero, Columns, StatTable, Divider, PickList —
+// Package digest is the gallery's weekly-digest template: Shell, Hero,
+// Columns, StatTable, Divider, PickList —
 // fluid-hybrid columns and a retina hero, its fixture highlights.
 package digest
 

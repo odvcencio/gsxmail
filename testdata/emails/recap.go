@@ -1,8 +1,8 @@
 package emails
 
-// RecapProps fills DraftRecap, the design spec's section 6.5 worked
-// example ("the N7 recap 'YOUR HAUL'"): a recipient-personalized stat
-// table built from an <Each> over a slice of struct rows.
+// RecapProps fills DraftRecap, a worked example ("the recap 'YOUR
+// HAUL'"): a recipient-personalized stat table built from an <Each>
+// over a slice of struct rows.
 type RecapProps struct {
 	League         string
 	Code           string

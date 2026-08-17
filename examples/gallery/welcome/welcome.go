@@ -1,5 +1,5 @@
-// Package welcome is the gallery's onboarding template (pixel dossier
-// section 8.1): Shell, Headline, PickList, Button, Footer.
+// Package welcome is the gallery's onboarding template: Shell, Headline,
+// PickList, Button, Footer.
 package welcome
 
 // WelcomeProps fills WelcomeEmail.

@@ -1,6 +1,5 @@
-// Package magiclink is the gallery's sign-in-code template (pixel dossier
-// section 8.1): Shell, Headline, Panel (mono OTP row), Note (expiry),
-// Button.
+// Package magiclink is the gallery's sign-in-code template: Shell,
+// Headline, Panel (mono OTP row), Note (expiry), Button.
 package magiclink
 
 // MagicLinkProps fills MagicLinkEmail. Code is the one-time code as

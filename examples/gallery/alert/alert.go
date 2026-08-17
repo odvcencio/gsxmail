@@ -1,5 +1,5 @@
-// Package alert is the gallery's notification template (pixel dossier
-// section 8.1): Shell, Signal, Badge, Note, Button. Its fixture highlight
+// Package alert is the gallery's notification template: Shell, Signal,
+// Badge, Note, Button. Its fixture highlight
 // is the "locked" dark Terminal theme, and severity carried as text and
 // structure, never color alone (Badge's own border-plus-label shape).
 package alert

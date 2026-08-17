@@ -1,12 +1,11 @@
-// Package receipt is the gallery's complete worked example (pixel dossier
-// section 8.3): Shell, Badge, Headline, StatTable (+Each), Panel
-// (totals), Button, Footer.
+// Package receipt is the gallery's complete worked example: Shell,
+// Badge, Headline, StatTable (+Each), Panel (totals), Button, Footer.
 //
-// Deviation from the dossier's own .gsx source (documented, since
-// StatTable is out of WP5.3 scope and its byte-pinned goldens
-// (TestRecapGolden) must not move): the dossier's worked example writes
-// <email.StatRow cells={[item.Name, item.Qty, item.Amount]} /> and
-// header={["ITEM", "QTY", "AMOUNT"]} — inline slice literals. The shipped
+// Deviation from an earlier worked example (documented, since its
+// byte-pinned goldens (TestRecapGolden) must not move): that earlier
+// example writes <email.StatRow cells={[item.Name, item.Qty,
+// item.Amount]} /> and header={["ITEM", "QTY", "AMOUNT"]} — inline
+// slice literals. The shipped
 // StatTable/StatRow API only accepts a bare props- or binding-rooted
 // field path for header/cells (lower.parseFieldPathAttr; the same shape
 // testdata/emails/recap.gsx's own header={props.HaulHeader} already

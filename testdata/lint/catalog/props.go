@@ -1,6 +1,6 @@
-// Package lintcatalog is T5's fixture set (design spec section 11): one
-// minimal .gsx function per EM-numbered rule in section 8, each shaped to
-// trigger exactly that rule and (so far as the fixture allows) no other.
+// Package lintcatalog is the email lint's own fixture set: one minimal
+// .gsx function per EM-numbered rule, each shaped to trigger exactly
+// that rule and (so far as the fixture allows) no other.
 // gsxmail_test.go's TestLintCatalog loads this whole directory once and
 // asserts that every expected (Code, Message) pair appears somewhere in
 // the resulting *gsxmail.LintError.

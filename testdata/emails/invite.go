@@ -1,7 +1,6 @@
 // Package emails holds the gsxmail test corpus's templates: the props
-// types live in plain .go files beside the .gsx template that uses them
-// (spec section 6.2), even though WP1 does not yet resolve them through
-// go/types (that is WP2's typesafe/ package).
+// types live in plain .go files beside the .gsx template that uses
+// them, resolved through go/types by package typesafe.
 package emails
 
 // InviteProps fills the invite email. All fields are already formatted

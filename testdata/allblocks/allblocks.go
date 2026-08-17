@@ -1,8 +1,8 @@
 package emails
 
-// AllBlocksProps fills AllBlocks, T8's fixture (design spec section 11:
-// "render every block with sentinel prop values; assert every sentinel
-// appears in both parts" — emailkit rule 4, inherited structurally). Every
+// AllBlocksProps fills AllBlocks, a fixture that renders every block
+// with sentinel prop values, so a test can assert every sentinel
+// appears in both parts (emailkit rule 4, inherited structurally). Every
 // field carries its own distinct sentinel string, so a field-swap bug
 // between two blocks is as visible as a missing one.
 type AllBlocksProps struct {
@@ -10,7 +10,7 @@ type AllBlocksProps struct {
 	ShortCode  string
 	Tagline    string
 	Title      string
-	Preheader  string // rendered into the WP5.2 hidden inbox-preview div
+	Preheader  string // rendered into the hidden inbox-preview div
 	ShoutName  string // rendered through the "shout" helper into the Signal
 	HeadTitle  string
 	HeadLede   string
