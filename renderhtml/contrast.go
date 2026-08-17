@@ -10,8 +10,8 @@ import (
 // Theme.ColorCard) reads as a dark card rather than a light one: its own
 // relative luminance is below the midpoint between white's (1.0) and
 // #101611's (Terminal's own dark card, ~0.007) — badgeToneColor's own
-// light/dark variant selector (M2, launch-gate findings). An unparseable
-// cardHex reports false (the light-card variant), matching the shipped
+// light/dark variant selector. An unparseable cardHex reports false (the
+// light-card variant), matching the shipped
 // default theme's own white card.
 func cardIsDark(cardHex string) bool {
 	lum, ok := relativeLuminance(cardHex)

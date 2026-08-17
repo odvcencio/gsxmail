@@ -1,7 +1,7 @@
 // Package rendertext writes a Resolved EmailDoc to its 72-column plain-text
-// twin, using the emailkit wrap/column rules (spec section 9): every
-// stdlib block derives its text form from the same resolved values the
-// HTML writer sees, so the two parts cannot drift by construction.
+// twin, using the emailkit wrap/column rules: every stdlib block derives
+// its text form from the same resolved values the HTML writer sees, so
+// the two parts cannot drift by construction.
 package rendertext
 
 import (
@@ -25,9 +25,9 @@ func Write(resolved *doc.Resolved) string {
 		// its own leading "\n\n" entirely, since writeBlock already emits
 		// nothing for it. Without this, the "\n\n" written here plus the
 		// next block's own leading "\n\n" would stack into three blank
-		// lines instead of the spec's one.
+		// lines instead of one.
 		//
-		// Spacer (WP5.3; pixel dossier section 4.8) skips the same way and
+		// Spacer skips the same way and
 		// for the same arithmetic reason: text has no concept of a
 		// variable-height gap, so every Spacer height folds to the one
 		// blank line the ambient separator already provides — a 24px
@@ -76,8 +76,8 @@ func writeBlock(b *strings.Builder, block doc.ResolvedBlock) {
 		// No output of its own; Write's own loop skips Spacer the same way
 		// it skips Divider, so the ambient single "\n\n" between its
 		// neighbors is Spacer's entire text-twin derivation ("Spacer
-		// renders one blank line" — pixel dossier section 4.8's own
-		// framing, WP5.3). See Write's own doc comment for the arithmetic:
+		// renders one blank line").
+		// See Write's own doc comment for the arithmetic:
 		// without the skip, Spacer's own leading "\n\n" plus the next
 		// block's leading "\n\n" would stack into three blank lines
 		// instead of one.
@@ -155,8 +155,8 @@ func writeButton(b *strings.Builder, v doc.ResolvedButton) {
 	}
 }
 
-// writeColumns derives email.Columns' text form (pixel dossier section
-// 4.9): columns stack in source order as sequential text, each its own
+// writeColumns derives email.Columns' text form: columns stack in
+// source order as sequential text, each its own
 // block, separated by a blank line — never side-by-side ASCII columns,
 // since a fixed 72-column width leaves no room for a genuine multi-column
 // layout.
@@ -203,8 +203,7 @@ func writeHero(b *strings.Builder, v doc.ResolvedHero) {
 }
 
 // writeBadge derives email.Badge's text form: its label in brackets
-// (pixel dossier section 4.11's own worked example states this exact
-// shape: "the text twin renders [PAID]"), regardless of tone — tone is a
+// (the text twin renders "[PAID]"), regardless of tone — tone is a
 // color/structural cue with no separate text-safe encoding beyond the
 // label itself; the brackets alone already carry "this is a marked
 // status," matching the img-alt and StatTable-mark conventions elsewhere
@@ -234,8 +233,8 @@ func writeNote(b *strings.Builder, n doc.ResolvedNote) {
 // an optional title line, an optional header row with a dashed underline,
 // then every row two-space-guttered — table rows never wrap. MarkRow
 // (1-based; 0 means none) prefixes its row with "* " instead of "  ", so
-// the marked row's meaning survives in plain text too (design spec section
-// 6.5, "Mark semantics match emailkit's MarkRow").
+// the marked row's meaning survives in plain text too — mark semantics
+// match emailkit's own MarkRow.
 func writeStatTable(b *strings.Builder, s doc.ResolvedStatTable) {
 	var lines []string
 	if s.Title != "" {
@@ -268,7 +267,7 @@ func writeFooter(b *strings.Builder, f doc.ResolvedFooter) {
 }
 
 // hasSafeHrefScheme mirrors renderhtml's CTA scheme allowlist (https,
-// http, mailto — spec section 8, EM110) so the text part's "-> LABEL: URL"
+// http, mailto — EM110) so the text part's "-> LABEL: URL"
 // suffix appears exactly when the HTML part's href does.
 func hasSafeHrefScheme(raw string) bool {
 	u, err := url.Parse(strings.TrimSpace(raw))

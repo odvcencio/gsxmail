@@ -4,7 +4,7 @@ import "strings"
 
 // escapeText escapes s for placement inside element text content: &, <, and
 // >, plus U+00A0 (non-breaking space) to the literal entity &nbsp; for diff
-// visibility (spec section 6.4, point 1). This is a minimal escaper by
+// visibility. This is a minimal escaper by
 // design: gsxmail owns entity decoding at compile time (gosx decodes
 // entities into UTF-8 when it lowers text nodes), so the writer only ever
 // needs to re-escape the handful of characters HTML text content cannot

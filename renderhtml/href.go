@@ -6,11 +6,11 @@ import (
 )
 
 // hasSafeHrefScheme reports whether raw parses as a URL with a scheme on
-// the allowlist the design spec's EM110 rule states: https, http, or
-// mailto (section 8). A CTA whose Href fails this check renders its label
-// alone, un-clickable, in the same button face — WP1 has no lint stage to
-// reject the template at Load time (that is WP2's EM catalog), so the
-// writer enforces the same fail-closed default at render time. Ported from
+// the allowlist EM110 states: https, http, or mailto. A CTA whose Href
+// fails this check renders its label alone, un-clickable, in the same
+// button face — the writer enforces this fail-closed default at render
+// time, so an unsafe href never reaches the output even from a caller
+// that skips the email lint. Ported from
 // gridiron's internal/emailkit hasSafeURLScheme (a 2026 security review
 // item there), widened from http/https to also allow mailto per EM110.
 func hasSafeHrefScheme(raw string) bool {

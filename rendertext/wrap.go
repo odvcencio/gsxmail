@@ -55,8 +55,8 @@ func padLabel(label string, width int) string {
 
 // panelValueColumn returns the column at which every panel row's value (and
 // every continuation line of a wrapped value) begins: a 2-space indent, the
-// longest label, then 4 spaces (spec section 9 / emailkit section 4.2,
-// "aligned to the longest label + 4 spaces"). Label width is measured in
+// longest label, then 4 spaces — aligned to the longest label plus 4
+// spaces, emailkit's own convention. Label width is measured in
 // runes.
 func panelValueColumn(labels []string) int {
 	longest := 0
@@ -70,7 +70,7 @@ func panelValueColumn(labels []string) int {
 
 // columnWidths computes the display width of each column across a header
 // row and every data row, so a text table's columns line up without
-// wrapping any cell (table rows never wrap, spec section 9). Width is
+// wrapping any cell (table rows never wrap). Width is
 // measured in runes. The column count is sized from whichever is wider,
 // the header or the widest data row, so a table with no header still
 // sizes every row cell's own column correctly. Ported from gridiron's
@@ -97,8 +97,7 @@ func columnWidths(header []string, rows [][]string) []int {
 }
 
 // joinRow renders one table row with each cell left-justified to its
-// column width and a 2-space gutter between columns (spec section 9:
-// "two-space-guttered columns"). Ported from gridiron's
+// column width and a 2-space gutter between columns. Ported from gridiron's
 // internal/emailkit/text.go.
 func joinRow(cells []string, widths []int) string {
 	parts := make([]string, len(cells))

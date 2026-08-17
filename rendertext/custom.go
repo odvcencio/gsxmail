@@ -6,8 +6,8 @@ import (
 	"m31labs.dev/gsxmail/internal/doc"
 )
 
-// customBlockTags are the Custom-subtree elements (design spec section 9)
-// that start a new paragraph in the derived text. table and its own
+// customBlockTags are the Custom-subtree elements that start a new
+// paragraph in the derived text. table and its own
 // tr/td/th are handled by deriveTableText instead (a table's rows never
 // wrap); a, img, br, and hr each derive their own fixed shape.
 var customBlockTags = map[string]bool{
@@ -15,8 +15,8 @@ var customBlockTags = map[string]bool{
 	"h1": true, "h2": true, "h3": true, "h4": true,
 }
 
-// writeCustom derives a Custom subtree's text form structurally (design
-// spec section 9): block elements start a new paragraph; <a> renders
+// writeCustom derives a Custom subtree's text form structurally: block
+// elements start a new paragraph; <a> renders
 // "label (url)" (or just the url when the label matches it); <img> renders
 // its alt text in brackets; a <table> renders as two-space-guttered
 // columns with a dashed underline under a <th> header row, if any; any
@@ -83,8 +83,8 @@ func deriveCustomText(n doc.ResolvedCustomNode) string {
 }
 
 // deriveTableText renders a Custom <table>'s rows as two-space-guttered
-// columns (spec section 9; the same shape StatTable's own text twin
-// uses). A first row made entirely of <th> cells becomes the header, with
+// columns — the same shape StatTable's own text twin uses. A first row
+// made entirely of <th> cells becomes the header, with
 // a dashed underline; every other row's cells never wrap.
 func deriveTableText(table doc.ResolvedCustomNode) string {
 	var header []string
@@ -141,8 +141,8 @@ func cellText(cell doc.ResolvedCustomNode) string {
 	return strings.Join(strings.Fields(b.String()), " ")
 }
 
-// deriveLinkText renders <a> as "label (url)" (design spec section 9),
-// unless the label is empty or equal to the url, in which case the url
+// deriveLinkText renders <a> as "label (url)", unless the label is
+// empty or equal to the url, in which case the url
 // alone is enough.
 func deriveLinkText(a doc.ResolvedCustomNode) string {
 	var b strings.Builder
