@@ -2,11 +2,11 @@ package importer
 
 import (
 	"fmt"
+	"html"
 	"strings"
 
 	gts "github.com/odvcencio/gotreesitter"
 	"github.com/odvcencio/gotreesitter/grammars"
-	xhtml "golang.org/x/net/html"
 )
 
 // htmlLang is the one gotreesitter Language this package ever asks for
@@ -215,7 +215,7 @@ func domify(n *gts.Node, src []byte) *node {
 	typ := n.Type(htmlLang)
 	switch typ {
 	case "text", "raw_text":
-		return &node{isText: true, text: xhtml.UnescapeString(n.Text(src))}
+		return &node{isText: true, text: html.UnescapeString(n.Text(src))}
 	case "comment":
 		body := n.Text(src)
 		body = strings.TrimPrefix(body, "<!--")
@@ -309,11 +309,11 @@ func domifyAttribute(n *gts.Node, src []byte) attr {
 		case "attribute_name":
 			a.name = strings.ToLower(c.Text(src))
 		case "attribute_value":
-			a.value = xhtml.UnescapeString(c.Text(src))
+			a.value = html.UnescapeString(c.Text(src))
 		case "quoted_attribute_value":
 			for j := 0; j < c.ChildCount(); j++ {
 				if c.Child(j).Type(htmlLang) == "attribute_value" {
-					a.value = xhtml.UnescapeString(c.Child(j).Text(src))
+					a.value = html.UnescapeString(c.Child(j).Text(src))
 				}
 			}
 		}

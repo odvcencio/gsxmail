@@ -147,3 +147,75 @@ func TestSizeBudgetConfigurable(t *testing.T) {
 		t.Errorf("Diagnostic.Message = %q, want a suffix of %q", got, wantSuffix)
 	}
 }
+
+// TestMaxHTMLBytesRejectsInvalidNegativeValue is m11's own proof
+// (launch-gate findings): any negative Options.MaxHTMLBytes other than
+// exactly -1 now fails Load closed with EM201, instead of reaching
+// checkHTMLBudget unvalidated — where `len(html) > maxBytes` is true for
+// any rendered output at all, so every Render call used to fail with a
+// confusing "budget: -5 bytes" EM120.
+func TestMaxHTMLBytesRejectsInvalidNegativeValue(t *testing.T) {
+	for _, invalid := range []int{-2, -5, -100} {
+		t.Run(fmt.Sprint(invalid), func(t *testing.T) {
+			_, err := gsxmail.Load(os.DirFS("testdata/emails"), gsxmail.Options{MaxHTMLBytes: invalid})
+			if err == nil {
+				t.Fatalf("Load(MaxHTMLBytes: %d) succeeded; want a fail-closed EM201", invalid)
+			}
+			var lintErr *gsxmail.LintError
+			if !errors.As(err, &lintErr) {
+				t.Fatalf("Load's error is not a *gsxmail.LintError: %v", err)
+			}
+			want := fmt.Sprintf("Options.MaxHTMLBytes must be 0 (default), a positive byte count, or exactly -1 (disable both checks); got %d", invalid)
+			var found bool
+			for _, d := range lintErr.Diagnostics {
+				if d.Code == "EM201" && d.Message == want {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("no EM201 diagnostic %q found; got:\n%s", want, diagnosticsList(lintErr.Diagnostics))
+			}
+		})
+	}
+	// -1 itself, and every non-negative value, must still Load cleanly.
+	for _, valid := range []int{-1, 0, 1, 50_000} {
+		if _, err := gsxmail.Load(os.DirFS("testdata/emails"), gsxmail.Options{MaxHTMLBytes: valid}); err != nil {
+			t.Errorf("Load(MaxHTMLBytes: %d) failed: %v", valid, err)
+		}
+	}
+}
+
+// TestSizeBudgetWarnScalesWithBudget is m12's own proof (launch-gate
+// findings): when MaxHTMLBytes is set below the fixed 90,000-byte
+// warning line, EM121 used to be permanently unreachable — EM120's own
+// budget check always fired first. The warning line now scales to 90% of
+// MaxHTMLBytes instead, so a caller who deliberately budgets tighter
+// than Gmail's own clip point still gets a warn-before-error step.
+func TestSizeBudgetWarnScalesWithBudget(t *testing.T) {
+	const budget = 20_000
+	set := loadBigStatsSet(t, gsxmail.Options{MaxHTMLBytes: budget})
+	parts, err := set.Render("BigStats", bigStatsProps(18))
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	wantWarnAt := budget * 9 / 10
+	if len(parts.HTML) <= wantWarnAt || len(parts.HTML) > budget {
+		t.Fatalf("fixture does not land in the scaled EM121 warning band (%d, %d]: %d bytes", wantWarnAt, budget, len(parts.HTML))
+	}
+
+	var found *gsxmail.Diagnostic
+	for i := range parts.Diagnostics {
+		if parts.Diagnostics[i].Code == "EM121" {
+			found = &parts.Diagnostics[i]
+		}
+	}
+	if found == nil {
+		t.Fatalf("no EM121 diagnostic in Parts.Diagnostics: %+v", parts.Diagnostics)
+	}
+	want := fmt.Sprintf(
+		"rendered HTML is %d bytes with fixture BigStats; within budget but above the %d-byte warning line",
+		len(parts.HTML), wantWarnAt)
+	if found.Message != want {
+		t.Errorf("EM121 message = %q, want %q", found.Message, want)
+	}
+}

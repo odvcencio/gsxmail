@@ -107,7 +107,13 @@ var customTagRemap = map[string]string{
 // dropEntirely names tags whose whole subtree carries no email content
 // (document/head/metadata plumbing, or something gsxmail already
 // forbids outright): they, and their children, are skipped rather than
-// unwrapped.
+// unwrapped. Every drop is reported (rpt.dropped, m16, launch-gate
+// findings) — unlike an unrecognized content tag, which survives inside
+// `email.Custom`, one of these carries no email content to preserve at
+// all, so it is the one case Import's own "a node it cannot confidently
+// place never gets dropped" guarantee does not cover; the report says so
+// explicitly instead of leaving it to be discovered by diffing source
+// against output.
 var dropEntirely = map[string]bool{
 	"html": true, "head": true, "body": true, "meta": true, "title": true,
 	"style": true, "script": true, "link": true, "noscript": true,
@@ -121,8 +127,10 @@ var dropEntirely = map[string]bool{
 // escape-hatch block ... preserving its subtree"). It always wraps the
 // result in a single-cell table so a stray top-level text run or bare
 // inline element still nests inside an EM003-allowed structural element,
-// matching gsxmail's own row-per-block shape elsewhere in the card.
-func writeCustomFallback(row *node) string {
+// matching gsxmail's own row-per-block shape elsewhere in the card. rpt
+// records any dropEntirely tag writeCustomNode encounters along the way
+// (m16, launch-gate findings).
+func writeCustomFallback(row *node, rpt *Report) string {
 	elems := row.elements()
 
 	// row is already shaped like a real table row — every element child
@@ -134,7 +142,7 @@ func writeCustomFallback(row *node) string {
 		var b strings.Builder
 		b.WriteString("<table style=\"width:100%;\">\n<tr>\n")
 		for _, c := range elems {
-			writeCustomNode(&b, c)
+			writeCustomNode(&b, c, rpt)
 		}
 		b.WriteString("\n</tr>\n</table>\n")
 		return b.String()
@@ -143,7 +151,7 @@ func writeCustomFallback(row *node) string {
 	var b strings.Builder
 	b.WriteString("<table style=\"width:100%;\">\n<tr>\n<td>\n")
 	for _, c := range elems {
-		writeCustomNode(&b, c)
+		writeCustomNode(&b, c, rpt)
 	}
 	// A row with no element children at all (bare text only, unusual but
 	// not impossible from a malformed source) falls back to its own
@@ -175,11 +183,11 @@ func allCells(elems []*node) bool {
 // body's own element children, sanitized, as a sequence of Custom
 // elements directly under Shell rather than as one row's worth of
 // content.
-func writeWholeBodyCustom(body *node) string {
+func writeWholeBodyCustom(body *node, rpt *Report) string {
 	var b strings.Builder
 	b.WriteString("<table style=\"width:100%;\">\n<tr>\n<td>\n")
 	for _, c := range body.elements() {
-		writeCustomNode(&b, c)
+		writeCustomNode(&b, c, rpt)
 	}
 	b.WriteString("</td>\n</tr>\n</table>\n")
 	return b.String()
@@ -192,8 +200,9 @@ func writeWholeBodyCustom(body *node) string {
 // are stripped (EM104/EM004), "href" is scheme-sanitized (EM110), "img"
 // keeps only an https src and a non-empty alt (EM111/EM112), and "style"
 // is filtered to properties the embedded caniemail matrix never marks
-// unsupported (EM101) — see style.go's sanitizeStyle.
-func writeCustomNode(b *strings.Builder, n *node) {
+// unsupported (EM101) — see style.go's sanitizeStyle. rpt records every
+// dropEntirely tag actually encountered (m16, launch-gate findings).
+func writeCustomNode(b *strings.Builder, n *node, rpt *Report) {
 	if n.isComment || n.errorish {
 		return // gotreesitter's own error-recovery nodes carry no reliable shape to preserve
 	}
@@ -205,6 +214,9 @@ func writeCustomNode(b *strings.Builder, n *node) {
 	}
 	tag := n.tag
 	if dropEntirely[tag] {
+		if rpt != nil {
+			rpt.dropped(tag)
+		}
 		return
 	}
 	if remap, ok := customTagRemap[tag]; ok {
@@ -214,11 +226,11 @@ func writeCustomNode(b *strings.Builder, n *node) {
 		// An unrecognized tag with no remap rule: unwrap to its children
 		// rather than dropping real content outright.
 		for _, c := range n.elements() {
-			writeCustomNode(b, c)
+			writeCustomNode(b, c, rpt)
 		}
 		for _, c := range n.children {
 			if c.isText {
-				writeCustomNode(b, &c)
+				writeCustomNode(b, &c, rpt)
 			}
 		}
 		return
@@ -245,7 +257,7 @@ func writeCustomNode(b *strings.Builder, n *node) {
 		return
 	}
 	for i := range n.children {
-		writeCustomNode(b, &n.children[i])
+		writeCustomNode(b, &n.children[i], rpt)
 	}
 	b.WriteString("</")
 	b.WriteString(tag)

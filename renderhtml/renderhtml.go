@@ -94,6 +94,15 @@ func WriteWithOptions(resolved *doc.Resolved, theme Theme, opts WriteOptions) (s
 	return b.String(), findings
 }
 
+// writeHead's hardened <html> tag always writes dir="ltr" (m18, launch-
+// gate findings): Shell.Lang is a plain string a template sets to any
+// BCP-47 tag, including an RTL language's own ("ar", "he", ...), but
+// gsxmail does not read it to pick a direction — it has no RTL layout
+// support at all today (mirror padding/alignment, bidi-safe number and
+// punctuation handling), so hardcoding "ltr" is the honest choice: it
+// never lies about a direction gsxmail did not actually lay out for,
+// even when Lang itself names an RTL language. See the README's own
+// note on this boundary.
 func writeHead(b *strings.Builder, theme Theme, shell doc.ResolvedShell, hard bool) {
 	if !hard {
 		writeHeadParity(b, theme, shell)
@@ -278,6 +287,9 @@ func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, har
 	b.WriteString(`;">
 `)
 	writePreheader(b, preheader, findings)
+	// dir="ltr" here is the same hardcoded, honest default writeHead's
+	// own doc comment explains (m18) — this article wrapper's own
+	// direction always matches the <html> tag's.
 	b.WriteString(`<div role="article" aria-roledescription="email" aria-label="`)
 	b.WriteString(escapeAttr(shell.Title))
 	b.WriteString(`" lang="`)

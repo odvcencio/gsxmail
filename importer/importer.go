@@ -115,7 +115,7 @@ func Import(html []byte, sourceName string, opts Options) (*Result, error) {
 
 	if len(cards) == 0 {
 		rpt.unmapped("document", "no plausible 320-820px card table was found; the whole body was preserved as email.Custom")
-		blocks = append(blocks, mappedBlock{kind: "Custom", gsx: writeWholeBodyCustom(body)})
+		blocks = append(blocks, mappedBlock{kind: "Custom", gsx: writeWholeBodyCustom(body, rpt)})
 	} else {
 		if w, ok := tableWidth(cards[0]); ok {
 			cardWidth = w

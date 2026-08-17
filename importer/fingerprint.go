@@ -61,7 +61,7 @@ func classifyRow(row *node, ctx *blockCtx, path string) mappedBlock {
 	}
 
 	ctx.rpt.unmapped(path, "no component fingerprint matched this row; preserved as email.Custom")
-	return mappedBlock{kind: "Custom", gsx: writeCustomFallback(row)}
+	return mappedBlock{kind: "Custom", gsx: writeCustomFallback(row, ctx.rpt)}
 }
 
 // soleContentCell returns row's one <td>/<th> child when it has exactly

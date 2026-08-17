@@ -7,6 +7,18 @@ package renderhtml
 // places the public Theme name) because the writer needs the type without
 // importing the root package, which itself imports this one; gsxmail.go
 // re-exports Theme and DefaultTheme as a type alias and a wrapper func.
+//
+// Trust boundary (m19, launch-gate findings): every field below is
+// written straight into an HTML attribute or inline style, unescaped —
+// unlike a template's own props-driven text, which always passes through
+// escapeText/escapeAttr, and unlike a template's own markup, which the
+// email lint validates before Load ever lowers it. gsxmail trusts a
+// Theme completely, the same trust level as the calling Go program's own
+// source code: it is a value your own code constructs (typically a
+// package-level var or a literal at the call site), never a value that
+// flows in from props, a request body, or any other data a template's
+// own end user could influence. Do not build a Theme from untrusted
+// input; if you must, escape every field yourself first.
 type Theme struct {
 	ColorGround string // page background
 	ColorCard   string // the card's own background
@@ -50,6 +62,14 @@ type Theme struct {
 	// transform (pixel dossier section 5.1: "no strategy controls Gmail's
 	// app transform. Mitigations only.") — see the README's dark-mode
 	// section for the honest per-client reach each strategy has.
+	//
+	// Parity mode (WriteOptions.Outlook == "off") disables the entire
+	// dark-mode style layer, regardless of DarkMode: it emits WP1's exact
+	// byte stream, and WP1 predates every dark-mode strategy here (m2,
+	// launch-gate findings). A template rendered in parity mode for pixel-
+	// or byte-equivalence testing never carries a "locked" :root rule or
+	// an "adaptive" @media block — render it in the hardened contract
+	// (WriteOptions{}'s own default) to see either one.
 	DarkMode string
 
 	// Dark carries the dark-presentation color tokens the "adaptive"

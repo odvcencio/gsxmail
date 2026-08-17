@@ -292,14 +292,36 @@ func (w *walker) checkHrefScheme(n *ir.Node, raw string) {
 }
 
 func (w *walker) checkImg(n *ir.Node) {
-	src, hasSrc, srcStatic := attrValue(n.Attrs, "src")
+	w.checkImgAttrs(n, "src", "alt")
+}
+
+// checkImgAttrs is checkImg's own logic (EM111/EM112), generalized to a
+// component whose image attributes are not literally named "src"/"alt" —
+// email.Column's own imgSrc/imgAlt (checkColumnImage, m4, launch-gate
+// findings).
+func (w *walker) checkImgAttrs(n *ir.Node, srcAttr, altAttr string) {
+	src, hasSrc, srcStatic := attrValue(n.Attrs, srcAttr)
 	if !hasSrc || (srcStatic && !strings.HasPrefix(src, "https://")) {
 		w.add(n, "EM111", "error", `img src must be an absolute https URL; mail clients cannot resolve relative paths`)
 	}
-	alt, hasAlt, altStatic := attrValue(n.Attrs, "alt")
+	alt, hasAlt, altStatic := attrValue(n.Attrs, altAttr)
 	if !hasAlt || (altStatic && strings.TrimSpace(alt) == "") {
 		w.add(n, "EM112", "error", `img requires non-empty alt text; image blocking is a common default`)
 	}
+}
+
+// checkColumnImage implements EM111/EM112 for email.Column's own
+// imgSrc/imgAlt attributes (m4, launch-gate findings): the same absolute-
+// https src and non-empty alt rules raw <img> and email.Hero already
+// enforce. Unlike Hero's image, Column's is optional (doc.Column's own
+// doc comment: "an optional image ... all four together or none"), so
+// this only runs at all when imgSrc is present — a Column with no image
+// at all is not an image-blocking mistake to flag.
+func (w *walker) checkColumnImage(n *ir.Node) {
+	if a := findAttr(n.Attrs, "imgSrc"); a == nil {
+		return
+	}
+	w.checkImgAttrs(n, "imgSrc", "imgAlt")
 }
 
 // attrValue finds name in attrs and reports its static value (present is
@@ -720,6 +742,7 @@ func (w *walker) checkColumns(n *ir.Node, ctx *exprContext) {
 		}
 		w.checkPositiveIntAttr(c, "email.Column", "imgWidth")
 		w.checkPositiveIntAttr(c, "email.Column", "imgHeight")
+		w.checkColumnImage(c)
 		w.checkAttrSchema(c, "Column")
 	}
 }

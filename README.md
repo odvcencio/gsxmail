@@ -206,6 +206,14 @@ forced dark transform**. Every strategy is a mitigation, never a claim of
 control, and the README says so on purpose — state the mitigation, not
 pixel parity, in your own product copy too.
 
+**Parity mode disables the dark-mode style layer entirely, regardless of
+`DarkMode`** (m2, launch-gate findings). `Options.Outlook: "off"` (or a
+Shell's own `outlook="off"`) emits WP1's exact byte stream — WP1 predates
+every dark-mode strategy here — so a template rendered for pixel- or
+byte-equivalence testing never carries a `"locked"` `:root` rule or an
+`"adaptive"` `@media` block. Render in the hardened contract (the
+default) to see either one.
+
 - **`"none"`** (the default). `Render` adds no dark-mode markup at all. A
   `Theme` that sets `ColorScheme` still emits its own meta pair, exactly
   as WP5.1 shipped.
@@ -360,12 +368,17 @@ files into `--out`:
 grammar, whose error tolerance is the whole point: an unclosed `<td>`, a
 stray `<b>` with no matching close, or a malformed comment still
 produces a walkable tree, never a hard parse failure. A node the mapper
-cannot confidently place never gets dropped — it lands inside
-`email.Custom`, sanitized just enough to stay lint-clean (a
-non-allowlisted tag is remapped or unwrapped, `class` and event
-attributes are stripped, an unsafe `href` or a non-`https` image `src`
-is swapped for a placeholder and flagged in the report), and gets a line
-in `IMPORT-REPORT.md` explaining why.
+cannot confidently place — but that could still carry real email content
+— never gets dropped: it lands inside `email.Custom`, sanitized just
+enough to stay lint-clean (a non-allowlisted tag is remapped or
+unwrapped, `class` and event attributes are stripped, an unsafe `href` or
+a non-`https` image `src` is swapped for a placeholder and flagged in the
+report), and gets a line in `IMPORT-REPORT.md` explaining why. The one
+exception (m16, launch-gate findings): a `<script>`, a `<style>` block,
+and a handful of document/head tags carry no email content at all —
+mail clients strip or never render them — so `gsxmail import` drops
+them outright rather than preserving inert markup, and names every one it
+drops in `IMPORT-REPORT.md`'s own "Dropped entirely" section.
 
 **What it recognizes**, matching the output contracts above:
 
@@ -702,6 +715,23 @@ Load-time checking cannot reach a value. `gsxmail render`'s CLI path is
 the clearest example: it decodes JSON into a `map[string]any` with no
 named Go type to check.
 
+Two more trust boundaries, stated honestly (m18, m19, launch-gate
+findings):
+
+- **`Theme` is trusted, not sanitized.** Every `Theme` field is written
+  straight into an HTML attribute or inline style, unescaped — the same
+  trust level as your own Go source code, not the "checked twice" level
+  above that covers props. Build a `Theme` from your own literal values
+  or a config file you control; never from props, a request body, or
+  anything a template's own end user could influence.
+- **gsxmail is left-to-right only.** Every hardened render writes
+  `dir="ltr"` unconditionally, regardless of `Shell.Lang` — even a `lang`
+  set to an RTL language's own BCP-47 tag ("ar", "he", ...) still renders
+  `dir="ltr"`. gsxmail has no RTL layout support today (mirrored
+  padding/alignment, bidi-safe number and punctuation handling); writing
+  `dir="ltr"` unconditionally is the honest choice, since gsxmail never
+  actually laid out for any other direction to claim otherwise.
+
 ## gosx version window
 
 gsxmail targets `m31labs.dev/gosx v0.42.2`. Earlier versions are
@@ -712,7 +742,11 @@ a later work package.
 ## The caniemail snapshot
 
 EM101 and EM102 check style properties against an embedded, dated copy of
-[caniemail's dataset](https://www.caniemail.com/api/data.json). The
+[caniemail's dataset](https://www.caniemail.com/api/data.json). **This
+build's embedded snapshot is dated 2026-08-10** (m8, launch-gate
+findings) — read `Matrix.SnapshotDate()` at runtime for the figure a
+specific build actually ships, since this line drifts every time someone
+runs `gsxmail matrix refresh` without also updating this README. The
 embedded snapshot covers CSS-property features only, for one default
 client set:
 

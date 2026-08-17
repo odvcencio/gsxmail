@@ -55,10 +55,18 @@ type Options struct {
 
 	// MaxHTMLBytes is the Gmail-clip size budget (EM120/EM121, design spec
 	// section 8): 0 selects the default 100,000 bytes; -1 disables both
-	// the error and the warning check. Render enforces it on every call's
+	// the error and the warning check. Any other negative value fails
+	// Load closed with EM201 (m11, launch-gate findings) instead of
+	// making every subsequent Render call fail with a confusing "budget:
+	// -5 bytes" EM120. Render enforces the budget on every call's
 	// rendered HTML part: over budget is a returned *SizeBudgetError with
-	// no Parts; over the fixed 90,000-byte warning line but still within
-	// budget is a returned Parts with one EM121 entry in Diagnostics.
+	// no Parts; over the warning line but still within budget is a
+	// returned Parts with one EM121 entry in Diagnostics. The warning
+	// line is normally the fixed 90,000 bytes, but scales to 90% of
+	// MaxHTMLBytes when MaxHTMLBytes itself is set below that (m12,
+	// launch-gate findings) — otherwise a budget tighter than 90,000
+	// bytes made EM121 permanently unreachable, since EM120 would always
+	// fire first.
 	MaxHTMLBytes int
 
 	// Outlook selects the HTML output contract every template in this Set
@@ -226,6 +234,19 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 	if err := checkOutlookOption(opts.Outlook); err != nil {
 		diagnostics = append(diagnostics, *err)
 	}
+	// EM201 (m11, launch-gate findings) rejects a negative MaxHTMLBytes
+	// other than exactly -1 (the documented "disable both checks"
+	// sentinel): every other negative value used to reach checkHTMLBudget
+	// unvalidated, where `len(html) > maxBytes` is true for any rendered
+	// output at all, so every single Render call failed with a confusing
+	// "budget: -5 bytes" EM120 instead of a clear Load-time diagnostic
+	// naming the actual mistake.
+	if opts.MaxHTMLBytes < -1 {
+		diagnostics = append(diagnostics, Diagnostic{
+			Code: "EM201", Severity: "error",
+			Message: fmt.Sprintf("Options.MaxHTMLBytes must be 0 (default), a positive byte count, or exactly -1 (disable both checks); got %d", opts.MaxHTMLBytes),
+		})
+	}
 	if hasErrorDiagnostic(diagnostics) {
 		return nil, &LintError{Diagnostics: diagnostics}
 	}
@@ -354,16 +375,32 @@ func checkHTMLBudget(name, html string, maxBytes int) (*Diagnostic, error) {
 				n, name, maxBytes),
 		}}
 	}
-	if n > warnHTMLBytes {
+	warnAt := warnLine(maxBytes)
+	if n > warnAt {
 		return &Diagnostic{
 			Code:     "EM121",
 			Severity: "warn",
 			Message: fmt.Sprintf(
-				"rendered HTML is %d bytes with fixture %s; within budget but above the 90000-byte warning line",
-				n, name),
+				"rendered HTML is %d bytes with fixture %s; within budget but above the %d-byte warning line",
+				n, name, warnAt),
 		}, nil
 	}
 	return nil, nil
+}
+
+// warnLine picks EM121's own warning line for a given MaxHTMLBytes (m12,
+// launch-gate findings). The fixed 90,000-byte line only ever fires when
+// there is room below maxBytes for it to fire in at all: a caller who
+// lowers MaxHTMLBytes below 90,000 made the fixed line unreachable
+// (checkHTMLBudget's own EM120 check runs first and would return before
+// EM121 ever could), leaving EM121 permanently dead for that Set. Scaling
+// the line to 90% of maxBytes instead keeps a warn-before-error step for
+// a caller who deliberately budgets tighter than Gmail's own clip point.
+func warnLine(maxBytes int) int {
+	if maxBytes < warnHTMLBytes {
+		return maxBytes * 9 / 10
+	}
+	return warnHTMLBytes
 }
 
 // Names lists every loaded template name, sorted.

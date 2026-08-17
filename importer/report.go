@@ -2,6 +2,7 @@ package importer
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -32,6 +33,14 @@ type Report struct {
 	SourceFile string
 	Mapped     []mappedLine
 	Unmapped   []unmappedLine
+	// Dropped counts every dropEntirely tag (m16, launch-gate findings)
+	// actually encountered while sanitizing an unmapped subtree into
+	// email.Custom: <script>, <style>, and the handful of document/head
+	// tags that carry no email content at all. Unlike Unmapped, a dropped
+	// tag's own content never survives anywhere in the generated
+	// template — this is the one case "a node it cannot confidently
+	// place never gets dropped" does not cover, and the report says so.
+	Dropped    map[string]int
 	Fields     []propsFieldReportLine
 	ThemeNotes []string
 	NextSteps  []string
@@ -50,6 +59,15 @@ func (r *Report) mapped(path, component, confidence, note string) {
 
 func (r *Report) unmapped(path, reason string) {
 	r.Unmapped = append(r.Unmapped, unmappedLine{path: path, reason: reason})
+}
+
+// dropped records one dropEntirely tag occurrence (m16, launch-gate
+// findings).
+func (r *Report) dropped(tag string) {
+	if r.Dropped == nil {
+		r.Dropped = make(map[string]int)
+	}
+	r.Dropped[tag]++
 }
 
 // Summary renders a short, stdout-friendly digest: counts and every
@@ -109,6 +127,21 @@ func (r *Report) WriteMarkdown() string {
 		b.WriteString("| Field | Type | Source |\n|---|---|---|\n")
 		for _, f := range r.Fields {
 			fmt.Fprintf(&b, "| `%s` | `%s` | %s |\n", f.Name, f.GoType, f.Source)
+		}
+		b.WriteString("\n")
+	}
+
+	if len(r.Dropped) > 0 {
+		b.WriteString("## Dropped entirely\n\n")
+		b.WriteString("Unlike an unmapped node (above), the tags below carry no email content at all — a `<script>`, a `<style>` block, or document/head plumbing — so nothing from them survives anywhere in `template.gsx`, not even inside `email.Custom`.\n\n")
+		b.WriteString("| Tag | Occurrences |\n|---|---|\n")
+		tags := make([]string, 0, len(r.Dropped))
+		for tag := range r.Dropped {
+			tags = append(tags, tag)
+		}
+		sort.Strings(tags)
+		for _, tag := range tags {
+			fmt.Fprintf(&b, "| `<%s>` | %d |\n", tag, r.Dropped[tag])
 		}
 		b.WriteString("\n")
 	}

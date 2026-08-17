@@ -4,6 +4,62 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Fixed (minors: m2, m4, m7, m8, m10, m11, m12, m16, m18, m19)
+
+- **m2.** `Theme.DarkMode`'s doc comment and README now state that
+  parity mode (`Outlook: "off"`) disables the entire dark-mode style
+  layer, regardless of `DarkMode` — WP1 predates every dark-mode
+  strategy, and parity mode emits WP1's exact byte stream.
+- **m4.** `email.Column`'s `imgSrc`/`imgAlt` now run EM111/EM112, the
+  same absolute-https-src and non-empty-alt rules a raw `<img>` and
+  `email.Hero` already run — only when `imgSrc` is actually set, since
+  Column's image is optional.
+- **m7.** `internal/structverify`'s own binary-size comment claimed
+  `cmd/gsxmail` never imports gotreesitter; WP5.5's `gsxmail import` verb
+  made that stale. Corrected, with the m6-measured tagged/untagged CLI
+  figures in place of the old ones.
+- **m8.** README's caniemail snapshot section now states the embedded
+  snapshot's own capture date (2026-08-10) directly, plus a pointer to
+  `Matrix.SnapshotDate()` for whichever date a specific build actually
+  ships.
+- **m10.** `importer/dom.go` now uses the standard library's
+  `html.UnescapeString` instead of `golang.org/x/net/html`'s. The module
+  dependency itself stays (a test file's own DOM-diffing use still needs
+  it); `go mod tidy` confirms no other change.
+- **m11.** `Load` rejects a negative `Options.MaxHTMLBytes` other than
+  exactly `-1` (`EM201`) — every other negative value used to reach
+  `Render`'s own budget check unvalidated, failing every call with a
+  confusing "budget: -5 bytes" `EM120`.
+- **m12.** `EM121`'s warning line now scales to 90% of `MaxHTMLBytes`
+  when that budget is set below the fixed 90,000-byte line — otherwise a
+  tighter budget made `EM121` permanently unreachable, since `EM120`
+  always fired first.
+- **m16.** `gsxmail import` now names every `<script>`/`<style>`/
+  document-plumbing tag it drops entirely (nothing from them survives
+  anywhere, unlike an unmapped node) in `IMPORT-REPORT.md`'s new
+  "Dropped entirely" section. README's "never gets dropped" claim is
+  corrected to state this one exception.
+- **m18.** `writeHead`'s and the article wrapper's hardcoded `dir="ltr"`
+  now carry a doc comment (and a new README note) stating plainly that
+  gsxmail has no RTL layout support — `dir="ltr"` is honest, not a claim
+  tied to `Shell.Lang`.
+- **m19.** `Theme`'s own doc comment and a new README note state the
+  trust boundary explicitly: every `Theme` field is written unescaped,
+  the same trust level as your own Go source, never props- or
+  request-driven.
+
+### Known limitations (m3, launch-gate findings, deferred)
+
+- An `email.*` attribute-level lint finding (EM012, EM013, EM032, EM110,
+  EM190, EM191, and the rest) reports its enclosing element's own
+  position (`file:line:col`), not the specific attribute's own column
+  within that element's opening tag. Two attributes on the same element
+  that both fail a check report the same position. Locating a diagnostic
+  by scanning the named element for the named attribute is straightforward
+  in practice; true per-attribute positions need `ir.Attr` to carry its
+  own span, which gosx does not expose today. Deferred, not fixed in this
+  pass.
+
 ### Fixed (M6, M10, M4: Outlook option, child-kind checks, preheader truncation)
 
 - **M6.** `Load` now rejects `Options.Outlook` outside `""`,

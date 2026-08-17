@@ -60,17 +60,23 @@ const MaxTableDepth = 12
 //     special tags — what plain `go test ./...` produces): 20,575,772 ->
 //     40,473,378 bytes, a +19,897,606-byte (~19.0 MiB) delta. This is
 //     test-only: it never ships.
-//   - `cmd/gsxmail` CLI binary, same commit: 24,467,974 -> 24,514,003
-//     bytes, a +46,029-byte delta — code growth, not gotreesitter; the
-//     CLI does not import gotreesitter or this package at all (proved by
-//     TestGotreesitterIsolatedFromCorePath at the module root).
-//   - Building this package's importer with `-tags 'grammar_subset
-//     grammar_subset_html'` (gotreesitter's own selective-embed
-//     mechanism) cuts the root test binary delta to +373,552 bytes
-//     (~365 KiB) — under the dossier's ~5 MB gate with wide margin. WP5.5
-//     (`gsxmail import`, a real distributed binary) should build with
-//     these tags; this test-layer package does not need to, since it
-//     never ships.
+//   - `cmd/gsxmail` CLI binary, this same commit, untagged: roughly 43.0
+//     MiB (45,108,725 bytes); with the recommended `-tags 'grammar_subset
+//     grammar_subset_html'` (m6, launch-gate findings): roughly 24.4 MiB
+//     (25,593,933 bytes) — see README's "Import from existing HTML" and
+//     "The CLI" sections for the exact figures a specific build measures.
+//     This package (`internal/structverify`) still never ships in that
+//     binary: `cmd/gsxmail` reaches gotreesitter only through package
+//     `importer`, for the `gsxmail import` verb — proved by
+//     `TestGotreesitterIsolatedFromCorePath` and
+//     `TestImporterIsolatedFromRenderPath` at the module root, which also
+//     prove this package itself stays test-layer-only.
+//   - Building this package's own importer (the module cache import, not
+//     `m31labs.dev/gsxmail/importer`) with `-tags 'grammar_subset
+//     grammar_subset_html'` cuts the root test binary delta to +373,552
+//     bytes (~365 KiB) — under the dossier's ~5 MB gate with wide margin.
+//     This test-layer package does not need the tags itself, since it
+//     never ships; only `cmd/gsxmail`'s own build does.
 var htmlLang = grammars.HtmlLanguage()
 
 // parse re-parses html with the HTML grammar and returns its root node
