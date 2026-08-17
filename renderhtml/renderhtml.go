@@ -1,19 +1,18 @@
 // Package renderhtml writes a Resolved EmailDoc to the pixel-targeted HTML
 // part: theme tokens become inline styles, entities decoded by gosx at
 // compile time are re-escaped minimally, and attribute order follows
-// source order (spec section 7.2, 7.4).
+// source order.
 //
 // # Output contracts
 //
 // Write (and WriteWithOptions) emit hardened, bulletproof markup by
 // default: role="presentation" on every layout table, an Outlook ghost
 // table around the 600px card, doubled width attributes/CSS for the DPI
-// fix, and per-component contract details the pixel dossier's section 4
-// states (design spec section 15, WP5.1). WriteOptions.Outlook == "off"
-// selects parity mode instead: the exact WP1 byte stream, unchanged,
-// for a consumer whose own equivalence test pins the old bytes (gsxmail's
-// own gridiron invite DOM-parity guard is the example — see
-// WriteOptions's doc comment).
+// fix, and every other per-component contract detail. WriteOptions.Outlook
+// == "off" selects parity mode instead: the original byte stream,
+// unchanged, for a consumer whose own equivalence test pins the old
+// bytes (gsxmail's own gridiron invite DOM-parity guard is the example —
+// see WriteOptions's doc comment).
 package renderhtml
 
 import (
@@ -25,8 +24,8 @@ import (
 	"m31labs.dev/gsxmail/internal/doc"
 )
 
-// WriteOptions configures Write's output contract (design spec section 15,
-// WP5.1/WP5.2; pixel dossier section 4.2's "Shell options" surface).
+// WriteOptions configures Write's output contract: the Shell options
+// surface.
 type WriteOptions struct {
 	// Outlook selects the layout technique. "" and "ghost-tables" (the
 	// default) emit the hardened contract: an Outlook ghost table around
@@ -34,17 +33,15 @@ type WriteOptions struct {
 	// on every layout table, doubled width attributes for the Outlook DPI
 	// fix, td-pair Panel rows, an <h1> Headline title, mso-padding-alt on
 	// the CTA, a real StatTable data-table contract, and the border-left
-	// Note / spacer-technique Divider. "off" emits the WP1 byte stream
-	// unchanged — the parity mode a consumer's own byte- or DOM-equivalence
-	// test can pin (pixel dossier section 4: "Parity mode ... keeps the
-	// WP1 byte stream").
+	// Note / spacer-technique Divider. "off" emits the original byte
+	// stream unchanged — the parity mode a consumer's own byte- or
+	// DOM-equivalence test can pin.
 	Outlook string
 
 	// Preheader, when non-empty, emits the hidden inbox-preview div as the
-	// first child of <body>, in both output contracts (design spec section
-	// 15, WP5.2; pixel dossier section 6.1). gsxmail.Set.Render sources it
-	// from the rendered template's own Shell (design spec section 15,
-	// WP5.2: preheader is authored on <email.Shell preheader={...}>, not
+	// first child of <body>, in both output contracts. gsxmail.Set.Render
+	// sources it from the rendered template's own Shell (preheader is
+	// authored on <email.Shell preheader={...}>, not
 	// passed here directly) — a caller writing straight to WriteOptions
 	// only needs this field when driving the writer without going through
 	// Set.Render at all.
@@ -52,14 +49,14 @@ type WriteOptions struct {
 }
 
 // hardened reports whether opts selects the hardened output contract (the
-// default) rather than WP1 parity mode.
+// default) rather than parity mode.
 func (opts WriteOptions) hardened() bool {
 	return opts.Outlook != "off"
 }
 
 // RenderFinding is one render-time finding WriteWithOptions produces
-// alongside the rendered HTML string — today, only EM110 (launch-gate
-// M3): a CTA or Button href that fails hasSafeHrefScheme drops the link
+// alongside the rendered HTML string — today, only EM110: a CTA or
+// Button href that fails hasSafeHrefScheme drops the link
 // and renders the label alone, visibly (a mid-send loop must not die for
 // one bad optional link), but no longer silently. gsxmail.Set.Render
 // copies each RenderFinding into the returned Parts.Diagnostics.
@@ -74,12 +71,12 @@ func Write(resolved *doc.Resolved, theme Theme) (string, []RenderFinding) {
 	return WriteWithOptions(resolved, theme, WriteOptions{})
 }
 
-// WriteWithOptions is Write with an explicit WriteOptions (added WP5.1;
-// see the package doc and WriteOptions for the two output contracts).
+// WriteWithOptions is Write with an explicit WriteOptions (see the
+// package doc and WriteOptions for the two output contracts).
 func WriteWithOptions(resolved *doc.Resolved, theme Theme, opts WriteOptions) (string, []RenderFinding) {
 	hard := opts.hardened()
-	// adaptive gates every WP5.2/B2 class-hook site (pixel dossier section
-	// 5.2's adaptive style layer): parity mode never gains new markup, and
+	// adaptive gates every adaptive-mode class-hook site: parity mode
+	// never gains new markup, and
 	// "none"/"locked" have no swapped-in class-driven colors to hook, so
 	// the classes only appear when both conditions hold.
 	adaptive := hard && theme.DarkStrategy() == "adaptive"
@@ -117,11 +114,11 @@ func writeHead(b *strings.Builder, theme Theme, shell doc.ResolvedShell, hard bo
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 `)
 	strategy := theme.DarkStrategy()
-	// metaScheme is the ColorScheme-driven pair WP5.1 shipped, unchanged
-	// for "none" and "locked" (backward-compatible: a theme that never sets
-	// DarkMode renders byte-identically to WP5.1). "adaptive" overrides it
-	// to "light dark" regardless of ColorScheme (pixel dossier section
-	// 5.2's exact snippet) — EM144 already rejects a conflicting explicit
+	// metaScheme is the ColorScheme-driven pair, unchanged for "none" and
+	// "locked" (backward-compatible: a theme that never sets DarkMode
+	// renders byte-identically to the original output). "adaptive"
+	// overrides it to "light dark" regardless of ColorScheme — EM144
+	// already rejects a conflicting explicit
 	// ColorScheme at Load time.
 	metaScheme := theme.ColorScheme
 	if strategy == "adaptive" {
@@ -164,38 +161,34 @@ a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !importa
 }
 
 // writeDarkStyleLayer appends the "locked" or "adaptive" dark-mode
-// strategy's own <style> rules (pixel dossier section 5.2); "none" (the
-// default) writes nothing, keeping WP5.1's <style> block byte-identical.
+// strategy's own <style> rules; "none" (the default) writes nothing,
+// keeping the original <style> block byte-identical.
 //
 // "locked" adds one :root rule (Apple Mail 16+ honors color-scheme only on
 // the root element — caniemail css-color-scheme, R2 — so this is the one
 // place a locked theme can declare itself). "adaptive" adds the
 // @media(prefers-color-scheme:dark) block that swaps every one of
-// Theme.Dark's nine tokens into its own class hook (launch-gate B2: the
-// WP5.2 release only wired gsx-ink/gsx-muted plus one merged gsx-body/
-// gsx-card background rule, leaving five of Theme.Dark's nine fields dead
-// and EM141's own ColorBody-on-ColorCard check validating a pair the
-// writer never actually emitted), plus the best-effort
+// Theme.Dark's nine tokens into its own class hook, plus the best-effort
 // [data-ogsc]/[data-ogsb] Outlook-app inversion hooks Litmus documents
 // (R14) for every one of them — both best-effort, never claiming control
-// of a forced transform (pixel dossier section 5.1).
+// of a forced transform.
 //
 // The eleven class hooks, and the Dark token each swaps in:
 //
 //   - gsx-body (background-color): Dark.ColorGround — the page background
-//     outside the card. Folded in here from m1: WP5.2 merged this into
-//     gsx-card's own rule, so a light Theme.ColorGround/ColorCard pair
-//     that differ (the shipped default does) rendered the wrong tone
-//     outside the card under "adaptive".
+//     outside the card. A light Theme.ColorGround/ColorCard pair that
+//     differ (the shipped default does) needs its own hook here,
+//     separate from gsx-card's own rule, or the page background outside
+//     the card renders the wrong tone under "adaptive".
 //   - gsx-card (background-color): Dark.ColorCard — the card itself.
 //   - gsx-ink (color): Dark.ColorInk — headline/wordmark text.
 //   - gsx-muted (color, border-color): Dark.ColorMuted — mono labels; the
 //     border-color half is Badge's neutral tone, which borders and colors
 //     the same span with the same token (a no-op on every gsx-muted site
 //     that has no border to begin with).
-//   - gsx-copy (color): Dark.ColorBody — body copy. The launch-gate B2
-//     finding's headline case: ColorBody rendered at 1.73:1 against the
-//     dark card with no hook at all before this.
+//   - gsx-copy (color): Dark.ColorBody — body copy, so it never renders
+//     at a failing contrast ratio against the dark card with no hook at
+//     all.
 //   - gsx-faint (color): Dark.ColorFaint — the footer's fine print.
 //   - gsx-panel (background-color): Dark.ColorPanel — Panel/Note/marked
 //     StatTable row backgrounds.
@@ -256,8 +249,8 @@ func writeDarkStyleLayer(b *strings.Builder, theme Theme, strategy string) {
 	}
 }
 
-// writeHeadParity is WP1's exact head writer, byte-for-byte (design spec
-// section 6.4). It stays untouched so WriteOptions{Outlook:"off"} keeps
+// writeHeadParity is the original head writer, byte-for-byte. It stays
+// untouched so WriteOptions{Outlook:"off"} keeps
 // pinning the original bytes.
 func writeHeadParity(b *strings.Builder, theme Theme, shell doc.ResolvedShell) {
 	b.WriteString("<!DOCTYPE html>\n<html lang=\"")
@@ -371,10 +364,9 @@ func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, har
 }
 
 // classAttrIf returns ` class="name"` when cond holds, or "" otherwise —
-// the WP5.2 adaptive-mode class hook (pixel dossier section 5.2), applied
-// at every site that writes one of Theme's nine color tokens inline
-// (launch-gate B2's completed sweep — see writeDarkStyleLayer's own doc
-// comment for the full class-to-token table).
+// the adaptive-mode class hook, applied at every site that writes one of
+// Theme's nine color tokens inline — see writeDarkStyleLayer's own doc
+// comment for the full class-to-token table.
 func classAttrIf(cond bool, name string) string {
 	if !cond {
 		return ""
@@ -404,17 +396,17 @@ func classAttrIf2(cond bool, name1, name2 string) string {
 }
 
 // preheaderTargetChars is the decoded-character length the hidden
-// preview-text div always reaches (pixel dossier section 6.1, citing
-// react-email's shipped Preview component's padding pattern, R5): long
+// preview-text div always reaches (react-email's shipped Preview
+// component's own padding pattern, R5): long
 // enough that no supported client pulls visible body copy into the inbox
 // preview line once the author's own text runs out. EM171 already rejects
 // a literal preheader over this limit at Load time; a dynamic
 // {expression} preheader cannot be checked until Render, so writePreheader
-// truncates to this same limit there instead (launch-gate M4).
+// truncates to this same limit there instead.
 const preheaderTargetChars = 150
 
 // preheaderPadPair and preheaderPadNBSP are writePreheader's own pad-tail
-// characters, written as raw UTF-8 (polish item 11) instead of the
+// characters, written as raw UTF-8 instead of the
 // "&nbsp;&zwnj;"/"&nbsp;" entity spelling: the document already declares
 // UTF-8 (<meta charset="utf-8">, writeHead's own first line), so a raw
 // U+00A0 (non-breaking space) plus U+200C (zero-width non-joiner) costs 5
@@ -431,16 +423,16 @@ const preheaderPadNBSP = " "
 // writePreheader writes the hidden inbox-preview div — react-email's
 // shipped suppression style set (R5) plus an alternating &nbsp;/&zwnj; pad
 // tail bringing the decoded text to exactly preheaderTargetChars
-// characters — as the first child of <body>, in both output contracts
-// (pixel dossier section 4.2's body-opening contract; section 6.1: the
-// suppression styles alone hide it, so it needs no ghost-table wrapper to
-// work, and MJML's mj-preview, R6, solves the same problem without one
-// either). It writes nothing when preheader is empty, so a template that
-// never sets one keeps rendering byte-identically to WP5.1 in both modes.
+// characters — as the first child of <body>, in both output contracts.
+// The suppression styles alone hide it, so it needs no ghost-table
+// wrapper to work, and MJML's mj-preview, R6, solves the same problem
+// without one either. It writes nothing when preheader is empty, so a
+// template that never sets one keeps rendering byte-identically in both
+// modes.
 //
 // A preheader over preheaderTargetChars runes is truncated to exactly
-// that many, and appends an EM200 RenderFinding to findings (launch-gate
-// M4): EM171 already rejects a literal (static) preheader this long at
+// that many, and appends an EM200 RenderFinding to findings: EM171
+// already rejects a literal (static) preheader this long at
 // Load time, but a dynamic {expression} preheader's own length is not
 // known until a real props value resolves it, so this is that same
 // guarantee's render-time backstop, visible in Parts.Diagnostics rather
@@ -473,9 +465,9 @@ func writePreheader(b *strings.Builder, preheader string, findings *[]RenderFind
 	b.WriteString("</div>\n")
 }
 
-// writeBodyOpenParity is WP1's exact body-open writer, byte-for-byte
-// (design spec section 6.4), plus the one WP5.2 addition the parity
-// guarantee still allows: writePreheader, which writes nothing when
+// writeBodyOpenParity is the original body-open writer, byte-for-byte,
+// plus the one addition the parity guarantee still allows:
+// writePreheader, which writes nothing when
 // preheader is empty. WriteOptions{Outlook: "off"} with no preheader set
 // keeps pinning the original bytes (the gridiron invite DOM-parity guard);
 // setting a preheader in parity mode is a deliberate, additive exception,
@@ -619,11 +611,10 @@ func writeSignal(b *strings.Builder, theme Theme, s doc.ResolvedSignal, adaptive
 }
 
 // writeHeadline writes email.Headline. Hardened mode promotes the title to
-// a semantic <h1> with margins zeroed (pixel dossier section 4.3, point
-// 2): screen-reader navigation gains a heading at no visual cost. Parity
-// mode keeps WP1's <div> title, byte-for-byte. adaptive additionally marks
-// the title with gsx-ink and the lede with gsx-copy (pixel dossier section
-// 5.2; launch-gate B2).
+// a semantic <h1> with margins zeroed: screen-reader navigation gains a
+// heading at no visual cost. Parity mode keeps the original <div> title,
+// byte-for-byte. adaptive additionally marks the title with gsx-ink and
+// the lede with gsx-copy.
 func writeHeadline(b *strings.Builder, theme Theme, h doc.ResolvedHeadline, hard, adaptive bool) {
 	titleTag := "div"
 	titleStyleExtra := ""
@@ -662,13 +653,12 @@ func writeHeadline(b *strings.Builder, theme Theme, h doc.ResolvedHeadline, hard
 }
 
 // writePanel writes email.Panel. Hardened mode moves each row's label and
-// value from two <span>s sharing one <td> into a two-cell table row
-// (pixel dossier section 4.3, point 1): Outlook Windows does not support
-// display:inline-block, so a td pair aligns natively where a fixed-width
-// inline-block does not. Parity mode keeps WP1's span pair, byte-for-byte.
-// adaptive marks the outer table (gsx-border, gsx-panel), each row's
-// border, each label (gsx-muted), and each value (gsx-ink) — launch-gate
-// B2: none of Panel's own color sites carried an adaptive hook before.
+// value from two <span>s sharing one <td> into a two-cell table row:
+// Outlook Windows does not support display:inline-block, so a td pair
+// aligns natively where a fixed-width inline-block does not. Parity
+// mode keeps the original span pair,
+// byte-for-byte. adaptive marks the outer table (gsx-border, gsx-panel),
+// each row's border, each label (gsx-muted), and each value (gsx-ink).
 func writePanel(b *strings.Builder, theme Theme, p doc.ResolvedPanel, hard, adaptive bool) {
 	b.WriteString(`<tr>
 <td style="padding:24px 32px 0 32px;">
@@ -744,17 +734,17 @@ func writePanel(b *strings.Builder, theme Theme, p doc.ResolvedPanel, hard, adap
 }
 
 // writeCTA writes email.CTA. Hardened mode adds mso-padding-alt to the
-// face td and to the link/span itself (pixel dossier section 4.4's
-// default technique, MJML's shipped pattern): Outlook gets the visual
-// button box the padding gives every other client, without double
-// padding. Parity mode keeps WP1's padded-<a>-only markup, byte-for-byte.
-// adaptive marks the face td (gsx-accent-bg) and the label itself
-// (gsx-ground, since the label's own color is Theme.ColorGround — the
-// button's inverse-of-fill text token, launch-gate B2). A disallowed
-// href drops the link (the label still renders, unclickable) and
-// appends an EM110 RenderFinding to findings, naming component ("email.
-// CTA" or "email.Button", whichever actually called this) — visible,
-// not silent (launch-gate M3).
+// face td and to the link/span itself — MJML's own shipped pattern:
+// Outlook gets the visual button box the padding gives every other
+// client, without double padding. Parity mode keeps the original
+// padded-<a>-only markup,
+// byte-for-byte. adaptive marks the face td (gsx-accent-bg) and the
+// label itself (gsx-ground, since the label's own color is
+// Theme.ColorGround — the button's inverse-of-fill text token). A
+// disallowed href drops the link (the label still renders, unclickable)
+// and appends an EM110 RenderFinding to findings, naming component
+// ("email.CTA" or "email.Button", whichever actually called this) —
+// visible, not silent.
 func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard, adaptive bool, component string, findings *[]RenderFinding) {
 	b.WriteString(`<tr>
 <td align="center" style="padding:28px 32px 0 32px;">
@@ -810,7 +800,7 @@ func writeCTA(b *strings.Builder, theme Theme, c doc.ResolvedCTA, hard, adaptive
 }
 
 // appendHrefRejected records an EM110 RenderFinding for one CTA/Button
-// element whose Href failed hasSafeHrefScheme (launch-gate M3): the
+// element whose Href failed hasSafeHrefScheme: the
 // writer already drops the link and renders the label alone,
 // unclickable — this makes that drop visible in Parts.Diagnostics
 // instead of silent. findings may be nil (a caller — today, only tests —
@@ -828,12 +818,12 @@ func appendHrefRejected(findings *[]RenderFinding, component, href string) {
 	})
 }
 
-// writeButton writes email.Button (WP5.3; pixel dossier section 4.4). The
+// writeButton writes email.Button. The
 // "primary" variant (the default) calls straight through to writeCTA,
 // unchanged above, so email.CTA and email.Button variant="primary" are
 // byte-identical in both output contracts by construction — CTA's own
 // alias, not a parallel reimplementation that could drift. "secondary" and
-// "link" are new WP5.3 shapes with no WP1 byte stream to protect, so both
+// "link" have no original byte stream to protect, so both
 // render one contract regardless of hard.
 func writeButton(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard, adaptive bool, findings *[]RenderFinding) {
 	switch v.Variant {
@@ -846,15 +836,14 @@ func writeButton(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard, ad
 	}
 }
 
-// writeButtonSecondary writes the "secondary" variant (pixel dossier
-// section 4.4): a transparent face with a 1px accent border, instead of
-// primary's solid accent fill. It mirrors writeCTA's own hard/parity split
+// writeButtonSecondary writes the "secondary" variant: a transparent
+// face with a 1px accent border, instead of primary's solid accent
+// fill. It mirrors writeCTA's own hard/parity split
 // (mso-padding-alt only under the hardened contract) for the same reason:
 // Outlook needs the td's own border to draw the visual box a border-only
 // <a> cannot give it. adaptive marks the face td's border (gsx-accent-
-// border) and the label's own accent text (gsx-accent) — launch-gate B2.
-// A disallowed href appends an EM110 RenderFinding, same as writeCTA
-// (launch-gate M3).
+// border) and the label's own accent text (gsx-accent). A disallowed
+// href appends an EM110 RenderFinding, same as writeCTA.
 func writeButtonSecondary(b *strings.Builder, theme Theme, v doc.ResolvedButton, hard, adaptive bool, findings *[]RenderFinding) {
 	b.WriteString(`<tr>
 <td align="center" style="padding:28px 32px 0 32px;">
@@ -930,13 +919,13 @@ func linkButtonDefaultWidth(label string) int {
 }
 
 // linkButtonSpacerWidth computes each of writeButtonLink's two balancing
-// invisible-run widths (launch-gate M1): half of whatever room remains
+// invisible-run widths: half of whatever room remains
 // once the label's own estimated rendered width (linkGlyphWidthPx per
 // rune, the same estimate linkButtonDefaultWidth uses for the whole
 // button) is subtracted from widthPx, floored at 0. Outlook lays the
 // anchor's own content out left to right with no text-align effect on
-// the hidden runs themselves, so one full-width run before the label (the
-// WP5.3 shape) pushes the label to the right edge of its own click box
+// the hidden runs themselves, so one full-width run before the label
+// pushes the label to the right edge of its own click box
 // instead of centering it; splitting that width in half and running one
 // spacer on each side keeps the label centered the way `text-align:
 // center` already centers it in every other client.
@@ -950,19 +939,19 @@ func linkButtonSpacerWidth(widthPx int, label string) int {
 }
 
 // writeButtonLink writes the "link" variant: goodemailcode's full-click
-// glyph-spacing technique (pixel dossier section 4.4, R11). Unlike
+// glyph-spacing technique (R11). Unlike
 // primary/secondary, there is no wrapping table-cell background to give
 // Outlook a clickable box; instead, two MSO-only hidden runs stretched
 // with a negative mso-font-width fake the anchor's own minimum width, so
 // the whole box — not just the text — is clickable there too. Each run's
-// own width is linkButtonSpacerWidth's own balancing half (launch-gate
-// M1), not the full button width: a single full-width run pushed the
+// own width is linkButtonSpacerWidth's own balancing half, not the full
+// button width: a single full-width run pushed the
 // label to the right edge of its own click box in Outlook, instead of
 // centering it the way text-align:center already centers it everywhere
-// else. New in WP5.3, one contract regardless of hard: the technique is
+// else. One contract regardless of hard: the technique is
 // inert everywhere outside Outlook (the <i> runs sit inside "[if mso]"
 // conditional comments), so there is nothing for a parity mode to strip.
-// adaptive marks the face (gsx-accent-bg, gsx-ground) — launch-gate B2.
+// adaptive marks the face (gsx-accent-bg, gsx-ground).
 func writeButtonLink(b *strings.Builder, theme Theme, v doc.ResolvedButton, adaptive bool, findings *[]RenderFinding) {
 	widthStr := strings.TrimSpace(v.Width)
 	widthPx := 0
@@ -1079,9 +1068,9 @@ func writeColumns(b *strings.Builder, theme Theme, v doc.ResolvedColumns, hard, 
 // hybrid column's own narrower width rather than the full card (design
 // note: doc.Column's own doc comment on why Column stays a leaf). The
 // title carries the gsx-ink adaptive class hook and the body text carries
-// gsx-copy (launch-gate B2), the same hooks every other ink- and body-
+// gsx-copy, the same hooks every other ink- and body-
 // colored element in the card carries — Columns nests ordinary card
-// content, so WP5.2's dark-mode coverage extends into it for free.
+// content, so the adaptive dark-mode coverage extends into it for free.
 func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn, hard, adaptive bool) {
 	_ = hard
 	if col.ImgSrc != "" {
@@ -1132,9 +1121,9 @@ func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn,
 
 // writeHero writes email.Hero: a single retina <img> at 2x asset
 // resolution with display-size width/height attributes plus the
-// max-width/height:auto Outlook workaround (pixel dossier section 4.10;
-// R15). Hero is new in WP5.3 — there is no WP1 byte stream to protect —
-// so it renders one contract regardless of the hard flag. It carries no
+// max-width/height:auto Outlook workaround (R15). Hero has no original
+// byte stream to protect, so it renders one contract regardless of the
+// hard flag. It carries no
 // theme color of its own, so it needs no adaptive class hook.
 func writeHero(b *strings.Builder, v doc.ResolvedHero) {
 	b.WriteString(`<tr>
@@ -1155,10 +1144,10 @@ func writeHero(b *strings.Builder, v doc.ResolvedHero) {
 `)
 }
 
-// writeSpacer writes email.Spacer: an exact-height gap row (pixel dossier
-// section 4.8's spacer-table technique — font-size:0, line-height:0, and
+// writeSpacer writes email.Spacer: an exact-height gap row (a spacer-table
+// technique — font-size:0, line-height:0, and
 // mso-line-height-rule:exactly pin the box everywhere a bare margin or an
-// empty div does not). New in WP5.3, one contract regardless of hard. It
+// empty div does not). One contract regardless of hard. It
 // carries no theme color of its own, so it needs no adaptive class hook.
 func writeSpacer(b *strings.Builder, v doc.ResolvedSpacer) {
 	b.WriteString(`<tr><td height="`)
@@ -1169,8 +1158,8 @@ func writeSpacer(b *strings.Builder, v doc.ResolvedSpacer) {
 `)
 }
 
-// badgeToneVariant is one status tone's two fixed hex values (M2,
-// launch-gate findings): light is for a light card (verified >=4.5:1
+// badgeToneVariant is one status tone's two fixed hex values: light is
+// for a light card (verified >=4.5:1
 // against #FFFFFF), dark is for a dark card (verified >=4.5:1 against
 // #101611, Terminal theme's own ColorCard). One flat hex cannot clear
 // 4.5:1 against both: the WCAG 2 contrast formula has no solution that
@@ -1229,12 +1218,12 @@ func badgeToneColor(theme Theme, tone string) string {
 	return variant.light
 }
 
-// writeBadge writes email.Badge (pixel dossier section 4.11): a bordered,
+// writeBadge writes email.Badge: a bordered,
 // inline status label. Outlook drops border-radius and inline-block; the
-// degrade is bordered inline text, still legible. New in WP5.3, one
+// degrade is bordered inline text, still legible. One
 // contract regardless of hard. adaptive marks a "neutral" badge with
 // gsx-muted (both its border and its text share theme.ColorMuted, and
-// the gsx-muted rule swaps both — launch-gate B2); the three fixed-hex
+// the gsx-muted rule swaps both); the three fixed-hex
 // tones are deliberately theme-independent, so they carry no hook.
 func writeBadge(b *strings.Builder, theme Theme, v doc.ResolvedBadge, adaptive bool) {
 	color := badgeToneColor(theme, v.Tone)
@@ -1258,7 +1247,7 @@ func writeBadge(b *strings.Builder, theme Theme, v doc.ResolvedBadge, adaptive b
 
 // writePickList writes email.PickList. adaptive marks the title
 // (gsx-muted), each item's numeral (gsx-accent), and each item's own text
-// (gsx-copy) — launch-gate B2.
+// (gsx-copy).
 func writePickList(b *strings.Builder, theme Theme, p doc.ResolvedPickList, adaptive bool) {
 	b.WriteString(`<tr>
 <td style="padding:28px 32px 0 32px;">
@@ -1303,14 +1292,14 @@ func writePickList(b *strings.Builder, theme Theme, p doc.ResolvedPickList, adap
 `)
 }
 
-// writeNote writes email.Note. Hardened mode marks the aside structurally
-// (pixel dossier section 4.7): a border-left accent bar and a tinted
-// background, never a color-only cue. Parity mode keeps WP1's plain
+// writeNote writes email.Note. Hardened mode marks the aside
+// structurally: a border-left accent bar and a tinted
+// background, never a color-only cue. Parity mode keeps the original plain
 // paragraph, byte-for-byte — and, since adaptive is only ever true when
 // hard is (WriteWithOptions's own adaptive computation), the parity
 // branch below needs no class hooks of its own. Hardened mode's adaptive
 // hooks: gsx-panel (background), gsx-accent-border (the left bar), and
-// gsx-copy (text) — launch-gate B2.
+// gsx-copy (text).
 func writeNote(b *strings.Builder, theme Theme, n doc.ResolvedNote, hard, adaptive bool) {
 	if !hard {
 		b.WriteString(`<tr>
@@ -1352,12 +1341,12 @@ func writeNote(b *strings.Builder, theme Theme, n doc.ResolvedNote, hard, adapti
 }
 
 // writeDivider writes email.Divider. Hardened mode adopts the spacer
-// technique (pixel dossier section 4.8): a td with font-size:0,
+// technique: a td with font-size:0,
 // line-height:0, and mso-line-height-rule:exactly pins an exact-height
 // rule across every client; a plain border-top div does not. Parity mode
-// keeps WP1's bare border-top div, byte-for-byte (and needs no class
-// hook, for the same reason writeNote's parity branch does not).
-// Hardened mode's rule gets gsx-border (launch-gate B2).
+// keeps the original bare border-top div, byte-for-byte (and needs no
+// class hook, for the same reason writeNote's parity branch does not).
+// Hardened mode's rule gets gsx-border.
 func writeDivider(b *strings.Builder, theme Theme, _ doc.ResolvedDivider, hard, adaptive bool) {
 	if !hard {
 		b.WriteString(`<tr>
@@ -1387,19 +1376,17 @@ func writeDivider(b *strings.Builder, theme Theme, _ doc.ResolvedDivider, hard, 
 // writeStatTable ports emailkit's StatTable.appendHTML (blocks.go), driven
 // by Theme's tokens instead of package-level constants. MarkRow (1-based;
 // 0 means no row is marked) selects the accent-colored row, matching
-// emailkit's own MarkRow semantics (design spec section 6.5).
+// emailkit's own MarkRow semantics.
 //
-// Hardened mode applies the data-table contract (pixel dossier section
-// 4.5, global invariant 7): a StatTable holds facts, so it is a real
-// table, never role="presentation", and its header cells are <th
-// scope="col">, not <td>. Parity mode keeps WP1's role="presentation" and
-// <td> header cells, byte-for-byte.
+// Hardened mode applies the data-table contract: a StatTable holds
+// facts, so it is a real table, never role="presentation", and its
+// header cells are <th scope="col">, not <td>. Parity mode keeps the
+// original role="presentation" and <td> header cells, byte-for-byte.
 //
 // adaptive marks the title (gsx-muted), the outer table (gsx-border), the
 // header row's border and muted text (gsx-border, gsx-muted), and each
 // data row's border plus its own color — gsx-copy normally, gsx-accent on
-// the one marked row, alongside gsx-panel for that row's own background —
-// launch-gate B2.
+// the one marked row, alongside gsx-panel for that row's own background.
 func writeStatTable(b *strings.Builder, theme Theme, s doc.ResolvedStatTable, hard, adaptive bool) {
 	b.WriteString(`<tr>
 <td style="padding:24px 32px 0 32px;">
@@ -1499,8 +1486,8 @@ func writeStatTable(b *strings.Builder, theme Theme, s doc.ResolvedStatTable, ha
 // voidElements are the allowlisted raw elements with no closing tag.
 var voidElements = map[string]bool{"img": true, "br": true, "hr": true}
 
-// writeCustomNode writes one Custom subtree node (design spec section 7.2):
-// a raw element with its literal (already lint-checked) attributes, or a
+// writeCustomNode writes one Custom subtree node: a raw element with its
+// literal (already lint-checked) attributes, or a
 // text run. It carries the subtree through unmodified; gsxmail applies no
 // theme tokens to a Custom element, since Custom exists precisely for
 // markup the stdlib does not style on the author's behalf.
@@ -1532,8 +1519,7 @@ func writeCustomNode(b *strings.Builder, n doc.ResolvedCustomNode) {
 
 // writeFooter writes email.Footer. adaptive marks the border-top rule
 // (gsx-border), the signoff (gsx-copy), and the fine-print note
-// (gsx-faint) — launch-gate B2: the first hook for ColorFaint anywhere in
-// the writer.
+// (gsx-faint).
 func writeFooter(b *strings.Builder, theme Theme, f doc.ResolvedFooter, adaptive bool) {
 	b.WriteString(`<tr>
 <td style="padding:28px 32px 32px 32px;">
