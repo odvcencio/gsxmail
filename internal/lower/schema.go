@@ -18,29 +18,32 @@ type AttrSchema struct {
 
 // Schema is the closed table of every email.* component's own attribute
 // surface, keyed by the component's local name (the "email." namespace
-// prefix already stripped, splitTag's own convention) — "Item" and
-// "Columns" carry no attribute-name entries of their own, since Item's
-// content is inline text/expression children (inlineContent) and Columns
-// accepts only <email.Column> children, not attributes.
+// prefix already stripped, splitTag's own convention) — "Panel", "Item",
+// and "Columns" carry no attribute-name entries of their own, since
+// Panel and Columns accept only their own child component (PanelRow,
+// Column) and Item's content is inline text/expression children
+// (inlineContent), not attributes.
 //
 // This is the launch-gate B4 finding's single source of truth: Schema is
 // hand-derived from this same file's lowerBlock/lowerShell/lowerColumn/
-// lowerStatRow switch, so lint's EM190 (unknown attribute) and EM191
-// (required attribute absent) never drift from what Lower itself accepts.
-// Required deliberately omits email.Hero's src/alt/width/height and
-// email.Spacer's height: those already have their own pre-existing,
-// more specific EM178/EM179 checks, and duplicating them under EM191
-// would report the same mistake twice under two different codes. The
-// required set otherwise matches the examiner's own list from the
-// launch-gate findings: Shell.wordmark/title, Signal.text,
-// Headline.title, PanelRow.label/value, CTA.label/href, Button.label/href,
-// Note.text, Badge.text, Footer.signoff. email.Item's required "text" is
-// content, not an attribute, so package lint checks it separately
-// (checkPickList's own EM191 case), rather than through this table.
+// lowerStatRow switch, so lint's EM190 (unknown attribute), EM191
+// (required attribute absent), and EM196 (unknown email.* member,
+// launch-gate M10) never drift from what Lower itself accepts. Required
+// deliberately omits email.Hero's src/alt/width/height and email.
+// Spacer's height: those already have their own pre-existing, more
+// specific EM178/EM179 checks, and duplicating them under EM191 would
+// report the same mistake twice under two different codes. The required
+// set otherwise matches the examiner's own list from the launch-gate
+// findings: Shell.wordmark/title, Signal.text, Headline.title,
+// PanelRow.label/value, CTA.label/href, Button.label/href, Note.text,
+// Badge.text, Footer.signoff. email.Item's required "text" is content,
+// not an attribute, so package lint checks it separately (checkItem's
+// own EM191 case), rather than through this table.
 var Schema = map[string]AttrSchema{
 	"Shell":     {Attrs: []string{"wordmark", "shortCode", "tagline", "title", "lang", "preheader", "outlook"}, Required: []string{"wordmark", "title"}},
 	"Signal":    {Attrs: []string{"text"}, Required: []string{"text"}},
 	"Headline":  {Attrs: []string{"title", "lede"}, Required: []string{"title"}},
+	"Panel":     {Attrs: []string{}},
 	"PanelRow":  {Attrs: []string{"label", "value"}, Required: []string{"label", "value"}},
 	"CTA":       {Attrs: []string{"label", "href"}, Required: []string{"label", "href"}},
 	"Button":    {Attrs: []string{"variant", "label", "href", "width"}, Required: []string{"label", "href"}},

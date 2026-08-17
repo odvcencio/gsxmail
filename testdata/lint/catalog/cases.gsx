@@ -161,3 +161,25 @@ func CaseEM190() Node {
 func CaseEM191() Node {
     return <email.CTA label="click here" />
 }
+
+func CaseEM196() Node {
+    return <email.Bogus text="x" />
+}
+
+func CaseEM197() Node {
+    return <email.Panel><email.Signal text="not a row" /></email.Panel>
+}
+
+func CaseEM198() Node {
+    return <email.PickList title="x"><email.Signal text="not an item" /></email.PickList>
+}
+
+func CaseEM199StatRow() Node {
+    return <email.StatTable title="x"><email.Signal text="not a stat row" /></email.StatTable>
+}
+
+func CaseEM199Each(props Props) Node {
+    return <email.StatTable title="x">
+        <Each of={props.Items} as="row"><email.Signal text="not a stat row" /></Each>
+    </email.StatTable>
+}

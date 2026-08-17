@@ -596,6 +596,12 @@ func (w *walker) checkComponentNode(n *ir.Node, ctx *exprContext) {
 			w.checkBadge(n)
 		case "Item":
 			w.checkItem(n)
+		case "Panel":
+			w.checkPanel(n)
+		case "PickList":
+			w.checkPickList(n)
+		case "StatTable":
+			w.checkStatTable(n)
 		}
 		for _, c := range n.Children {
 			w.checkNode(c, ctx)
@@ -718,18 +724,111 @@ func (w *walker) checkColumns(n *ir.Node, ctx *exprContext) {
 	}
 }
 
-// checkAttrSchema implements EM190 (unknown attribute) and EM191 (required
-// attribute absent), the launch-gate B4 finding: local's attribute surface
-// comes from lower.Schema — package lower's own single source of truth for
-// what its lowerBlock/lowerShell/lowerColumn/lowerStatRow switch reads —
-// so lint never invents its own, possibly drifting, copy of that list. A
-// local name with no Schema entry (there is none today; every email.*
-// member Lower recognizes has one) is silently skipped, since an unknown
-// component name is package lower's own concern to reject at Load time,
-// not this check's.
+// checkPanel implements EM197 (M10, launch-gate findings): every child of
+// <email.Panel> must be an <email.PanelRow> — the same child-kind
+// contract lower.lowerPanelRows already enforces as its own backstop, now
+// caught here first, with a real file:line:col position. A correctly
+// placed PanelRow's own attributes still get checked normally, through
+// the generic per-node recursion checkComponentNode's caller already
+// runs over every child.
+func (w *walker) checkPanel(n *ir.Node) {
+	for _, id := range n.Children {
+		c := w.prog.NodeAt(id)
+		if isBlankNode(c) {
+			continue
+		}
+		ns, local := splitTag(c.Tag)
+		if c.Kind != ir.NodeComponent || ns != "email" || local != "PanelRow" {
+			w.add(n, "EM197", "error", fmt.Sprintf(`<email.Panel> children must be <email.PanelRow>, got %q`, c.Tag))
+		}
+	}
+}
+
+// checkPickList implements EM198 (M10, launch-gate findings): every child
+// of <email.PickList> must be an <email.Item> — lower.lowerItems' own
+// backstop, now caught here first, with a real position.
+func (w *walker) checkPickList(n *ir.Node) {
+	for _, id := range n.Children {
+		c := w.prog.NodeAt(id)
+		if isBlankNode(c) {
+			continue
+		}
+		ns, local := splitTag(c.Tag)
+		if c.Kind != ir.NodeComponent || ns != "email" || local != "Item" {
+			w.add(n, "EM198", "error", fmt.Sprintf(`<email.PickList> children must be <email.Item>, got %q`, c.Tag))
+		}
+	}
+}
+
+// checkStatTable implements EM199 (M10, launch-gate findings): every
+// child of <email.StatTable> must be an <email.StatRow> or an <Each> —
+// and an <Each> there must wrap exactly one <email.StatRow>, in either
+// case lower.lowerStatTable/singleStatRowChild's own backstop, now
+// caught here first, with a real position. checkEach itself still runs
+// through the generic per-node recursion (it checks the same <Each>
+// node's of/as attributes; this only adds the StatTable-specific "wraps
+// exactly one StatRow" shape check on top).
+func (w *walker) checkStatTable(n *ir.Node) {
+	for _, id := range n.Children {
+		c := w.prog.NodeAt(id)
+		if isBlankNode(c) {
+			continue
+		}
+		switch {
+		case c.Kind == ir.NodeComponent && c.Tag == "email.StatRow":
+			// Fine; its own attributes are checked generically.
+		case c.Kind == ir.NodeComponent && c.Tag == "Each":
+			w.checkStatTableEach(c)
+		default:
+			w.add(n, "EM199", "error", fmt.Sprintf(`<email.StatTable> children must be <email.StatRow> or <Each>, got %q`, c.Tag))
+		}
+	}
+}
+
+// checkStatTableEach implements checkStatTable's own "<Each> must wrap
+// exactly one <email.StatRow>" half.
+func (w *walker) checkStatTableEach(each *ir.Node) {
+	var found int
+	for _, id := range each.Children {
+		c := w.prog.NodeAt(id)
+		if isBlankNode(c) {
+			continue
+		}
+		if c.Kind != ir.NodeComponent || c.Tag != "email.StatRow" {
+			w.add(each, "EM199", "error", fmt.Sprintf(`<Each> inside <email.StatTable> must wrap <email.StatRow>, got %q`, c.Tag))
+			return
+		}
+		found++
+	}
+	switch {
+	case found == 0:
+		w.add(each, "EM199", "error", `<Each> inside <email.StatTable> has no <email.StatRow> child`)
+	case found > 1:
+		w.add(each, "EM199", "error", `<Each> inside <email.StatTable> must wrap exactly one <email.StatRow>`)
+	}
+}
+
+// checkAttrSchema implements EM190 (unknown attribute), EM191 (required
+// attribute absent), and EM196 (unknown email.* member — launch-gate
+// M10), the launch-gate B4 finding: local's attribute surface comes from
+// lower.Schema — package lower's own single source of truth for what its
+// lowerBlock/lowerShell/lowerColumn/lowerStatRow switch reads — so lint
+// never invents its own, possibly drifting, copy of that list.
+//
+// EM196 (M10) moves package lower's own "component <email.%s> is not on
+// the email.* component list" check into lint, with a real source
+// position: before this, an unrecognized member name (a typo such as
+// <email.Colum> for <email.Column>) passed `gsxmail check` silently and
+// only failed at Lower time, with a plain Go error and no file:line:col
+// at all. lower.Lower's own error stays as a backstop (package lower
+// runs only after lint already cleared the same program, so it is not
+// itself a fail-closed check-time gate — its own doc comment states
+// this), not removed.
 func (w *walker) checkAttrSchema(n *ir.Node, local string) {
 	schema, ok := lower.Schema[local]
 	if !ok {
+		w.add(n, "EM196", "error", fmt.Sprintf(
+			"<email.%s> is not on the email.* component list (Shell, Signal, Headline, Panel/PanelRow, CTA, Button, Columns/Column, Hero, Spacer, Badge, PickList/Item, Footer, Note, Divider, StatTable/StatRow)", local))
 		return
 	}
 	allowed := make(map[string]bool, len(schema.Attrs))

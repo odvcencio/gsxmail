@@ -86,7 +86,7 @@ func WriteWithOptions(resolved *doc.Resolved, theme Theme, opts WriteOptions) (s
 	var b strings.Builder
 	var findings []RenderFinding
 	writeHead(&b, theme, resolved.Shell, hard)
-	writeBodyOpen(&b, theme, resolved.Shell, hard, adaptive, opts.Preheader)
+	writeBodyOpen(&b, theme, resolved.Shell, hard, adaptive, opts.Preheader, &findings)
 	for _, block := range resolved.Blocks {
 		writeBlock(&b, theme, block, hard, adaptive, &findings)
 	}
@@ -266,9 +266,9 @@ func writeHeadParity(b *strings.Builder, theme Theme, shell doc.ResolvedShell) {
 	b.WriteString("</title>\n</head>\n")
 }
 
-func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, hard, adaptive bool, preheader string) {
+func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, hard, adaptive bool, preheader string, findings *[]RenderFinding) {
 	if !hard {
-		writeBodyOpenParity(b, theme, shell, preheader)
+		writeBodyOpenParity(b, theme, shell, preheader, findings)
 		return
 	}
 	width := strconv.Itoa(theme.CardWidth)
@@ -277,7 +277,7 @@ func writeBodyOpen(b *strings.Builder, theme Theme, shell doc.ResolvedShell, har
 	b.WriteString(theme.ColorGround)
 	b.WriteString(`;">
 `)
-	writePreheader(b, preheader)
+	writePreheader(b, preheader, findings)
 	b.WriteString(`<div role="article" aria-roledescription="email" aria-label="`)
 	b.WriteString(escapeAttr(shell.Title))
 	b.WriteString(`" lang="`)
@@ -396,7 +396,9 @@ func classAttrIf2(cond bool, name1, name2 string) string {
 // react-email's shipped Preview component's padding pattern, R5): long
 // enough that no supported client pulls visible body copy into the inbox
 // preview line once the author's own text runs out. EM171 already rejects
-// a literal preheader over this limit at Load time.
+// a literal preheader over this limit at Load time; a dynamic
+// {expression} preheader cannot be checked until Render, so writePreheader
+// truncates to this same limit there instead (launch-gate M4).
 const preheaderTargetChars = 150
 
 // writePreheader writes the hidden inbox-preview div — react-email's
@@ -408,9 +410,29 @@ const preheaderTargetChars = 150
 // work, and MJML's mj-preview, R6, solves the same problem without one
 // either). It writes nothing when preheader is empty, so a template that
 // never sets one keeps rendering byte-identically to WP5.1 in both modes.
-func writePreheader(b *strings.Builder, preheader string) {
+//
+// A preheader over preheaderTargetChars runes is truncated to exactly
+// that many, and appends an EM200 RenderFinding to findings (launch-gate
+// M4): EM171 already rejects a literal (static) preheader this long at
+// Load time, but a dynamic {expression} preheader's own length is not
+// known until a real props value resolves it, so this is that same
+// guarantee's render-time backstop, visible in Parts.Diagnostics rather
+// than silently overflowing the inbox-preview contract.
+func writePreheader(b *strings.Builder, preheader string, findings *[]RenderFinding) {
 	if preheader == "" {
 		return
+	}
+	runes := []rune(preheader)
+	if len(runes) > preheaderTargetChars {
+		if findings != nil {
+			*findings = append(*findings, RenderFinding{
+				Code: "EM200",
+				Message: fmt.Sprintf(
+					"preheader is %d characters; truncated to %d (the emitted block pads to exactly %d)",
+					len(runes), preheaderTargetChars, preheaderTargetChars),
+			})
+		}
+		preheader = string(runes[:preheaderTargetChars])
 	}
 	b.WriteString(`<div style="display:none; overflow:hidden; line-height:1px; opacity:0; max-height:0; max-width:0;">`)
 	b.WriteString(escapeText(preheader))
@@ -431,14 +453,14 @@ func writePreheader(b *strings.Builder, preheader string) {
 // keeps pinning the original bytes (the gridiron invite DOM-parity guard);
 // setting a preheader in parity mode is a deliberate, additive exception,
 // since the suppression-style div needs no ghost-table wrapper to work.
-func writeBodyOpenParity(b *strings.Builder, theme Theme, shell doc.ResolvedShell, preheader string) {
+func writeBodyOpenParity(b *strings.Builder, theme Theme, shell doc.ResolvedShell, preheader string, findings *[]RenderFinding) {
 	width := strconv.Itoa(theme.CardWidth)
 
 	b.WriteString(`<body style="margin:0; padding:0; background-color:`)
 	b.WriteString(theme.ColorGround)
 	b.WriteString(`;">
 `)
-	writePreheader(b, preheader)
+	writePreheader(b, preheader, findings)
 	b.WriteString(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:`)
 	b.WriteString(theme.ColorGround)
 	b.WriteString(`; margin:0; padding:0;">

@@ -73,6 +73,11 @@ func TestLintCatalog(t *testing.T) {
 		{"EM181", `email.Spacer height must be a positive decimal integer (a pixel count), got "20px"`},
 		{"EM190", `<email.Signal> has no "bogus" attribute`},
 		{"EM191", `<email.CTA> requires a "href" attribute`},
+		{"EM196", `<email.Bogus> is not on the email.* component list (Shell, Signal, Headline, Panel/PanelRow, CTA, Button, Columns/Column, Hero, Spacer, Badge, PickList/Item, Footer, Note, Divider, StatTable/StatRow)`},
+		{"EM197", `<email.Panel> children must be <email.PanelRow>, got "email.Signal"`},
+		{"EM198", `<email.PickList> children must be <email.Item>, got "email.Signal"`},
+		{"EM199", `<email.StatTable> children must be <email.StatRow> or <Each>, got "email.Signal"`},
+		{"EM199", `<Each> inside <email.StatTable> must wrap <email.StatRow>, got "email.Signal"`},
 	}
 
 	for _, tc := range cases {

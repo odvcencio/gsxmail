@@ -30,11 +30,12 @@ type Parts struct {
 	// Diagnostics carries any warning Render itself produced for this one
 	// call: EM110 (a CTA/Button href failed the allowed-scheme check;
 	// design spec section 8; launch-gate M3 — the link drops, the label
-	// still renders, and this is why), and EM121 (the HTML part crossed
-	// the 90,000-byte warning line but stayed under budget). It is empty
-	// on every Render call that has nothing to report. An error-severity
-	// finding never lands here: it makes Render return an error instead
-	// (see SizeBudgetError), with a zero Parts.
+	// still renders, and this is why), EM200 (a dynamic preheader over
+	// 150 runes was truncated; launch-gate M4), and EM121 (the HTML part
+	// crossed the 90,000-byte warning line but stayed under budget). It
+	// is empty on every Render call that has nothing to report. An
+	// error-severity finding never lands here: it makes Render return an
+	// error instead (see SizeBudgetError), with a zero Parts.
 	Diagnostics []Diagnostic
 }
 
@@ -216,6 +217,15 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 	// EM194 (design spec section 13.2; M9) is Load's own gosx version-skew
 	// signal, once per Load call — see checkGosxSkew's own doc comment.
 	diagnostics = append(diagnostics, checkGosxSkew()...)
+	// EM195 (M6, launch-gate findings) rejects an Options.Outlook value
+	// outside the closed set EM172 already enforces per-template on a
+	// Shell's own outlook attribute — Options.Outlook is the same
+	// structural, compile-time choice at the Set level, and deserved the
+	// same fail-closed treatment a case typo or a stray value ("OFF",
+	// "gost-tables", "true") silently defaulted to hardened mode before.
+	if err := checkOutlookOption(opts.Outlook); err != nil {
+		diagnostics = append(diagnostics, *err)
+	}
 	if hasErrorDiagnostic(diagnostics) {
 		return nil, &LintError{Diagnostics: diagnostics}
 	}
@@ -241,6 +251,21 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 	sort.Strings(names)
 
 	return &Set{templates: templates, names: names, opts: opts, diagnostics: diagnostics}, nil
+}
+
+// checkOutlookOption implements EM195 (M6, launch-gate findings):
+// Options.Outlook must be "", "ghost-tables", or "off" — the same closed
+// set a Shell's own outlook attribute is held to (EM172). Returns nil for
+// a valid value.
+func checkOutlookOption(outlook string) *Diagnostic {
+	switch outlook {
+	case "", "ghost-tables", "off":
+		return nil
+	}
+	return &Diagnostic{
+		Code: "EM195", Severity: "error",
+		Message: fmt.Sprintf(`Options.Outlook must be "", "ghost-tables", or "off"; got %q`, outlook),
+	}
 }
 
 func hasErrorDiagnostic(diags []Diagnostic) bool {

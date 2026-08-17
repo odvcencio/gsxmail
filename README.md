@@ -253,8 +253,14 @@ overflow:hidden; line-height:1px; opacity:0; max-height:0; max-width:0`)
 and an alternating `&nbsp;`/`&zwnj;` pad tail that brings the decoded text
 to exactly 150 characters — long enough that no supported client falls
 back to pulling in body copy. A Shell with no `preheader` attribute at all
-triggers **EM170** (warn) at `Load`; a static preheader text over 150
-characters triggers **EM171** (error).
+triggers **EM170** (warn) at `Load`; a *static* preheader literal over 150
+characters triggers **EM171** (error) at `Load`. A *dynamic*
+`preheader={props.X}` preheader's own length is not known until a real
+props value resolves it: `Render` truncates it to 150 characters instead
+(M4, launch-gate findings) and reports **EM200** (warn) in
+`Parts.Diagnostics` — visible, not silent, and never a `Load`-time
+failure, since the same template can render fine for one props value and
+overflow for another.
 
 ## Shell options
 

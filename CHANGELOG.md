@@ -4,6 +4,32 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Fixed (M6, M10, M4: Outlook option, child-kind checks, preheader truncation)
+
+- **M6.** `Load` now rejects `Options.Outlook` outside `""`,
+  `"ghost-tables"`, or `"off"` (`EM195`) — a case typo ("OFF") or a
+  stray value ("gost-tables", "true") previously fell through
+  `WriteOptions.hardened`'s own `!= "off"` check and silently defaulted
+  to hardened mode.
+- **M10.** Member-name and child-kind checks that used to surface only as
+  a plain Go error from `Lower` (no source position) now run in `lint`
+  first, with a real `file:line:col`: `EM196` (an unrecognized email.*
+  member, such as `<email.Bogus>` or a typo like `<email.Colum>`),
+  `EM197` (`<email.Panel>` children must be `<email.PanelRow>`), `EM198`
+  (`<email.PickList>` children must be `<email.Item>`), and `EM199`
+  (`<email.StatTable>` children must be `<email.StatRow>` or `<Each>`,
+  and an `<Each>` there must wrap exactly one `<email.StatRow>`).
+  `lower.Lower`'s own errors stay as a backstop, unchanged. This work
+  also caught and fixed a real B4 gap: `lower.Schema` was missing an
+  entry for `"Panel"` itself, which made every `<email.Panel>` fail
+  `EM196` as an unrecognized member the moment this check went live.
+- **M4.** A dynamic (`{props.X}`) preheader over 150 runes now truncates
+  to exactly 150 at render time and reports a warn-severity `EM200` in
+  `Parts.Diagnostics`, instead of rendering past the "always pads to
+  exactly 150" contract unchecked — `EM171` only ever caught a *static*
+  preheader literal at `Load` time, since a dynamic one's length is not
+  known until a real props value resolves it.
+
 ### Fixed (M1, M2, M3: link buttons, badge contrast, href diagnostics) [bytes]
 
 - **M1.** `email.Button` variant="link"'s two Outlook-only balancing runs
