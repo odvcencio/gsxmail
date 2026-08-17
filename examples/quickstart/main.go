@@ -20,9 +20,15 @@ func main() {
 }
 
 func run() error {
-	set, err := gsxmail.Load(os.DirFS("emails"), gsxmail.Options{})
+	set, err := gsxmail.Load(os.DirFS("emails"), gsxmail.Options{Dir: "emails"})
 	if err != nil {
 		return fmt.Errorf("loading emails/: %w", err)
+	}
+	// set.Check models the tool's own advice: run this in your own CI to
+	// surface a warning-severity finding (EM102-style partial-support
+	// notes, for example) without loading twice.
+	for _, d := range set.Check() {
+		fmt.Println("check:", d.String())
 	}
 
 	data, err := os.ReadFile("emails/welcome.props.json")

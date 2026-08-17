@@ -6,7 +6,8 @@ func WelcomeEmail(props WelcomeProps) Node {
         shortCode="OK"
         tagline="ACCOUNT CREATED"
         title={props.Product}
-        lang="en">
+        lang="en"
+        preheader={"Your " + props.Product + " account is ready — sign in to finish setup."}>
         <email.Signal text={"WELCOME // " + props.Name} />
         <email.Headline
             title="YOU'RE IN."

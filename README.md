@@ -431,6 +431,7 @@ a realistic worst-case fixture, not just your happy-path preview data.
    `emails/` folder into your project.
 3. Render it:
 
+   <!-- gsxmail:quickstart-snippet:start -->
    ```go
    package main
 
@@ -438,14 +439,15 @@ a realistic worst-case fixture, not just your happy-path preview data.
        "os"
 
        "m31labs.dev/gsxmail"
+       "example.com/myapp/emails"
    )
 
    func main() {
-       set, err := gsxmail.Load(os.DirFS("emails"), gsxmail.Options{})
+       set, err := gsxmail.Load(os.DirFS("emails"), gsxmail.Options{Dir: "emails"})
        if err != nil {
            panic(err)
        }
-       parts, err := set.Render("WelcomeEmail", WelcomeProps{
+       parts, err := set.Render("WelcomeEmail", emails.WelcomeProps{
            Name:     "Ada",
            Product:  "Acme",
            LoginURL: "https://acme.example/login",
@@ -457,6 +459,13 @@ a realistic worst-case fixture, not just your happy-path preview data.
        os.WriteFile("welcome.txt", []byte(parts.Text), 0o644)
    }
    ```
+   <!-- gsxmail:quickstart-snippet:end -->
+
+   `example.com/myapp/emails` is this snippet's own module path plus the
+   `emails/` folder you just copied in step 2 — swap the module path for
+   whatever `go mod init` step 1 actually used. `readme_quickstart_test.go`
+   compiles this exact snippet, verbatim, against a copy of
+   `examples/quickstart/emails` in a temporary module on every test run.
 
 See [`examples/quickstart`](examples/quickstart) for the full runnable
 version, including the template and its props.

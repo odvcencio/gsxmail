@@ -4,6 +4,22 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Fixed (M7: the README quickstart snippet did not compile)
+
+- The "60-second quick start" snippet used a bare `WelcomeProps{...}`
+  with no import for the `emails` package step 2 says to copy in. It now
+  imports `example.com/myapp/emails` and writes `emails.WelcomeProps{...}`,
+  and also passes `Options.Dir` (the B3 fix's own recommended practice).
+  `readme_quickstart_test.go`'s `TestReadmeQuickstartCompiles` extracts
+  the snippet verbatim from between two new HTML-comment markers and
+  compiles it, against a real copy of `examples/quickstart/emails`, in a
+  temporary module on every test run — the snippet and the test can no
+  longer drift apart silently.
+- `examples/quickstart` itself gains the same `Options.Dir` value, a
+  preheader on its one template (m13), and now prints every `Check`
+  finding before rendering (m13) — the shipped example now models the
+  practice the README and this section otherwise only describe.
+
 ### Changed (M8: narrow the public surface before the tag)
 
 - `doc/`, `lower/`, and `typesafe/` move to `internal/doc/`,
