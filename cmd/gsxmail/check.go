@@ -41,6 +41,9 @@ func runCheck(args []string) error {
 		return fmt.Errorf("check: --severity must be \"all\", \"warn\", or \"error\", got %q", *severity)
 	}
 
+	if info, statErr := os.Stat(*dir); statErr != nil || !info.IsDir() {
+		return fmt.Errorf("check: the template directory %q does not exist", *dir)
+	}
 	set, loadErr := gsxmail.Load(os.DirFS(*dir), gsxmail.Options{Dir: *dir})
 
 	var diags []gsxmail.Diagnostic

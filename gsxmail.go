@@ -241,15 +241,21 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 	}
 
 	templates := make(map[string]*compiledTemplate)
+	declaredIn := make(map[string]string)
 	for _, cf := range files {
 		for _, c := range cf.prog.Components {
 			emailDoc, err := lower.Lower(cf.prog, c.Name)
 			if err != nil {
 				return nil, fmt.Errorf("%w: %s: %w", ErrLower, cf.path, err)
 			}
-			if _, dup := templates[c.Name]; dup {
-				return nil, fmt.Errorf("%w: %s: template %q is already declared in another file", ErrDuplicateTemplate, cf.path, c.Name)
+			if firstPath, dup := declaredIn[c.Name]; dup {
+				where := "in " + firstPath
+				if firstPath == cf.path {
+					where = "earlier in the same file"
+				}
+				return nil, fmt.Errorf("%w: %s: template %q is already declared %s", ErrDuplicateTemplate, cf.path, c.Name, where)
 			}
+			declaredIn[c.Name] = cf.path
 			templates[c.Name] = &compiledTemplate{doc: emailDoc, propsType: c.PropsType}
 		}
 	}
