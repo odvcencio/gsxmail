@@ -24,17 +24,16 @@ type AttrSchema struct {
 // Column) and Item's content is inline text/expression children
 // (inlineContent), not attributes.
 //
-// This is the launch-gate B4 finding's single source of truth: Schema is
+// Schema is this package's single source of truth for attribute names:
 // hand-derived from this same file's lowerBlock/lowerShell/lowerColumn/
 // lowerStatRow switch, so lint's EM190 (unknown attribute), EM191
-// (required attribute absent), and EM196 (unknown email.* member,
-// launch-gate M10) never drift from what Lower itself accepts. Required
-// deliberately omits email.Hero's src/alt/width/height and email.
-// Spacer's height: those already have their own pre-existing, more
-// specific EM178/EM179 checks, and duplicating them under EM191 would
-// report the same mistake twice under two different codes. The required
-// set otherwise matches the examiner's own list from the launch-gate
-// findings: Shell.wordmark/title, Signal.text, Headline.title,
+// (required attribute absent), and EM196 (unknown email.* member) never
+// drift from what Lower itself accepts. Required deliberately omits
+// email.Hero's src/alt/width/height and email.Spacer's height: those
+// already have their own pre-existing, more specific EM178/EM179
+// checks, and duplicating them under EM191 would report the same
+// mistake twice under two different codes. The required set otherwise
+// covers: Shell.wordmark/title, Signal.text, Headline.title,
 // PanelRow.label/value, CTA.label/href, Button.label/href, Note.text,
 // Badge.text, Footer.signoff. email.Item's required "text" is content,
 // not an attribute, so package lint checks it separately (checkItem's

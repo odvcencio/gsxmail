@@ -2,9 +2,9 @@
 // doc.EmailDoc: it resolves email.* stdlib tags, the <Each>/<If> builtins,
 // and a raw-element Custom subtree escape hatch, inlining every attribute
 // expression into a doc.Expr or doc.FieldPath value. This is pipeline
-// stage 2 (link) and stage 3 (lower to EmailDoc) from the design spec,
-// section 7.2. Lower runs only after gsxmail.Load's lint pass has already
-// cleared the same program (design spec section 7.1), so it is not itself
+// stage 2 (link) and stage 3 (lower to EmailDoc). Lower runs only after
+// gsxmail.Load's lint pass has already cleared the same program, so it
+// is not itself
 // a fail-closed check-time gate: it trusts the shapes lint already
 // validated (a <If> has exactly one bool cond, an <Each> has of and as,
 // ...) and stays defensive, not exhaustive, about anything else.
@@ -102,7 +102,7 @@ func lowerShell(root *ir.Node, propsName string) (doc.Shell, error) {
 // children in source order), skipping whitespace-only text nodes the gosx
 // parser inserts between JSX-style element siblings, and lowers every
 // child to a doc.Block: an email.* component, the <Each>/<If> builtins, or
-// (design spec section 7.2's Custom escape hatch) a raw element subtree.
+// (the Custom escape hatch) a raw element subtree.
 // bindings names the loop variables currently in scope (nil outside any
 // <Each>).
 func lowerBlocks(prog *ir.Program, children []ir.NodeID, propsName string, bindings map[string]bool) ([]doc.Block, error) {
@@ -173,8 +173,8 @@ func lowerBlock(prog *ir.Program, local string, n *ir.Node, propsName string, bi
 		}
 		return doc.Panel{Rows: rows}, nil
 	case "CTA":
-		// email.CTA is Button's variant="primary" alias (pixel dossier
-		// section 4.4, WP5.3): it lowers to its own doc.CTA type, unchanged
+		// email.CTA is Button's variant="primary" alias: it lowers to its
+		// own doc.CTA type, unchanged
 		// from every prior release, so its hardened and parity bytes can
 		// never move. renderhtml's writeButton independently routes
 		// Button's own "primary" variant through the very same writeCTA
@@ -283,8 +283,7 @@ func lowerBlock(prog *ir.Program, local string, n *ir.Node, propsName string, bi
 }
 
 // lowerColumns lowers <email.Columns>: every child must be an
-// <email.Column> leaf component (pixel dossier section 4.9's fluid-hybrid
-// contract; EM176 already rejects the wrong child type or a count outside
+// <email.Column> leaf component (EM176 already rejects the wrong child type or a count outside
 // [2,4] at Load time). Lower stays defensive here, re-deriving only the
 // shape it needs to render.
 func lowerColumns(prog *ir.Program, children []ir.NodeID, propsName string, bindings map[string]bool) (doc.Block, error) {
@@ -379,7 +378,7 @@ func lowerItems(prog *ir.Program, children []ir.NodeID, propsName string, bindin
 
 // lowerEach lowers <Each of={...} as="name">...</Each>: a top-level
 // builtin that expands to zero or more sibling Blocks at Resolve time, one
-// per element of the slice at Of (design spec section 6.5).
+// per element of the slice at Of.
 func lowerEach(prog *ir.Program, n *ir.Node, propsName string, bindings map[string]bool) (doc.Each, error) {
 	of, err := parseFieldPathAttr(n.Attrs, "of", propsName, bindings)
 	if err != nil {
@@ -397,7 +396,7 @@ func lowerEach(prog *ir.Program, n *ir.Node, propsName string, bindings map[stri
 }
 
 // lowerIf lowers <If cond={...}>...</If>: Body resolves only when Cond
-// evaluates true (design spec section 6.5). EM030/EM031 (lint) already
+// evaluates true. EM030/EM031 (lint) already
 // guarantee cond is exactly one bool expression and every child is an
 // element, never bare text.
 func lowerIf(prog *ir.Program, n *ir.Node, propsName string, bindings map[string]bool) (doc.If, error) {
@@ -418,8 +417,7 @@ func lowerIf(prog *ir.Program, n *ir.Node, propsName string, bindings map[string
 
 // lowerStatTable lowers <email.StatTable>: its title, its optional
 // slice-valued header attribute, and its rows — a mix of literal
-// <email.StatRow> children and <Each>-wrapped ones, in source order
-// (design spec section 6.5's worked example).
+// <email.StatRow> children and <Each>-wrapped ones, in source order.
 func lowerStatTable(prog *ir.Program, n *ir.Node, propsName string, bindings map[string]bool) (doc.Block, error) {
 	title, err := attrExpr(n.Attrs, "title", propsName, bindings)
 	if err != nil {
@@ -469,8 +467,7 @@ func lowerStatTable(prog *ir.Program, n *ir.Node, propsName string, bindings map
 }
 
 // singleStatRowChild finds the one <email.StatRow> an <Each> inside an
-// <email.StatTable> must wrap (design spec section 6.5's worked example
-// has exactly this shape).
+// <email.StatTable> must wrap.
 func singleStatRowChild(prog *ir.Program, each *ir.Node) (*ir.Node, error) {
 	var found *ir.Node
 	for _, id := range each.Children {
@@ -507,8 +504,7 @@ func lowerStatRow(n *ir.Node, propsName string, bindings map[string]bool) (doc.S
 	return doc.StatRow{Cells: cells, Mark: mark}, nil
 }
 
-// lowerCustom lowers one raw element into a doc.CustomNode (design spec
-// section 7.2's Custom pass-through). It only ever runs on a subtree the
+// lowerCustom lowers one raw element into a doc.CustomNode. It only ever runs on a subtree the
 // email lint already cleared (EM001-EM006 disallowed elements, EM101-EM104
 // style/class rules, EM110-EM112 href/img rules), so it does not
 // re-validate any of that — it only needs to carry the subtree's shape and
@@ -742,7 +738,7 @@ func parseFieldPath(src, propsName string, bindings map[string]bool) (doc.FieldP
 
 // parseExprSource compiles a raw Go expression source string (as recorded
 // on ir.Attr.Expr / ir.Node.Text for NodeExpr) into a doc.Expr, following
-// the email dialect's grammar (spec section 6.1): string/int/float/bool
+// the email dialect's grammar: string/int/float/bool
 // literals, direct props or loop-binding field reads, string +
 // concatenation, comparisons, !, len(), and helper calls. It builds the
 // same tree shape typesafe/expr.go's checker already proved src belongs to

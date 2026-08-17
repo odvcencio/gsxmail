@@ -1,16 +1,15 @@
 // Package structverify re-parses gsxmail's own rendered HTML with
 // gotreesitter's HTML grammar and proves the output contract holds
-// mechanically (design spec section 15, WP5.1/WP5.2; pixel dossier section
-// 7.2, "Structural verification pass"): zero parse-error nodes, balanced
+// mechanically: zero parse-error nodes, balanced
 // conditional comments, layout-table nesting under the cap, (for
 // hardened-mode output) the role="presentation" / data-table split the
 // contract states, a preheader div (when the rendered HTML has one) that
 // carries its full suppression-style stack, and a dark-mode adaptive style
 // layer (when present) that carries its own required selectors.
 //
-// This package is gsxmail's one deliberate, opt-in gotreesitter import
-// (pixel dossier section 7.3: "The core library render path never
-// imports gotreesitter under any outcome"). gsxmail's render path
+// This package is gsxmail's one deliberate, opt-in gotreesitter import:
+// the core library render path never imports gotreesitter under any
+// outcome. gsxmail's render path
 // (renderhtml, doc, lower, gsxmail.go) never imports it; only tests and
 // this package do. See structural_isolation_test.go at the module root
 // for the build-graph proof, and structural_test.go for the pass run over
@@ -25,9 +24,9 @@ import (
 	"github.com/odvcencio/gotreesitter/grammars"
 )
 
-// Finding is one structural-verification result. Its Code values mirror
-// the pixel dossier's reserved EM131-EM134 catalog slots (section 10),
-// but Finding is its own type — not lint.Diagnostic — so this package
+// Finding is one structural-verification result. Its Code values sit in
+// the reserved EM131-EM134 catalog slots, but Finding is its own type —
+// not lint.Diagnostic — so this package
 // never has to import package lint (or vice versa) to report one.
 type Finding struct {
 	Code    string
@@ -40,17 +39,16 @@ func (f Finding) String() string {
 	return f.Code + ": " + f.Message
 }
 
-// MaxTableDepth is the layout-table nesting cap the pixel dossier states
-// (section 4.1's global invariant 6 and EM132): Outlook renders deep
-// table nesting unreliably past this depth.
+// MaxTableDepth is the layout-table nesting cap (EM132): Outlook renders
+// deep table nesting unreliably past this depth.
 const MaxTableDepth = 12
 
 // htmlLang is the one Language this package ever constructs: gotreesitter
 // ships ~206 grammars in its default embed, but structverify only ever
 // asks for HTML.
 //
-// Binary-size measurement (pixel dossier section 7.3's gate, taken
-// 2026-08-16, gotreesitter v0.50.1): importing this package pulls the
+// Binary-size measurement (taken 2026-08-16, gotreesitter v0.50.1):
+// importing this package pulls the
 // full default grammar registry into whatever binary links it, because
 // grammars.HtmlLanguage() reads its blob through the package's default
 // (untagged) blob source, which embeds all ~206 grammar blobs regardless
@@ -62,7 +60,7 @@ const MaxTableDepth = 12
 //     test-only: it never ships.
 //   - `cmd/gsxmail` CLI binary, this same commit, untagged: roughly 43.0
 //     MiB (45,108,725 bytes); with the recommended `-tags 'grammar_subset
-//     grammar_subset_html'` (m6, launch-gate findings): roughly 24.4 MiB
+//     grammar_subset_html'`: roughly 24.4 MiB
 //     (25,593,933 bytes) — see README's "Import from existing HTML" and
 //     "The CLI" sections for the exact figures a specific build measures.
 //     This package (`internal/structverify`) still never ships in that
@@ -95,7 +93,7 @@ func parse(html string) (*gts.Node, []byte, error) {
 }
 
 // Verify re-parses html and checks the properties every gsxmail render
-// must hold regardless of output contract (hardened or WP1 parity mode):
+// must hold regardless of output contract (hardened or parity mode):
 // no ERROR or erroneous_end_tag_name node anywhere in the tree (EM131 —
 // the tree-sitter error-recovery grammar still produces a walkable tree
 // for malformed HTML, so a clean parse is a real, mechanical guarantee,
@@ -117,15 +115,14 @@ func Verify(html string) ([]Finding, error) {
 }
 
 // VerifyContract runs Verify's well-formedness checks, then additionally
-// proves the WP5.1 hardened output contract's table split (pixel dossier
-// section 4.1's global invariant 7, section 4.5, EM134): every table
+// proves the hardened output contract's table split (EM134): every table
 // carrying role="presentation" is a layout table and also carries
 // border="0" cellpadding="0" cellspacing="0"; a table with a <th>
 // descendant (a data table) never carries role="presentation".
 //
 // VerifyContract only applies to hardened-mode output. Parity mode
-// (renderhtml.WriteOptions{Outlook:"off"}) intentionally keeps WP1's own
-// StatTable shape (role="presentation", <td> headers) and does not claim
+// (renderhtml.WriteOptions{Outlook:"off"}) intentionally keeps the
+// original StatTable shape (role="presentation", <td> headers) and does not claim
 // this contract; call Verify alone for parity-mode output.
 func VerifyContract(html string) ([]Finding, error) {
 	findings, err := Verify(html)
@@ -370,8 +367,8 @@ var requiredPreheaderStyles = []string{
 	"opacity:0", "max-height:0", "max-width:0",
 }
 
-// checkPreheaderStack implements EM173 (design spec section 15, WP5.2):
-// when <body>'s first element child is a div whose style declares
+// checkPreheaderStack implements EM173: when <body>'s first element
+// child is a div whose style declares
 // display:none — the shape renderhtml.writePreheader emits — every one of
 // requiredPreheaderStyles must also be present. A template that renders
 // with no preheader configured has no such div at all, so this check is a
@@ -409,11 +406,11 @@ func checkPreheaderStack(root *gts.Node, src []byte, findings *[]Finding) {
 	}
 }
 
-// checkDarkStyleLayer implements EM174 (design spec section 15, WP5.2): a
+// checkDarkStyleLayer implements EM174: a
 // <style> block that declares @media (prefers-color-scheme:dark) — the
 // "adaptive" strategy's own marker — must also carry both
-// [data-ogsc]/[data-ogsb] Outlook-app inversion hooks (pixel dossier
-// section 5.2) and balanced braces. A "none" or "locked" style block never
+// [data-ogsc]/[data-ogsb] Outlook-app inversion hooks and balanced
+// braces. A "none" or "locked" style block never
 // mentions prefers-color-scheme at all, so this check is a no-op for both.
 func checkDarkStyleLayer(root *gts.Node, src []byte, findings *[]Finding) {
 	style := findElement(root, src, "style")
