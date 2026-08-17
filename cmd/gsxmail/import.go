@@ -9,9 +9,9 @@ import (
 	"m31labs.dev/gsxmail/importer"
 )
 
-// runImport implements `gsxmail import` (design spec section 15, WP5.5;
-// pixel dossier section 7.2(1)): it reverse-maps an existing email HTML
-// file onto gsxmail's shipped email.* components and writes the result —
+// runImport implements `gsxmail import`: it reverse-maps an existing
+// email HTML file onto gsxmail's shipped email.* components and writes
+// the result —
 // this is the one CLI verb, and the one gsxmail package outside
 // internal/structverify's own test-layer use, that imports gotreesitter
 // (structural_isolation_test.go's own TestImporterIsolatedFromRenderPath

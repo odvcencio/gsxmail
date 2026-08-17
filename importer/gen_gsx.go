@@ -114,13 +114,13 @@ func formatGoSource(src string) (string, error) {
 // struct never has to cross-reference IMPORT-REPORT.md for the common
 // case.
 //
-// props.go deliberately imports nothing beyond the standard library
-// (launch-gate B3, point 3): a generated props.go that imported
-// m31labs.dev/gsxmail (for ImportedTheme, WP5.5's first shape) made
-// `gsxmail check` on the importer's own output fail to resolve that one
-// import whenever the checking process's current working directory did
-// not happen to reach this module — see CHANGELOG's B3 entry. The theme
-// literal moves to its own theme.go (writeThemeGo) instead: an optional
+// props.go deliberately imports nothing beyond the standard library: an
+// earlier generated props.go that imported m31labs.dev/gsxmail (for
+// ImportedTheme) made `gsxmail check` on the importer's own output fail
+// to resolve that one import whenever the checking process's current
+// working directory did not happen to reach this module — see
+// CHANGELOG.md for the full history. The theme literal moves to its own
+// theme.go (writeThemeGo) instead: an optional
 // companion file a caller can delete entirely without touching props.go
 // or template.gsx at all.
 func writePropsGo(pkg, propsType string, props *propsBuilder) string {
@@ -151,8 +151,8 @@ func writePropsGo(pkg, propsType string, props *propsBuilder) string {
 // writeThemeGo renders theme.go: ImportedTheme(), the one generated
 // symbol that needs m31labs.dev/gsxmail itself (for gsxmail.Theme), moved
 // out of props.go into its own clearly marked, optional companion file
-// (launch-gate B3, point 3 — see writePropsGo's own doc comment for why).
-// A caller who does not want the dependency, or who is generating props.go
+// — see writePropsGo's own doc comment for why. A caller who does not
+// want the dependency, or who is generating props.go
 // for a context outside a gsxmail module entirely, deletes theme.go and
 // keeps everything else unchanged.
 func writeThemeGo(pkg string, theme themeTokens, cardWidth int) string {

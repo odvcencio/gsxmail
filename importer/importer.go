@@ -32,8 +32,8 @@ type Result struct {
 	PropsGo      string
 	// ThemeGo is theme.go's own generated source: ImportedTheme(), the one
 	// generated symbol that imports m31labs.dev/gsxmail, kept out of
-	// PropsGo so a template's props type stands alone (launch-gate B3,
-	// point 3; writeThemeGo's own doc comment).
+	// PropsGo so a template's props type stands alone — see
+	// writeThemeGo's own doc comment.
 	ThemeGo         string
 	SamplePropsJSON string
 	Report          *Report
@@ -58,11 +58,10 @@ func (r *Result) BlockKinds() []string {
 }
 
 // Import parses html (an existing email template's rendered HTML) and
-// reverse-maps it onto gsxmail's shipped email.* components (design spec
-// section 15, WP5.5; pixel dossier section 7.2(1)). It never returns an
-// error for malformed or unrecognized markup — gotreesitter's error-
-// tolerant HTML grammar guarantees a walkable tree (pixel dossier section
-// 7.1), and every node Import cannot place becomes an email.Custom
+// reverse-maps it onto gsxmail's shipped email.* components. It never
+// returns an error for malformed or unrecognized markup — gotreesitter's
+// error-tolerant HTML grammar guarantees a walkable tree, and every node
+// Import cannot place becomes an email.Custom
 // fallback plus a Report line instead of a failure. The one error case is
 // a byte stream gotreesitter itself cannot parse into any tree at all.
 func Import(html []byte, sourceName string, opts Options) (*Result, error) {

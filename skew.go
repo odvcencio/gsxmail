@@ -14,9 +14,9 @@ import (
 // a newer gosx release than gsxmail's own go.mod does, and minimal
 // version selection picks the higher one for everybody. CI's own gosx
 // {pinned, latest} matrix (see .github/workflows/ci.yml) is what actually
-// proves gsxmail's behavior across that window; checkGosxSkew (design
-// spec section 13.2, following cmd/gosx's own checkVersionSkew) is Load's
-// own early, in-process signal that the window may have moved.
+// proves gsxmail's behavior across that window; checkGosxSkew (following
+// cmd/gosx's own checkVersionSkew) is Load's own early, in-process signal
+// that the window may have moved.
 const gosxPinnedVersion = "0.42.2"
 
 // checkGosxSkew compares gosx.Version — the release actually linked into

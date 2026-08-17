@@ -28,9 +28,8 @@ type blockCtx struct {
 // own hardened-output fingerprints first (native, high confidence — this
 // is what makes the self-round-trip proof bar achievable: a template
 // gsxmail itself rendered matches one of these exactly) and falling back
-// to looser, generic shape checks for foreign HTML (pixel dossier
-// section 7.2(1)'s own numbered heuristics). path is this row's report
-// label. It never returns ok==false silently: the caller wraps an
+// to looser, generic shape checks for foreign HTML. path is this row's
+// report label. It never returns ok==false silently: the caller wraps an
 // unrecognized row as email.Custom and this func's own rpt.unmapped call
 // records why.
 func classifyRow(row *node, ctx *blockCtx, path string) mappedBlock {
@@ -85,11 +84,10 @@ func soleContentCell(row *node) *node {
 
 // unwrapTrivial descends through a chain of single-row, single-cell
 // wrapper tables — MJML and react-email's compiled output both nest one
-// or more purely structural tables around a section's real content
-// (pixel dossier section 7.2(1), heuristic 1's own "ghost tables ...
-// map to nothing", generalized to any structural single-cell wrapper,
-// not just an "[if mso]" one) — stopping at the first level that is not
-// a trivial wrapper.
+// or more purely structural tables around a section's real content — a
+// generalized "ghost tables map to nothing" rule, applied to any
+// structural single-cell wrapper, not just an "[if mso]" one — stopping
+// at the first level that is not a trivial wrapper.
 func unwrapTrivial(td *node) *node {
 	for {
 		kids := elementsIgnoringText(td)

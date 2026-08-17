@@ -2,11 +2,11 @@ package gsxmail
 
 import "errors"
 
-// Sentinel errors (polish item 6, launch-gate findings): every error Load
-// and Render can return wraps one of these, so a caller can classify a
-// failure with errors.Is instead of matching an error message's own text
-// (which this package makes no promise to keep stable). Each sentinel's
-// own doc comment names exactly which call sites wrap it.
+// Sentinel errors: every error Load and Render can return wraps one of
+// these, so a caller can classify a failure with errors.Is instead of
+// matching an error message's own text (which this package makes no
+// promise to keep stable). Each sentinel's own doc comment names exactly
+// which call sites wrap it.
 var (
 	// ErrCompile wraps a gosx compile failure: a *.gsx file under fsys
 	// does not parse as valid gosx source at all. Load returns this

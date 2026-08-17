@@ -195,11 +195,11 @@ func parsePixels(s string) (int, bool) {
 	return n, true
 }
 
-// findPreheader returns body's own hidden inbox-preview div (heuristic
-// 2): the first element child of body whose style declares
-// "display:none" together with "overflow:hidden" or "opacity:0" — the
-// react-email/gsxmail suppression-style cluster (pixel dossier section
-// 6.1) — and its decoded, pad-stripped text. It returns "" when body's
+// findPreheader returns body's own hidden inbox-preview div: the first
+// element child of body whose style declares "display:none" together
+// with "overflow:hidden" or "opacity:0" — the react-email/gsxmail
+// suppression-style cluster — and its decoded, pad-stripped text. It
+// returns "" when body's
 // first element child does not match, rather than searching the whole
 // tree: a preheader is defined by its position (first child of body), not
 // just its style, so a later hidden div (a display:none utility class

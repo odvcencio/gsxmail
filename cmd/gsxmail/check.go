@@ -12,7 +12,7 @@ import (
 )
 
 // runCheck implements `gsxmail check`: it runs Load and prints every
-// finding (spec section 10). It exits 1 the moment any error-severity
+// finding. It exits 1 the moment any error-severity
 // finding exists, whether Load failed closed on it (no Set at all) or a
 // warning-only load still carries lower-severity findings. This verb runs
 // no network call; Load never does.
@@ -76,7 +76,7 @@ func runCheck(args []string) error {
 
 // filterSeverity keeps only diags at or above min ("all" keeps
 // everything, "warn" keeps warn and error, "error" keeps error only) —
-// polish item 9's own `--severity` flag.
+// the `--severity` flag's own filter.
 func filterSeverity(diags []gsxmail.Diagnostic, min string) []gsxmail.Diagnostic {
 	if min == "all" {
 		return diags
@@ -92,8 +92,8 @@ func filterSeverity(diags []gsxmail.Diagnostic, min string) []gsxmail.Diagnostic
 }
 
 // sortDiagnostics orders diags by file, then line, then column — grouped
-// by file, and in source order within each file (polish item 9) — a
-// stable sort, so two findings at the same position keep whatever order
+// by file, and in source order within each file — a stable sort, so two
+// findings at the same position keep whatever order
 // the lint walker itself produced them in.
 func sortDiagnostics(diags []gsxmail.Diagnostic) []gsxmail.Diagnostic {
 	sort.SliceStable(diags, func(i, j int) bool {

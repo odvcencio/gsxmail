@@ -1,9 +1,8 @@
 // Package gsxmail compiles gosx email templates to a deterministic
 // multipart pair: pixel-targeted HTML plus a matched 72-column
 // plain-text twin, from one source tree. See the package README for the
-// full pitch, the component reference, and every guarantee in detail
-// (polish item 4, launch-gate findings); this file is the short overview
-// godoc shows first.
+// full pitch, the component reference, and every guarantee in detail;
+// this file is the short overview godoc shows first.
 //
 // # The pipeline
 //
@@ -14,8 +13,8 @@
 //     typed IR program. A file that does not parse fails Load closed
 //     immediately (ErrCompile), before any other file's own compile even
 //     runs.
-//  2. Check — the email lint (EM001 through EM201, the design spec's own
-//     catalog) walks every compiled component's tree: disallowed
+//  2. Check — the email lint (EM001 through EM201) walks every compiled
+//     component's tree: disallowed
 //     elements and attributes, an expression outside the email dialect, a
 //     style property no target client supports, an unknown or missing
 //     email.* attribute, and more. A template's declared props struct is
@@ -57,11 +56,10 @@
 // contracts, selected by Options.Outlook or a template's own Shell
 // outlook attribute: the hardened, bulletproof default (an Outlook ghost
 // table, doubled DPI-fix widths, a real StatTable data-table contract,
-// and the rest of the pixel dossier's own per-component rules), or
-// parity mode ("off"), which emits the original WP1 byte stream
-// unchanged for a consumer whose own equivalence test pins those exact
-// bytes. See "Output contracts" in the README for the full per-component
-// table.
+// and every other per-component rule), or parity mode ("off"), which
+// emits the original byte stream unchanged for a consumer whose own
+// equivalence test pins those exact bytes. See "Output contracts" in the
+// README for the full per-component table.
 //
 // # Package map
 //

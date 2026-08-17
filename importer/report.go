@@ -22,10 +22,9 @@ type unmappedLine struct {
 	reason string
 }
 
-// Report is Import's honest accounting of what it did (design spec
-// section 15, WP5.5; task instructions, "the honest report is a first-
-// class output"): every mapped node's confidence and rationale, every
-// unmapped node's path and reason, every synthesized props field's
+// Report is Import's honest accounting of what it did: every mapped
+// node's confidence and rationale, every unmapped node's path and
+// reason, every synthesized props field's
 // source, and a next-steps list telling the template's new owner what to
 // hand-tune. The CLI prints it as a stdout summary and writes it in full
 // as IMPORT-REPORT.md (WriteMarkdown).
@@ -33,8 +32,8 @@ type Report struct {
 	SourceFile string
 	Mapped     []mappedLine
 	Unmapped   []unmappedLine
-	// Dropped counts every dropEntirely tag (m16, launch-gate findings)
-	// actually encountered while sanitizing an unmapped subtree into
+	// Dropped counts every dropEntirely tag actually encountered while
+	// sanitizing an unmapped subtree into
 	// email.Custom: <script>, <style>, and the handful of document/head
 	// tags that carry no email content at all. Unlike Unmapped, a dropped
 	// tag's own content never survives anywhere in the generated
@@ -61,8 +60,7 @@ func (r *Report) unmapped(path, reason string) {
 	r.Unmapped = append(r.Unmapped, unmappedLine{path: path, reason: reason})
 }
 
-// dropped records one dropEntirely tag occurrence (m16, launch-gate
-// findings).
+// dropped records one dropEntirely tag occurrence.
 func (r *Report) dropped(tag string) {
 	if r.Dropped == nil {
 		r.Dropped = make(map[string]int)

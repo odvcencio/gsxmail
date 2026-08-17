@@ -107,8 +107,8 @@ var customTagRemap = map[string]string{
 // dropEntirely names tags whose whole subtree carries no email content
 // (document/head/metadata plumbing, or something gsxmail already
 // forbids outright): they, and their children, are skipped rather than
-// unwrapped. Every drop is reported (rpt.dropped, m16, launch-gate
-// findings) — unlike an unrecognized content tag, which survives inside
+// unwrapped. Every drop is reported (rpt.dropped) — unlike an
+// unrecognized content tag, which survives inside
 // `email.Custom`, one of these carries no email content to preserve at
 // all, so it is the one case Import's own "a node it cannot confidently
 // place never gets dropped" guarantee does not cover; the report says so
@@ -122,14 +122,13 @@ var dropEntirely = map[string]bool{
 }
 
 // writeCustomFallback serializes row — the whole, unmapped card row — as
-// a sanitized raw-HTML fragment (task instructions, item 3: "every node
-// the mapper could not confidently place lands in an email.Custom
-// escape-hatch block ... preserving its subtree"). It always wraps the
-// result in a single-cell table so a stray top-level text run or bare
-// inline element still nests inside an EM003-allowed structural element,
-// matching gsxmail's own row-per-block shape elsewhere in the card. rpt
-// records any dropEntirely tag writeCustomNode encounters along the way
-// (m16, launch-gate findings).
+// a sanitized raw-HTML fragment: every node the mapper could not
+// confidently place lands in an email.Custom escape-hatch block,
+// preserving its subtree. It always wraps the result in a single-cell
+// table so a stray top-level text run or bare inline element still
+// nests inside an EM003-allowed structural element, matching gsxmail's
+// own row-per-block shape elsewhere in the card. rpt records any
+// dropEntirely tag writeCustomNode encounters along the way.
 func writeCustomFallback(row *node, rpt *Report) string {
 	elems := row.elements()
 
@@ -201,7 +200,7 @@ func writeWholeBodyCustom(body *node, rpt *Report) string {
 // keeps only an https src and a non-empty alt (EM111/EM112), and "style"
 // is filtered to properties the embedded caniemail matrix never marks
 // unsupported (EM101) — see style.go's sanitizeStyle. rpt records every
-// dropEntirely tag actually encountered (m16, launch-gate findings).
+// dropEntirely tag actually encountered.
 func writeCustomNode(b *strings.Builder, n *node, rpt *Report) {
 	if n.isComment || n.errorish {
 		return // gotreesitter's own error-recovery nodes carry no reliable shape to preserve

@@ -194,8 +194,8 @@ func findFirst(n *node, name string) *node {
 
 // parseHTML parses src with gotreesitter's HTML grammar and returns the
 // domified tree. It never fails on malformed markup — the grammar's own
-// error-recovery contract (pixel dossier section 7.1) — only on an empty
-// or unparseable byte stream gotreesitter itself refuses outright.
+// error-recovery contract — only on an empty or unparseable byte stream
+// gotreesitter itself refuses outright.
 func parseHTML(src []byte) (*node, error) {
 	parser := gts.NewParser(htmlLang)
 	tree, err := parser.Parse(src)

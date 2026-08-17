@@ -246,10 +246,9 @@ func findWrappingStyleValue(root, target *node, prop string) string {
 }
 
 // detectStatTable matches email.StatTable: a table with at least one
-// <th> cell anywhere in its own rows (pixel dossier section 7.2(1),
-// heuristic 5). Rows are synthesized into an <Each of={props.Items}>
-// (task instructions, "repeated-sibling structures ... an Each over a
-// synthesized props slice").
+// <th> cell anywhere in its own rows. Rows are synthesized into an
+// <Each of={props.Items}>, the same treatment every other repeated
+// sibling structure gets — an Each over a synthesized props slice.
 func detectStatTable(td *node, ctx *blockCtx, path string) (mappedBlock, bool) {
 	tbl := findFirst(td, "table")
 	if tbl == nil {
@@ -396,9 +395,9 @@ func buildPanelGSX(pairs []panelPair, props *propsBuilder) string {
 }
 
 // detectPanel matches email.Panel: a <table> nested one level inside the
-// row's own td, whose every row carries exactly two cells and no <th>
-// (pixel dossier section 7.2(1), heuristic 5's "uniform label/value td
-// pattern") — gsxmail's own native shape (writePanel). A source that
+// row's own td, whose every row carries exactly two cells and no <th> —
+// a uniform label/value td pattern, gsxmail's own native shape
+// (writePanel). A source that
 // stacks label/value pairs as the card's own top-level rows instead,
 // with no wrapping sub-table, matches panelRunLength in importer.go
 // instead, which this function's own row-pair logic (panelRowPair,
@@ -513,9 +512,9 @@ func liTexts(list *node) []string {
 
 // detectColumns matches email.Columns: 2-4 sibling divs each shaped like
 // a fluid-hybrid column (display:inline-block or display:table-cell, or
-// an explicit width/max-width) — pixel dossier section 7.2(1), heuristic
-// 4; EM176 caps the count at 2-4, so a 1- or 5-plus-column row is
-// rejected before it can trip that check at Load time.
+// an explicit width/max-width). EM176 caps the count at 2-4, so a 1- or
+// 5-plus-column row is rejected before it can trip that check at Load
+// time.
 func detectColumns(td *node, ctx *blockCtx, path string) (mappedBlock, bool) {
 	kids := elementsIgnoringText(td)
 	var cols []*node
@@ -600,7 +599,7 @@ func extractColumn(col *node) (imgSrc, imgAlt, imgW, imgH, title, text string) {
 }
 
 // detectNote matches email.Note: a border-left-accented block with plain
-// text and no nested table or list (pixel dossier section 4.7).
+// text and no nested table or list.
 func detectNote(td *node, ctx *blockCtx, path string) (mappedBlock, bool) {
 	target := unwrapTrivial(td)
 	borderLeft, ok := target.styleValue("border-left")
@@ -632,9 +631,9 @@ func detectNote(td *node, ctx *blockCtx, path string) (mappedBlock, bool) {
 var bigTextRe = regexp.MustCompile(`^(\d+)`)
 
 // detectHeadline matches email.Headline: a large or bold heading element,
-// optionally followed by one lede text block (pixel dossier section
-// 7.2(1), heuristic 3's spirit generalized from "big bold headline text"
-// to any table-free row whose first element reads as a heading).
+// optionally followed by one lede text block — generalized from "big
+// bold headline text" to any table-free row whose first element reads
+// as a heading.
 func detectHeadline(td *node, ctx *blockCtx, path string) (mappedBlock, bool) {
 	if findFirst(td, "table") != nil {
 		return mappedBlock{}, false

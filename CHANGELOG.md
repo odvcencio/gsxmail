@@ -4,6 +4,23 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Changed (polish item 1, first pass)
+
+- **Item 1.** Stripped internal-document citations — "design spec section
+  N", "pixel dossier section N", "WPx", "launch-gate findings", "M"- and
+  "m"-numbered findings, "polish item N" — from doc comments in the root
+  package (`gsxmail.go`, `doc.go`, `errors.go`, `theme.go`, `skew.go`),
+  the `importer` package, and `cmd/gsxmail`: gsxmail's own public surface
+  and its one consumer-facing package outside the root. Every rewritten
+  comment keeps its engineering content (EM codes, cross-references to
+  other exported symbols, the README) and reads as documentation for a
+  reader who has never seen this project's own internal planning
+  documents. Provenance for design decisions stays in this file's own
+  history, not in source comments. The remaining citations in
+  `internal/*`, `renderhtml`, `rendertext`, `testdata/*.go`, and
+  `examples/gallery/*.go` are unaddressed; see the launch report for the
+  count and the reasoning.
+
 ### Added (polish item 10)
 
 - **Item 10.** A new `gsxmail new <Name>` verb scaffolds one starter

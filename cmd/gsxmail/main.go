@@ -1,6 +1,6 @@
 // Command gsxmail is the gsxmail CLI. This release ships render, check,
-// and matrix refresh; dev (the live preview server) lands in a later
-// work package (spec section 10, section 15).
+// new, import, and matrix refresh; dev (the live preview server) lands
+// in a later release.
 package main
 
 import (
@@ -57,7 +57,7 @@ verbs:
       current directory), or streams one part to stdout.
 
   check [--dir emails] [--format text|json] [--severity all|warn|error]
-      Runs Load and prints every lint finding (spec section 8), sorted by
+      Runs Load and prints every lint finding, sorted by
       file, then line, then column, so findings in the same file group
       together. Exits 1 if any finding is error-severity, even when
       --severity hides it from the printed list. --format json feeds CI
@@ -182,7 +182,7 @@ func runRender(args []string) error {
 
 // loadProps decodes path's JSON object into a map[string]any. The CLI has
 // no static Go type for a template's declared props struct (that
-// resolution is WP2's typesafe/ package via go/types), so it renders
+// resolution is package typesafe's own go/types job), so it renders
 // against the generic map path gsxmail.Set.Render also accepts from
 // library callers that pass a struct.
 func loadProps(path string) (map[string]any, error) {

@@ -13,7 +13,7 @@ import (
 )
 
 // caniemailDataURL is the one network call gsxmail ever makes. Every other
-// verb, including check and render, stays offline (spec section 10).
+// verb, including check and render, stays offline.
 const caniemailDataURL = "https://www.caniemail.com/api/data.json"
 
 // runMatrix implements `gsxmail matrix`.
