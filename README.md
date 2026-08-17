@@ -156,7 +156,10 @@ already met the contract.
   an optional `text` — not a nested block container.
 - **`Hero`**. A full-width retina `<img>`: `src` at 2x pixels,
   `width`/`height` at display size (both required), `alt` mandatory.
-  `srcset` is not supported (24.39% caniemail support).
+  `srcset` is not supported (24.39% caniemail support). Production `src`
+  values are absolute, hosted URLs. The gallery's own `digest` example
+  instead ships small, relative-path assets committed to the
+  repository, so its golden HTML renders complete offline.
 - **`Spacer`** (`height` in pixels, required). An exact-height gap row
   (`font-size:0;line-height:0;mso-line-height-rule:exactly`).
 - **`Badge`** (`text`, optional `tone="neutral"|"positive"|"warning"|"critical"`,

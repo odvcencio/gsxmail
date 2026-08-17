@@ -21,8 +21,10 @@ it for free), and the `[data-ogsc]`/`[data-ogsb]` Outlook-app hooks.
 
 - `digest.gsx` — the template.
 - `digest.go` — `DigestProps`/`DigestStat`.
-- `digest.props.json` — fixture props.
+- `digest.props.json` — fixture props, pointing at `assets/`.
 - `digest.html` / `digest.txt` — the golden render, `gsxmail.LedgerTheme()`.
+- `assets/` — the hero and column images, committed and relative, so
+  the golden HTML renders complete without a network connection.
 
 ## Render it
 
