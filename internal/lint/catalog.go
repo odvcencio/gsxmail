@@ -13,8 +13,8 @@ import (
 	"m31labs.dev/gsxmail/renderhtml"
 )
 
-// elementAllowlist is the EM003 allowlist (design spec section 8): the
-// only raw HTML elements an email template may use directly.
+// elementAllowlist is the EM003 allowlist: the only raw HTML elements
+// an email template may use directly.
 var elementAllowlist = map[string]bool{
 	"table": true, "tr": true, "td": true, "th": true,
 	"div": true, "span": true, "p": true, "a": true, "img": true,
@@ -25,8 +25,8 @@ var elementAllowlist = map[string]bool{
 }
 
 // Options configures CheckProgram beyond the compiled IR: the registered
-// helpers (EM014/EM015), the caniemail matrix (EM101/EM102), and (design
-// spec section 15, WP5.2) the Set's own Theme, which EM143 needs to judge
+// helpers (EM014/EM015), the caniemail matrix (EM101/EM102), and the
+// Set's own Theme, which EM143 needs to judge
 // whether a raw element's literal color has a dark-palette counterpart.
 // The zero value selects DefaultMatrix(), treats every helper call as
 // unregistered, and (Theme's own zero value carrying DarkMode "") never
@@ -37,8 +37,8 @@ type Options struct {
 	Theme   renderhtml.Theme
 }
 
-// CheckProgram runs the email lint catalog, EM001 through EM112 (design
-// spec section 8), over every component prog declares and returns every
+// CheckProgram runs the email lint catalog, EM001 through EM112, over
+// every component prog declares and returns every
 // finding. file is recorded on every Diagnostic: gosx.Compile takes no
 // filename, so ir.Span.File is always empty, and the caller (gsxmail.Load)
 // is the one that knows which *.gsx path prog came from. resolver resolves
@@ -46,7 +46,7 @@ type Options struct {
 // component's directory within resolver's underlying fs.FS. CheckProgram
 // does not stop at the first finding: it collects every one, across every
 // component prog declares, so a caller can fail closed with the complete
-// list (spec section 7.1).
+// list.
 func CheckProgram(file string, prog *ir.Program, resolver *typesafe.Resolver, dir string, opts Options) []Diagnostic {
 	matrix := opts.Matrix
 	if matrix == nil {
@@ -67,8 +67,8 @@ type walker struct {
 	prog    *ir.Program
 	matrix  *Matrix
 	helpers map[string]any
-	// theme and darkTokens back EM143 (design spec section 15, WP5.2): a
-	// raw element's literal color with no counterpart in either palette,
+	// theme and darkTokens back EM143: a raw element's literal color with
+	// no counterpart in either palette,
 	// checked only under DarkMode "adaptive" — see checkStyle.
 	theme      renderhtml.Theme
 	darkTokens map[string]bool
@@ -105,7 +105,7 @@ func (w *walker) add(n *ir.Node, code, severity, msg string) {
 // addExprViolation reports v (typesafe's result for one checked
 // expression) unless it is the generic EM012 "no such field" finding for
 // a template whose props type itself failed to resolve — see
-// exprContext.propsUnresolved's own doc comment (launch-gate B3).
+// exprContext.propsUnresolved's own doc comment.
 func (w *walker) addExprViolation(n *ir.Node, ctx *exprContext, v *typesafe.Violation) {
 	if v == nil {
 		return
@@ -132,7 +132,7 @@ func (w *walker) checkComponent(comp ir.Component, resolver *typesafe.Resolver, 
 		case err != nil:
 			// The resolver actually tried to resolve comp.PropsType and
 			// failed — most often an import the type-checker's importer
-			// cannot find (launch-gate B3), not an undeclared or
+			// cannot find, not an undeclared or
 			// non-struct type (Resolve itself reports those as its own
 			// %w-wrapped errors here too, so this still covers both).
 			// EM192 surfaces the real cause once, instead of letting
@@ -230,8 +230,8 @@ func (w *walker) checkElementAttr(n *ir.Node, a ir.Attr, ctx *exprContext) {
 // but still checks hrefs and every expression hole. slicePathAttrs names
 // this component's own attributes (if any) that are slice-valued rather
 // than interpolated text — <email.StatTable header={...}> and
-// <email.StatRow cells={...}> (spec section 7.2's "Rows built from Each
-// over props data or literal rows") — so checkComponentAttr can route them
+// <email.StatRow cells={...}>, rows built from Each over props data or
+// literal rows — so checkComponentAttr can route them
 // through CheckSlicePath instead of the scalar-only CheckInterpolation.
 func (w *walker) checkComponentAttr(n *ir.Node, a ir.Attr, ctx *exprContext, slicePathAttrs map[string]bool) {
 	if a.Name == "href" && a.Kind == ir.AttrStatic {
@@ -253,8 +253,8 @@ func (w *walker) checkComponentAttr(n *ir.Node, a ir.Attr, ctx *exprContext, sli
 // statTableSliceAttrs and statRowSliceAttrs name the one slice-valued
 // attribute each of these two stdlib components accepts (the local name
 // after the "email." namespace prefix splitTag strips): <email.StatTable
-// header={...}> and <email.StatRow cells={...}> (design spec section 7.2).
-// Every other email.* component's attributes are ordinary interpolated
+// header={...}> and <email.StatRow cells={...}>. Every other
+// email.* component's attributes are ordinary interpolated
 // text or bool holes and stay on the generic CheckInterpolation path.
 var statTableSliceAttrs = map[string]bool{"header": true}
 var statRowSliceAttrs = map[string]bool{"cells": true}
@@ -297,8 +297,7 @@ func (w *walker) checkImg(n *ir.Node) {
 
 // checkImgAttrs is checkImg's own logic (EM111/EM112), generalized to a
 // component whose image attributes are not literally named "src"/"alt" —
-// email.Column's own imgSrc/imgAlt (checkColumnImage, m4, launch-gate
-// findings).
+// email.Column's own imgSrc/imgAlt (checkColumnImage).
 func (w *walker) checkImgAttrs(n *ir.Node, srcAttr, altAttr string) {
 	src, hasSrc, srcStatic := attrValue(n.Attrs, srcAttr)
 	if !hasSrc || (srcStatic && !strings.HasPrefix(src, "https://")) {
@@ -311,8 +310,8 @@ func (w *walker) checkImgAttrs(n *ir.Node, srcAttr, altAttr string) {
 }
 
 // checkColumnImage implements EM111/EM112 for email.Column's own
-// imgSrc/imgAlt attributes (m4, launch-gate findings): the same absolute-
-// https src and non-empty alt rules raw <img> and email.Hero already
+// imgSrc/imgAlt attributes: the same absolute-https src and non-empty
+// alt rules raw <img> and email.Hero already
 // enforce. Unlike Hero's image, Column's is optional (doc.Column's own
 // doc comment: "an optional image ... all four together or none"), so
 // this only runs at all when imgSrc is present — a Column with no image
@@ -329,7 +328,7 @@ func (w *walker) checkColumnImage(n *ir.Node) {
 // gsxmail cannot check without rendering (present true, isStatic false), or
 // that it is absent (present false).
 // findAttr finds name in attrs and returns it, or nil if absent. checkShell
-// (design spec section 15, WP5.2) is the one caller that needs the whole
+// is the one caller that needs the whole
 // ir.Attr (kind and expression source, not just a resolved static value) —
 // attrValue below serves every other caller's narrower need.
 func findAttr(attrs []ir.Attr, name string) *ir.Attr {
@@ -376,9 +375,8 @@ func (w *walker) checkStyle(n *ir.Node, raw string) {
 	w.checkDarkPaletteCoverage(n, raw)
 }
 
-// checkDarkPaletteCoverage implements EM143 (design spec section 15,
-// WP5.2; pixel dossier section 5.3, rule 3's "Custom block color" case):
-// under DarkMode "adaptive", a raw element's literal color or
+// checkDarkPaletteCoverage implements EM143: under DarkMode "adaptive",
+// a raw element's literal color or
 // background-color that matches neither the light Theme's nor Theme.Dark's
 // own tokens has nowhere to go when the adaptive style layer swaps in —
 // a forced transform will recolor it unpredictably instead. It only
@@ -469,9 +467,8 @@ func collectDarkTokens(theme renderhtml.Theme) map[string]bool {
 	return tokens
 }
 
-// checkShell validates <email.Shell>'s own WP5.2 attributes (design spec
-// section 15, WP5.2; pixel dossier section 4.2's Shell options and section
-// 6.1's preheader contract):
+// checkShell validates <email.Shell>'s own attributes, its Shell options
+// and its preheader contract:
 //
 //   - EM170 (warn) flags a Shell with no preheader attribute at all — a
 //     discoverable authoring smell, not a rendering bug, since the source
@@ -579,15 +576,15 @@ func (w *walker) checkComponentNode(n *ir.Node, ctx *exprContext) {
 		w.checkEach(n, ctx)
 	case n.Tag == "email.Columns":
 		// Columns is special-cased ahead of the generic ns == "email"
-		// branch below (WP5.3; pixel dossier section 4.9): it validates and
-		// recurses into its own <email.Column> children itself, rather than
+		// branch below: it validates and recurses into its own
+		// <email.Column> children itself, rather than
 		// letting the generic per-node dispatch reach them — see
 		// checkColumns and EM177's own doc comment for why.
 		w.checkColumns(n, ctx)
 	case ns == "email":
 		// A recognized stdlib namespace. Which email.* member it names, and
-		// whether that member exists at all, is package lower's job
-		// (spec section 15, WP1); the lint only validates this node's own
+		// whether that member exists at all, is package lower's job;
+		// the lint only validates this node's own
 		// attribute expressions and recurses into its children.
 		slicePathAttrs := sliceAttrsFor(local)
 		for _, a := range n.Attrs {
@@ -608,7 +605,7 @@ func (w *walker) checkComponentNode(n *ir.Node, ctx *exprContext) {
 		case "Column":
 			// A <email.Column> reached through this generic dispatch was
 			// not consumed by checkColumns above, so it is not a direct
-			// child of <email.Columns> (design spec section 15, WP5.3).
+			// child of <email.Columns>.
 			w.add(n, "EM177", "error", `<email.Column> must be a direct child of <email.Columns>`)
 		case "Hero":
 			w.checkHero(n)
@@ -642,8 +639,7 @@ func isBlankNode(n *ir.Node) bool {
 	return n.Kind == ir.NodeText && strings.TrimSpace(n.Text) == ""
 }
 
-// checkButton implements EM175 (design spec section 15, WP5.3; pixel
-// dossier section 4.4): <email.Button>'s variant attribute, when present,
+// checkButton implements EM175: <email.Button>'s variant attribute, when present,
 // must be a static "primary", "secondary", or "link" — the button
 // technique is a structural, compile-time choice, the same reasoning
 // checkShell's own outlook attribute (EM172) already applies.
@@ -669,8 +665,8 @@ func (w *walker) checkButton(n *ir.Node) {
 	w.checkPositiveIntAttr(n, "email.Button", "width")
 }
 
-// checkPositiveIntAttr implements EM181 (design spec's B1 gate): when
-// component's name attribute is a static value, it must be empty (the
+// checkPositiveIntAttr implements EM181: when component's name
+// attribute is a static value, it must be empty (the
 // field is optional and falls back to a computed default) or a positive
 // decimal integer with no sign, decimal point, or extra characters —
 // gsxmail writes every one of these fields unquoted into an HTML attribute
@@ -708,8 +704,7 @@ func isPositiveDecimalInt(s string) bool {
 	return err == nil && n > 0
 }
 
-// checkColumns implements EM176 (design spec section 15, WP5.3; pixel
-// dossier section 4.9): every child of <email.Columns> must be an
+// checkColumns implements EM176: every child of <email.Columns> must be an
 // <email.Column>, and there must be between two and four of them — narrow
 // enough that each column's own max-width formula
 // (renderhtml.writeColumns) stays legible on a 600px card, wide enough
@@ -747,7 +742,7 @@ func (w *walker) checkColumns(n *ir.Node, ctx *exprContext) {
 	}
 }
 
-// checkPanel implements EM197 (M10, launch-gate findings): every child of
+// checkPanel implements EM197: every child of
 // <email.Panel> must be an <email.PanelRow> — the same child-kind
 // contract lower.lowerPanelRows already enforces as its own backstop, now
 // caught here first, with a real file:line:col position. A correctly
@@ -767,7 +762,7 @@ func (w *walker) checkPanel(n *ir.Node) {
 	}
 }
 
-// checkPickList implements EM198 (M10, launch-gate findings): every child
+// checkPickList implements EM198: every child
 // of <email.PickList> must be an <email.Item> — lower.lowerItems' own
 // backstop, now caught here first, with a real position.
 func (w *walker) checkPickList(n *ir.Node) {
@@ -783,7 +778,7 @@ func (w *walker) checkPickList(n *ir.Node) {
 	}
 }
 
-// checkStatTable implements EM199 (M10, launch-gate findings): every
+// checkStatTable implements EM199: every
 // child of <email.StatTable> must be an <email.StatRow> or an <Each> —
 // and an <Each> there must wrap exactly one <email.StatRow>, in either
 // case lower.lowerStatTable/singleStatRowChild's own backstop, now
@@ -832,13 +827,13 @@ func (w *walker) checkStatTableEach(each *ir.Node) {
 }
 
 // checkAttrSchema implements EM190 (unknown attribute), EM191 (required
-// attribute absent), and EM196 (unknown email.* member — launch-gate
-// M10), the launch-gate B4 finding: local's attribute surface comes from
-// lower.Schema — package lower's own single source of truth for what its
+// attribute absent), and EM196 (unknown email.* member): local's
+// attribute surface comes from lower.Schema — package lower's own
+// single source of truth for what its
 // lowerBlock/lowerShell/lowerColumn/lowerStatRow switch reads — so lint
 // never invents its own, possibly drifting, copy of that list.
 //
-// EM196 (M10) moves package lower's own "component <email.%s> is not on
+// EM196 moves package lower's own "component <email.%s> is not on
 // the email.* component list" check into lint, with a real source
 // position: before this, an unrecognized member name (a typo such as
 // <email.Colum> for <email.Column>) passed `gsxmail check` silently and
@@ -872,9 +867,8 @@ func (w *walker) checkAttrSchema(n *ir.Node, local string) {
 	}
 }
 
-// checkItem implements email.Item's own EM191 case (design spec section
-// 15, WP1): unlike every other required field in the launch-gate B4
-// finding's list, an Item's text is its inline text/expression content
+// checkItem implements email.Item's own EM191 case: unlike every other
+// required field's schema entry, an Item's text is its inline text/expression content
 // (lower.lowerItems' own inlineContent), not an attribute — so
 // checkAttrSchema's attribute-table check cannot see it, and this small,
 // dedicated check stands in for it instead.
@@ -888,14 +882,13 @@ func (w *walker) checkItem(n *ir.Node) {
 	w.add(n, "EM191", "error", `<email.Item> requires non-blank text content`)
 }
 
-// checkHero implements Hero's own attribute checks (design spec section
-// 15, WP5.3; pixel dossier section 4.10). It reuses checkImg verbatim for
+// checkHero implements Hero's own attribute checks. It reuses checkImg verbatim for
 // src/alt — EM111 (an absolute https src) and EM112 (non-empty alt) apply
 // to Hero exactly as they already do to a raw <img>, since checkImg reads
 // n.Attrs generically regardless of whether n is an element or a
-// component node. EM178 is the one WP5.3-specific addition: both width
-// and height are required, the retina display-size attributes the pixel
-// dossier's own retina rule (section 6.2) states.
+// component node. EM178 is Hero's own addition: both width
+// and height are required, the retina display-size attributes a Hero
+// image needs.
 func (w *walker) checkHero(n *ir.Node) {
 	w.checkImg(n)
 	for _, name := range []string{"width", "height"} {
@@ -909,8 +902,7 @@ func (w *walker) checkHero(n *ir.Node) {
 	w.checkPositiveIntAttr(n, "email.Hero", "height")
 }
 
-// checkSpacer implements EM179 (design spec section 15, WP5.3; pixel
-// dossier section 4.8): <email.Spacer> requires a height attribute — the
+// checkSpacer implements EM179: <email.Spacer> requires a height attribute — the
 // one thing that gives the spacer table its exact-height contract any
 // meaning.
 func (w *walker) checkSpacer(n *ir.Node) {
@@ -922,8 +914,7 @@ func (w *walker) checkSpacer(n *ir.Node) {
 	w.checkPositiveIntAttr(n, "email.Spacer", "height")
 }
 
-// checkBadge implements EM180 (design spec section 15, WP5.3; pixel
-// dossier section 4.11): <email.Badge>'s tone attribute, when present,
+// checkBadge implements EM180: <email.Badge>'s tone attribute, when present,
 // must be a static "neutral", "positive", "warning", or "critical" —
 // renderhtml.badgeToneColor's own closed set.
 func (w *walker) checkBadge(n *ir.Node) {

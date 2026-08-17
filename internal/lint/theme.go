@@ -10,14 +10,14 @@ import (
 	"m31labs.dev/gsxmail/renderhtml"
 )
 
-// CheckTheme runs the WP5.2 Theme-level dark-mode checks (design spec
-// section 15, WP5.2; pixel dossier section 5, EM140/EM141/EM142/EM144)
-// once per Load call, against the Set's own Options.Theme rather than any
-// one template's source. gsxmail.Load appends its result to the same
-// diagnostic list every template's own CheckProgram call contributes to,
-// so an error-severity finding here fails Load closed exactly like any
-// other (EM143, the one remaining WP5.2 theme-adjacent rule, is a
-// per-template AST check instead — see catalog.go's checkDarkPaletteCoverage).
+// CheckTheme runs the Theme-level dark-mode checks
+// (EM140/EM141/EM142/EM144) once per Load call, against the Set's own
+// Options.Theme rather than any one template's source. gsxmail.Load
+// appends its result to the same diagnostic list every template's own
+// CheckProgram call contributes to, so an error-severity finding here
+// fails Load closed exactly like any other (EM143, the one remaining
+// theme-adjacent rule, is a per-template AST check instead — see
+// catalog.go's checkDarkPaletteCoverage).
 //
 // A Diagnostic here carries no File/Line/Col, the same "no source
 // position" shape gsxmail.SizeBudgetError's own Diagnostic uses: the
@@ -36,7 +36,7 @@ func CheckTheme(theme renderhtml.Theme) []Diagnostic {
 
 	// EM144: an explicit ColorScheme must agree with what DarkMode implies.
 	// "none" is unconstrained — ColorScheme alone still drives the meta
-	// tags, exactly as WP5.1 shipped. "locked" implies a dark-native meta,
+	// tags. "locked" implies a dark-native meta,
 	// so any ColorScheme other than "dark" is a real conflict. "adaptive"
 	// computes "light dark" itself (renderhtml.writeHead overrides the
 	// meta outright), so any single-value ColorScheme is stale or
@@ -58,7 +58,7 @@ func CheckTheme(theme renderhtml.Theme) []Diagnostic {
 	// directly; "adaptive" means Theme.Dark is the swapped-in dark
 	// presentation, so Theme's own (light) fields are deliberately left
 	// unchecked — a light theme's white card is normal, not a dark-mode
-	// design smell (pixel dossier section 5.3, rules 1-2). "none" runs
+	// design smell. "none" runs
 	// neither check: a plain light theme never participates in a dark
 	// strategy at all.
 	switch strategy {
@@ -70,8 +70,8 @@ func CheckTheme(theme renderhtml.Theme) []Diagnostic {
 		}
 	}
 
-	// M2 (launch-gate findings): Badge's status tones render against
-	// theme.ColorCard under every DarkMode strategy — "none" included, a
+	// Badge's status tones render against theme.ColorCard under every
+	// DarkMode strategy — "none" included, a
 	// plain light theme's white card is exactly where a badge tone most
 	// often appears — so this check is unconditional, unlike EM141 above.
 	checkBadgeToneContrast(&diags, theme)
@@ -79,8 +79,8 @@ func CheckTheme(theme renderhtml.Theme) []Diagnostic {
 	return diags
 }
 
-// checkBadgeToneContrast implements EM141's badge-tone extension (M2,
-// launch-gate findings): renderhtml.BadgeToneColors already picked the
+// checkBadgeToneContrast implements EM141's badge-tone extension:
+// renderhtml.BadgeToneColors already picked the
 // light- or dark-card variant that should clear 4.5:1 against
 // theme.ColorCard; this re-verifies that at Load time, against the
 // caller's own theme, rather than trusting the two variants' own
@@ -127,9 +127,9 @@ func darkColorMap(d *renderhtml.DarkPalette) map[string]string {
 // checkPalette runs EM142 (pure black/white) over every color in colors,
 // and EM141 (WCAG AA body-text contrast, 4.5:1) over the two token pairs
 // that actually carry body text: ColorInk-on-ColorCard and
-// ColorBody-on-ColorCard (pixel dossier section 5.3, rule 2: "Every
-// text/background token pair ... must clear 4.5:1"; scoped to the two text
-// tokens against the card background they render on, rather than every
+// ColorBody-on-ColorCard: every text/background token pair must clear
+// 4.5:1, scoped to the two text tokens against the card background
+// they render on, rather than every
 // possible pairing). labelPrefix distinguishes a light Theme's own tokens
 // ("") from Theme.Dark's ("Dark.") in a message.
 func checkPalette(diags *[]Diagnostic, labelPrefix string, colors map[string]string) {

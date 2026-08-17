@@ -10,11 +10,10 @@ import (
 )
 
 // caniemailLicense and caniemailAttribution record the caniemail
-// dataset's own terms (m9, launch-gate findings), verified by fetching
+// dataset's own terms, verified by fetching
 // https://github.com/HTeuMeuLeu/caniemail's own README directly: it
-// states "MIT Licence" (with a link to its own MIT LICENSE file), not
-// the CC BY 4.0 this project once assumed. `gsxmail matrix refresh`
-// writes both into every regenerated snapshot.json.
+// states "MIT Licence" (with a link to its own MIT LICENSE file).
+// `gsxmail matrix refresh` writes both into every regenerated snapshot.json.
 const caniemailLicense = "MIT"
 
 const caniemailAttribution = "Client-support data from caniemail (https://www.caniemail.com), maintained at https://github.com/HTeuMeuLeu/caniemail, Copyright (c) 2019 Rémi Parmentier, MIT License."
@@ -26,12 +25,10 @@ type clientSpec struct {
 	id, label, family, platform string
 }
 
-// defaultClients is the client/platform set BuildSnapshot resolves support
-// data for: the design spec's proposed default (section 16, open question
-// 3 — Gmail web/iOS/Android, Apple Mail macOS/iOS, Outlook Windows
-// desktop/web, Yahoo web), which the framework owner has not yet ratified
-// beyond this proposal. Widening or narrowing this set is a `gsxmail
-// matrix refresh` code change, reviewed like any other.
+// defaultClients is the client/platform set BuildSnapshot resolves
+// support data for: Gmail web/iOS/Android, Apple Mail macOS/iOS,
+// Outlook Windows desktop/web, Yahoo web. Widening or narrowing this
+// set is a `gsxmail matrix refresh` code change, reviewed like any other.
 var defaultClients = []clientSpec{
 	{"gmail-web", "Gmail (web)", "gmail", "desktop-webmail"},
 	{"gmail-ios", "Gmail (iOS)", "gmail", "ios"},

@@ -17,9 +17,8 @@ import (
 var snapshotJSON []byte
 
 // Client is one entry in the default supported-client set the embedded
-// snapshot carries support data for (design spec section 16, open question
-// 3: Gmail web/iOS/Android, Apple Mail macOS/iOS, Outlook Windows
-// desktop/web, Yahoo web).
+// snapshot carries support data for: Gmail web/iOS/Android, Apple Mail
+// macOS/iOS, Outlook Windows desktop/web, Yahoo web.
 type Client struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
@@ -33,13 +32,13 @@ type PropertySupport struct {
 	Support map[string]string `json:"support"`
 }
 
-// Snapshot is the embedded, dated caniemail client-support dataset (spec
-// section 8's "snapshot %s"), trimmed to the CSS-property features and the
-// client/platform pairs the default supported-client set needs.
+// Snapshot is the embedded, dated caniemail client-support dataset,
+// trimmed to the CSS-property features and the client/platform pairs the
+// default supported-client set needs.
 //
-// License and Attribution record the caniemail dataset's own terms (m9,
-// launch-gate findings): the maintained source
-// (https://github.com/HTeuMeuLeu/caniemail) states "MIT Licence" in its
+// License and Attribution record the caniemail dataset's own terms: the
+// maintained source (https://github.com/HTeuMeuLeu/caniemail) states
+// "MIT Licence" in its
 // own README, not the CC BY 4.0 this project once assumed — verified by
 // fetching that README directly, not carried over from memory.
 type Snapshot struct {
@@ -114,7 +113,7 @@ func NewMatrix(s *Snapshot) *Matrix {
 func (m *Matrix) SnapshotDate() string { return m.snap.Date }
 
 // SnapshotAttribution is the caniemail dataset's own license and
-// attribution line (m9, launch-gate findings), for a caller that wants to
+// attribution line, for a caller that wants to
 // surface it (the README's "Prior art and attribution" section carries
 // the same text).
 func (m *Matrix) SnapshotAttribution() string { return m.snap.Attribution }
