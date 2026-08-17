@@ -2,7 +2,13 @@
 
 All notable changes to gsxmail are documented in this file.
 
-## Unreleased
+## v0.1.0 (2026-08-16)
+
+The first release: write email templates as GoSX components and get
+pixel-targeted HTML plus a matched plain-text part from one source. Every
+template is validated against a real client-support matrix before it can
+render, the emitted markup is structurally verified by a second parser, and
+`gsxmail import` converts existing email HTML into working templates.
 
 ### Changed (polish item 1)
 
