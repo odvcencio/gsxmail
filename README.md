@@ -541,6 +541,24 @@ Treat an EM014 or EM015 finding from `check` as informational. Validate
 helper bindings with `Set.Check()` in your own test instead, where
 `Options.Helpers` holds your real functions.
 
+### `gsxmail new`
+
+```sh
+gsxmail new Welcome --dir emails --package emails
+```
+
+Scaffolds one starter template, so a new project has something working to
+edit instead of a blank directory. Writes three files under `--dir`
+(default `emails`): `welcome.gsx` (a `Shell`, `Headline`, `CTA`, and
+`Footer` over one props struct), `welcome.go` (the props struct, one
+field per attribute the template uses, each documented), and
+`welcome.props.json` (a sample fixture with every field filled in, ready
+for `gsxmail render` or `gsxmail check`). `Welcome` follows the same
+`Email` suffix convention as `import`'s `--name`: a bare name gains the
+suffix, and the generated file's stem lower-cases only the name's first
+letter (`PasswordReset` becomes `passwordReset.gsx`). `new` refuses to
+overwrite a file that already exists, so it never clobbers your edits.
+
 ### `gsxmail import`
 
 ```sh

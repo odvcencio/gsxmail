@@ -4,6 +4,16 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (polish item 10)
+
+- **Item 10.** A new `gsxmail new <Name>` verb scaffolds one starter
+  template: `<name>.gsx` (a `Shell`, `Headline`, `CTA`, and `Footer` over
+  one props struct), `<name>.go` (the matching props struct, each field
+  documented), and `<name>.props.json` (a sample fixture with every field
+  filled in). `<Name>` follows `import`'s own "Email" suffix convention.
+  `new` refuses to overwrite an existing file. README gains a `gsxmail
+  new` section under "The CLI".
+
 ### Added (polish items 2, 4, 6)
 
 - **Item 6.** New sentinel errors — `ErrCompile`, `ErrLower`,

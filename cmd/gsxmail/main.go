@@ -31,6 +31,8 @@ func run(args []string) error {
 		return runCheck(args[1:])
 	case "import":
 		return runImport(args[1:])
+	case "new":
+		return runNew(args[1:])
 	case "matrix":
 		return runMatrix(args[1:])
 	case "-h", "--help", "help":
@@ -80,6 +82,15 @@ verbs:
       imports gsxmail itself, and is safe to delete. This is the one
       gsxmail verb that imports gotreesitter; see the README's "Import
       from existing HTML" section.
+
+  new <Name> [--dir emails] [--package emails]
+      Scaffolds one starter template: <name>.gsx (a Shell, Headline, CTA,
+      and Footer over one props struct), <name>.go (the props struct, one
+      field per attribute the template uses), and <name>.props.json (a
+      sample fixture matching every field). "<Name>" follows the same
+      "Email" suffix convention as import's --name ("Welcome" becomes
+      "WelcomeEmail"). Writes under --dir (default: emails) and refuses
+      to overwrite an existing file.
 
   matrix refresh [--out lint/snapshot.json]
       Downloads the caniemail dataset, rewrites the embedded snapshot
