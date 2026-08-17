@@ -211,6 +211,9 @@ func Load(fsys fs.FS, opts Options) (*Set, error) {
 	// check opts.Theme itself, once per Load call — not per template, since
 	// every template in this Set shares the same Theme.
 	diagnostics = append(diagnostics, lint.CheckTheme(opts.Theme)...)
+	// EM194 (design spec section 13.2; M9) is Load's own gosx version-skew
+	// signal, once per Load call — see checkGosxSkew's own doc comment.
+	diagnostics = append(diagnostics, checkGosxSkew()...)
 	if hasErrorDiagnostic(diagnostics) {
 		return nil, &LintError{Diagnostics: diagnostics}
 	}

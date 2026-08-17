@@ -10,12 +10,16 @@ import (
 )
 
 // htmlLang is the one gotreesitter Language this package ever asks for
-// (structverify's own doc comment states the same restraint). Building
-// the CLI with `-tags 'grammar_subset grammar_subset_html'` keeps the
-// shipped binary small (see the CLI build docs and README's import
-// section for the measured delta); this package itself carries no build
-// tag, so a plain `go test ./...` still links every embedded grammar,
-// exactly like internal/structverify already does.
+// (structverify's own doc comment states the same restraint). Since
+// gsxmail never needs any other grammar, `-tags 'grammar_subset
+// grammar_subset_html'` is the CLI's recommended, documented default
+// build (README's "The CLI" and "Import from existing HTML" sections,
+// m6): the untagged build still works — gotreesitter's own default is
+// "embed every grammar" — but it pays roughly 19 MiB for languages this
+// package never asks for. This package itself carries no build tag, so a
+// plain `go test ./...` still links every embedded grammar, exactly like
+// internal/structverify already does; binsize_test.go is what
+// actually measures and gates the recommended tagged CLI build's size.
 var htmlLang = grammars.HtmlLanguage()
 
 // node is one importer-owned DOM node: a normalized view of a

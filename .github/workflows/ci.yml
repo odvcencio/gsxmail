@@ -1,0 +1,84 @@
+# CI (launch-gate M9). Two jobs:
+#
+#   - test: build, vet, gofmt, and race-enabled tests, once against the
+#     m31labs.dev/gosx version go.mod pins ("pinned") and once against
+#     the latest tagged gosx release ("latest") — the same window
+#     skew.go's own checkGosxSkew warns about at Load time, proven here
+#     instead of just documented.
+#   - size-gate: builds the CLI with the recommended default tags
+#     (grammar_subset, grammar_subset_html; README's "The CLI" section,
+#     m6) and fails if the binary exceeds 30 MB — the same budget
+#     binsize_test.go checks locally.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (gosx=${{ matrix.gosx }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gosx: [pinned, latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Bump m31labs.dev/gosx to latest
+        if: matrix.gosx == 'latest'
+        run: |
+          go get m31labs.dev/gosx@latest
+          go mod tidy
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: gofmt
+        run: |
+          out="$(gofmt -l .)"
+          if [ -n "$out" ]; then
+            echo "gofmt would reformat:"
+            echo "$out"
+            exit 1
+          fi
+
+      - name: Test (race)
+        run: go test -race -count=1 ./...
+
+  size-gate:
+    name: CLI size gate (<30MB, tagged)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build the tagged CLI
+        run: |
+          go build -tags 'grammar_subset grammar_subset_html' \
+            -o /tmp/gsxmail ./cmd/gsxmail
+
+      - name: Check binary size
+        run: |
+          size=$(stat -c%s /tmp/gsxmail)
+          budget=$((30 * 1024 * 1024))
+          echo "gsxmail CLI (tagged): ${size} bytes"
+          if [ "$size" -gt "$budget" ]; then
+            echo "::error::gsxmail CLI is ${size} bytes; the m6 size gate is ${budget} bytes (30 MB)"
+            exit 1
+          fi

@@ -4,6 +4,40 @@ All notable changes to gsxmail are documented in this file.
 
 ## Unreleased
 
+### Added (M9: CI, version, gosx skew guard)
+
+- `.github/workflows/ci.yml`: build, vet, gofmt, and `go test -race`,
+  once against the `m31labs.dev/gosx` version go.mod pins and once
+  against the latest tagged gosx release (the "pinned"/"latest" matrix),
+  plus a size-gate job that fails if the recommended-tags CLI build
+  exceeds 30 MB.
+- `version.go`: `Version` const (gsxmail's own release version).
+- `skew.go`: `Load` now runs a gosx version-skew check (design spec
+  section 13.2, following `cmd/gosx`'s own `checkVersionSkew`): a
+  warn-severity `EM194` finding when the `m31labs.dev/gosx` release
+  actually linked into the build differs from the one gsxmail's own test
+  suite and goldens are verified against. Unlike `cmd/gosx`, this never
+  fails `Load` closed — gsxmail is a library many processes import, and
+  the lint/lower pass already ran against whatever gosx build resolved.
+
+### Changed (m6: invert the CLI's default build tags)
+
+- `gsxmail import` never asks gotreesitter for any grammar but HTML, so
+  README's "The CLI" section now leads with
+  `go install -tags 'grammar_subset grammar_subset_html' ...` as the
+  recommended command: roughly 24.4 MB, instead of the untagged
+  default's roughly 43.0 MB (gotreesitter's own default embeds all
+  ~540 grammars it ships). The untagged build still works; it is no
+  longer the documented default. `binsize_test.go`'s
+  `TestCLIBinarySizeUnderBudget` builds the tagged CLI and asserts it
+  stays under 30 MB.
+- Go's own toolchain has no mechanism for a library to force default
+  build tags onto a downstream `go install` invocation that passes none
+  — this change makes the small build the *documented and CI-gated*
+  default, which is the lever gsxmail actually has; a user who runs bare
+  `go install` with no flags at all still gets gotreesitter's own
+  untagged default.
+
 ### Fixed (M7: the README quickstart snippet did not compile)
 
 - The "60-second quick start" snippet used a bare `WelcomeProps{...}`

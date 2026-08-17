@@ -391,15 +391,17 @@ HTML and re-imported, which recover their exact original component
 sequence. `IMPORT-REPORT.md` is not an apology; it is the map of what to
 review before you ship the result.
 
-Build the CLI with `-tags 'grammar_subset grammar_subset_html'` to keep
-gotreesitter's own footprint small: the tagged build adds roughly 819 KiB
-over a build with no import verb at all (25,513,420 vs 24,674,716
-bytes); the default, untagged build embeds every grammar gotreesitter
-ships and costs roughly 19.4 MiB more. `gsxmail import`, and the CLI it
-ships in, are the only places in this repository that import
-gotreesitter outside a test file — `renderhtml`, `doc`, `lower`, and
-`gsxmail.go` (the render path `Load`/`Render` execute) never do, proven
-by `structural_isolation_test.go`.
+Build the CLI with `-tags 'grammar_subset grammar_subset_html'` (the
+recommended default, "The CLI" section above) to keep gotreesitter's own
+footprint small: a tagged build measures roughly 24.4 MiB (25,593,933
+bytes); an untagged build embeds every one of the ~540 grammars
+gotreesitter ships and measures roughly 43.0 MiB (45,108,725 bytes) — a
+19 MiB cost for grammars `gsxmail import` never asks for. `gsxmail
+import`, and the CLI it ships in, are the only places in this repository
+that import gotreesitter outside a test file — `renderhtml`,
+`internal/doc`, `internal/lower`, and `gsxmail.go` (the render path
+`Load`/`Render` execute) never do, proven by
+`structural_isolation_test.go`.
 
 ## Size budget
 
@@ -473,7 +475,7 @@ version, including the template and its props.
 ## The CLI
 
 ```sh
-go install m31labs.dev/gsxmail/cmd/gsxmail@latest
+go install -tags 'grammar_subset grammar_subset_html' m31labs.dev/gsxmail/cmd/gsxmail@latest
 
 gsxmail render WelcomeEmail \
   --dir emails \
@@ -483,6 +485,17 @@ gsxmail render WelcomeEmail \
 
 This writes `WelcomeEmail.html` and `WelcomeEmail.txt`. Pass `--html -` or
 `--text -` to stream one part to stdout instead.
+
+The `-tags` flag above is the recommended default (m6, launch-gate
+findings): `gsxmail import` — the one verb that reaches
+[gotreesitter](https://github.com/odvcencio/gotreesitter) — never asks
+for any grammar but HTML, so a plain `go install` with no tags at all
+pays for gotreesitter's own default of embedding all ~540 grammars it
+ships, for no benefit this CLI ever uses. `binsize_test.go`'s
+`TestCLIBinarySizeUnderBudget` builds the tagged CLI and asserts it stays
+under 30 MB. Omit the tags only if you are debugging gotreesitter itself
+against a grammar other than HTML — nothing in gsxmail's own verbs needs
+one.
 
 ### `gsxmail check`
 
