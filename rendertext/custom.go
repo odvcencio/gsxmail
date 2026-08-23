@@ -143,7 +143,11 @@ func cellText(cell doc.ResolvedCustomNode) string {
 
 // deriveLinkText renders <a> as "label (url)", unless the label is
 // empty or equal to the url, in which case the url
-// alone is enough.
+// alone is enough. An href failing doc.SafeURL renders its label alone —
+// fail-closed, the same judgment writeCustomNode applies to the same
+// subtree in the HTML part (it drops the attribute; this drops the URL
+// suffix) — so an unsafe dynamic value never reaches either output part
+// even when a caller drives a writer directly, skipping the email lint.
 func deriveLinkText(a doc.ResolvedCustomNode) string {
 	var b strings.Builder
 	for _, c := range a.Children {
@@ -153,6 +157,8 @@ func deriveLinkText(a doc.ResolvedCustomNode) string {
 	href, hasHref := attrValue(a.Attrs, "href")
 	switch {
 	case !hasHref || href == "":
+		return label
+	case !doc.SafeURL(href):
 		return label
 	case label == "" || label == href:
 		return href

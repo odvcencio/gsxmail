@@ -1,10 +1,15 @@
-# CI (launch-gate M9). Two jobs:
+# CI. Two jobs:
 #
 #   - test: build, vet, gofmt, and race-enabled tests, once against the
 #     m31labs.dev/gosx version go.mod pins ("pinned") and once against
-#     the latest tagged gosx release ("latest") — the same window
-#     skew.go's own checkGosxSkew warns about at Load time, proven here
-#     instead of just documented.
+#     the latest tagged gosx release ("latest"). This matrix IS gsxmail's
+#     gosx compatibility policy: every behavioral test — compile, lint,
+#     goldens, render parity — must pass in both lanes, so a red "latest"
+#     job means a real incompatibility with the newest release, not a
+#     version-string mismatch (Load appends no version-skew diagnostic;
+#     see README's "gosx version window" section). The matrix axis is
+#     passed to the suite as GSXMAIL_GOSX_LANE, which compat_test.go uses
+#     to prove each lane tests what its name claims.
 #   - size-gate: builds the CLI with the recommended default tags
 #     (grammar_subset, grammar_subset_html; README's "The CLI" section,
 #     m6) and fails if the binary exceeds 30 MB — the same budget
@@ -56,6 +61,8 @@ jobs:
           fi
 
       - name: Test (race)
+        env:
+          GSXMAIL_GOSX_LANE: ${{ matrix.gosx }}
         run: go test -race -count=1 ./...
 
   size-gate:

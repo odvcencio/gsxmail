@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/odvcencio/gotreesitter v0.50.1
 	golang.org/x/net v0.52.0
-	m31labs.dev/gosx v0.42.2
+	m31labs.dev/gosx v0.50.0
 )
 
 require (

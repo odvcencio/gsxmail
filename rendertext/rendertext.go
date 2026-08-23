@@ -5,7 +5,6 @@
 package rendertext
 
 import (
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -266,18 +265,10 @@ func writeFooter(b *strings.Builder, f doc.ResolvedFooter) {
 	b.WriteString(f.Note)
 }
 
-// hasSafeHrefScheme mirrors renderhtml's CTA scheme allowlist (https,
-// http, mailto — EM110) so the text part's "-> LABEL: URL"
+// hasSafeHrefScheme reports whether raw passes doc.SafeURL — the one
+// centralized EM110 scheme allowlist (https,
+// http, mailto) both writers share — so the text part's "-> LABEL: URL"
 // suffix appears exactly when the HTML part's href does.
 func hasSafeHrefScheme(raw string) bool {
-	u, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil {
-		return false
-	}
-	switch strings.ToLower(u.Scheme) {
-	case "http", "https", "mailto":
-		return true
-	default:
-		return false
-	}
+	return doc.SafeURL(raw)
 }
