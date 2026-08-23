@@ -792,10 +792,31 @@ findings):
 
 ## gosx version window
 
-gsxmail targets `m31labs.dev/gosx v0.42.2`. Earlier versions are
-untested. A compatibility policy across gosx releases, and a CI matrix
-that runs against both the pinned and the latest gosx version, land with
-a later work package.
+gsxmail targets `m31labs.dev/gosx v0.50.0`. Earlier versions are
+untested.
+
+Compatibility across gosx releases is proven, not asserted: CI runs the
+full suite — compile, lint, goldens, render parity — twice, once against
+the release go.mod pins and once against the latest tagged release (the
+`pinned`/`latest` matrix in `.github/workflows/ci.yml`). A green
+`latest` job means the newest release passed every behavioral test on
+that commit; a red one is a real incompatibility, to fix or to re-pin
+against, before shipping. While this pin is itself the newest tagged
+release, the `latest` lane resolves to the same version and proves
+nothing additional; it earns its keep the moment a newer gosx release
+lands, which is exactly when an unproven compatibility claim would
+otherwise appear.
+
+`Load` deliberately appends no version-skew diagnostic of its own. An
+earlier warning (EM194) fired whenever a build linked a gosx release
+other than the pin, keyed to nothing but the version strings — it
+appeared in every `Check()` on an otherwise clean template set, and it
+turned CI's own `latest` lane red while the entire behavioral suite
+passed against the new release. Whether a gosx release actually behaves
+is what the tests prove, not what a version comparison announces. If
+your build resolves a gosx release other than the pin, nothing in your
+diagnostics will say so; this section and the release notes are the
+place to check.
 
 ## The caniemail snapshot
 

@@ -55,11 +55,15 @@ func (opts WriteOptions) hardened() bool {
 }
 
 // RenderFinding is one render-time finding WriteWithOptions produces
-// alongside the rendered HTML string — today, only EM110: a CTA or
-// Button href that fails hasSafeHrefScheme drops the link
+// alongside the rendered HTML string — today two codes: EM110, a CTA,
+// Button, or Custom <a> href that fails doc.SafeURL drops the link
 // and renders the label alone, visibly (a mid-send loop must not die for
-// one bad optional link), but no longer silently. gsxmail.Set.Render
-// copies each RenderFinding into the returned Parts.Diagnostics.
+// one bad optional link); and EM111, a Hero, Column, or Custom <img>
+// src that fails doc.SafeImgSrc drops the image and renders its alt text
+// instead (a blocked image's stand-in is exactly what alt is for). Both
+// policies are centralized in internal/doc so neither writer can drift.
+// gsxmail.Set.Render copies each RenderFinding into the returned
+// Parts.Diagnostics.
 type RenderFinding struct {
 	Code    string
 	Message string
@@ -575,13 +579,13 @@ func writeBlock(b *strings.Builder, theme Theme, block doc.ResolvedBlock, hard, 
 	case doc.ResolvedStatTable:
 		writeStatTable(b, theme, v, hard, adaptive)
 	case doc.ResolvedCustom:
-		writeCustomNode(b, v.Root)
+		writeCustomNode(b, v.Root, findings)
 	case doc.ResolvedButton:
 		writeButton(b, theme, v, hard, adaptive, findings)
 	case doc.ResolvedColumns:
-		writeColumns(b, theme, v, hard, adaptive)
+		writeColumns(b, theme, v, hard, adaptive, findings)
 	case doc.ResolvedHero:
-		writeHero(b, theme, v, adaptive)
+		writeHero(b, theme, v, adaptive, findings)
 	case doc.ResolvedSpacer:
 		writeSpacer(b, v)
 	case doc.ResolvedBadge:
@@ -814,6 +818,23 @@ func appendHrefRejected(findings *[]RenderFinding, component, href string) {
 	})
 }
 
+// appendImgSrcRejected records an EM111 RenderFinding for one image site
+// (Hero, Column, or a Custom-subtree <img>) whose src failed
+// doc.SafeImgSrc: the writer already drops the image and renders its alt
+// text instead — this makes that drop visible in Parts.Diagnostics
+// instead of silent. Same nil contract as appendHrefRejected.
+func appendImgSrcRejected(findings *[]RenderFinding, component, src string) {
+	if findings == nil {
+		return
+	}
+	*findings = append(*findings, RenderFinding{
+		Code: "EM111",
+		Message: fmt.Sprintf(
+			"%s img src %q is not an absolute https URL; rendering its alt text instead",
+			component, src),
+	})
+}
+
 // writeButton writes email.Button. The
 // "primary" variant (the default) calls straight through to writeCTA,
 // unchanged above, so email.CTA and email.Button variant="primary" are
@@ -1022,7 +1043,7 @@ func writeButtonLink(b *strings.Builder, theme Theme, v doc.ResolvedButton, adap
 // column row (EM176 already caps the count at Load time); the dossier's
 // own worked numbers (268px per column, on a 600px card, two columns)
 // fall out of this formula unchanged.
-func writeColumns(b *strings.Builder, theme Theme, v doc.ResolvedColumns, hard, adaptive bool) {
+func writeColumns(b *strings.Builder, theme Theme, v doc.ResolvedColumns, hard, adaptive bool, findings *[]RenderFinding) {
 	n := len(v.Columns)
 	if n == 0 {
 		return
@@ -1049,7 +1070,7 @@ func writeColumns(b *strings.Builder, theme Theme, v doc.ResolvedColumns, hard, 
 		b.WriteString(widthStr)
 		b.WriteString(`px; vertical-align:top; text-align:left; font-size:14px;">
 `)
-		writeColumnContent(b, theme, col, hard, adaptive)
+		writeColumnContent(b, theme, col, hard, adaptive, findings)
 		b.WriteString(`</div>
 `)
 	}
@@ -1069,10 +1090,26 @@ func writeColumns(b *strings.Builder, theme Theme, v doc.ResolvedColumns, hard, 
 // gsx-ink on the title, and gsx-copy again on the body text — the same
 // hooks every other ink- and body-colored element in the card carries —
 // Columns nests ordinary card content, so the adaptive dark-mode
-// coverage extends into it for free.
-func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn, hard, adaptive bool) {
+// coverage extends into it for free. An imgSrc failing doc.SafeImgSrc
+// (EM111) drops the <img> and renders its alt text in the same
+// gsx-copy voice instead — the same fail-closed default writeHero
+// applies to Hero's own image, made visible by an EM111 RenderFinding.
+func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn, hard, adaptive bool, findings *[]RenderFinding) {
 	_ = hard
-	if col.ImgSrc != "" {
+	if col.ImgSrc != "" && !doc.SafeImgSrc(col.ImgSrc) {
+		appendImgSrcRejected(findings, "email.Column", col.ImgSrc)
+		if col.ImgAlt != "" {
+			b.WriteString(`<div`)
+			b.WriteString(classAttrIf(adaptive, "gsx-copy"))
+			b.WriteString(` style="color:`)
+			b.WriteString(theme.ColorBody)
+			b.WriteString(`; font-family:`)
+			b.WriteString(theme.FontSans)
+			b.WriteString(`; font-size:14px; line-height:1.5; margin-bottom:12px;">`)
+			b.WriteString(escapeText(col.ImgAlt))
+			b.WriteString("</div>\n")
+		}
+	} else if col.ImgSrc != "" {
 		// Issue #3: font-family/font-size/color on the img itself, same as
 		// Hero (writeHero's own doc comment) — a blocked or missing column
 		// image's alt text reads in the template's body-copy voice instead
@@ -1141,8 +1178,30 @@ func writeColumnContent(b *strings.Builder, theme Theme, col doc.ResolvedColumn,
 // carries, and picks up the gsx-copy adaptive class hook those elements
 // share (writeDarkStyleLayer's own doc comment) — an <img> with no
 // picture to show renders its alt text exactly like any other run of
-// body copy, dark mode included.
-func writeHero(b *strings.Builder, theme Theme, v doc.ResolvedHero, adaptive bool) {
+// body copy, dark mode included. An src failing doc.SafeImgSrc (EM111)
+// drops the <img> entirely and renders that same styled alt text alone —
+// fail-closed, so an unsafe value never reaches the output even from a
+// caller that skips the email lint — and appends an EM111 RenderFinding
+// so the drop is visible in Parts.Diagnostics rather than silent.
+func writeHero(b *strings.Builder, theme Theme, v doc.ResolvedHero, adaptive bool, findings *[]RenderFinding) {
+	if !doc.SafeImgSrc(v.Src) {
+		appendImgSrcRejected(findings, "email.Hero", v.Src)
+		if v.Alt == "" {
+			return
+		}
+		b.WriteString(`<tr>
+<td style="padding:0;">
+<div`)
+		b.WriteString(classAttrIf(adaptive, "gsx-copy"))
+		b.WriteString(` style="color:`)
+		b.WriteString(theme.ColorBody)
+		b.WriteString(`; font-family:`)
+		b.WriteString(theme.FontSans)
+		b.WriteString(`; font-size:14px; line-height:1.5;">`)
+		b.WriteString(escapeText(v.Alt))
+		b.WriteString("</div>\n</td>\n</tr>\n")
+		return
+	}
 	b.WriteString(`<tr>
 <td style="padding:0;">
 <img`)
@@ -1514,14 +1573,37 @@ var voidElements = map[string]bool{"img": true, "br": true, "hr": true}
 // text run. It carries the subtree through unmodified; gsxmail applies no
 // theme tokens to a Custom element, since Custom exists precisely for
 // markup the stdlib does not style on the author's behalf.
-func writeCustomNode(b *strings.Builder, n doc.ResolvedCustomNode) {
+// writeCustomNode walks one Custom-subtree node, emitting it verbatim —
+// with two fail-closed exceptions so an unsafe dynamic value never
+// reaches the HTML part even when a caller drives the writer directly,
+// skipping the email lint (a Custom subtree only exists once props
+// resolve, after Load-time lint has run): an <a> whose href fails
+// doc.SafeURL loses its href attribute and renders its label alone,
+// unclickable (EM110, appendHrefRejected); an <img> whose src attribute
+// fails doc.SafeImgSrc drops the image entirely, its alt text standing
+// in (EM111, appendImgSrcRejected). Both match AuditURLs' own judgment
+// of the same subtree, so the audit oracle's coverage claim holds for
+// Custom's raw pass-through too.
+func writeCustomNode(b *strings.Builder, n doc.ResolvedCustomNode, findings *[]RenderFinding) {
 	if n.IsText {
 		b.WriteString(escapeText(n.Text))
 		return
 	}
+	if n.Tag == "img" {
+		if src, has := customAttr(n.Attrs, "src"); has && !doc.SafeImgSrc(src) {
+			appendImgSrcRejected(findings, "email.Custom", src)
+			alt, _ := customAttr(n.Attrs, "alt")
+			b.WriteString(escapeText(alt))
+			return
+		}
+	}
 	b.WriteByte('<')
 	b.WriteString(n.Tag)
 	for _, a := range n.Attrs {
+		if n.Tag == "a" && a.Name == "href" && !doc.SafeURL(a.Value) {
+			appendHrefRejected(findings, "email.Custom", a.Value)
+			continue
+		}
 		b.WriteByte(' ')
 		b.WriteString(a.Name)
 		b.WriteString(`="`)
@@ -1533,11 +1615,25 @@ func writeCustomNode(b *strings.Builder, n doc.ResolvedCustomNode) {
 		return
 	}
 	for _, c := range n.Children {
-		writeCustomNode(b, c)
+		writeCustomNode(b, c, findings)
 	}
 	b.WriteString("</")
 	b.WriteString(n.Tag)
 	b.WriteByte('>')
+}
+
+// customAttr finds name in attrs and returns its value, reporting
+// whether the attribute was present at all (a present-but-empty value is
+// not the same as an absent attribute — writeCustomNode's img branch
+// only judges an img that actually carries a src, matching
+// doc.AuditURLs' own custom-node walk).
+func customAttr(attrs []doc.ResolvedCustomAttr, name string) (string, bool) {
+	for _, a := range attrs {
+		if a.Name == name {
+			return a.Value, true
+		}
+	}
+	return "", false
 }
 
 // writeFooter writes email.Footer. adaptive marks the border-top rule

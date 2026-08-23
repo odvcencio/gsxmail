@@ -27,6 +27,36 @@ All notable changes to gsxmail are documented in this file.
   in that same contract, and the fixed-width card table in parity
   mode, across the whole gallery.
 
+### Fixed (the gosx compatibility lane tested version strings, not behavior)
+
+- **Removed the `EM194` gosx version-skew diagnostic** (`skew.go`,
+  deleted): `Load` no longer appends a warn-severity finding when the
+  `m31labs.dev/gosx` release linked into a build differs from gsxmail's
+  own pin. The warning keyed to nothing but the two version strings —
+  it appeared in every `Check()` on an otherwise clean template set,
+  and it turned CI's own `latest` matrix lane red while the entire
+  behavioral suite passed against the newer release: a false red that
+  made the lane look broken exactly when it was proving compatibility.
+  Template diagnostics now describe templates only; whether a gosx
+  release actually behaves is what the test suite proves. See README's
+  "gosx version window" section for how to tell which release a build
+  resolved.
+- **The compatibility contract moved into `compat_test.go`,** where it
+  is enforced instead of announced: the linked `gosx.Version` must be
+  the release go.mod requires when the pinned lane runs; README's
+  version window must name the same release go.mod does; the `latest`
+  lane must link a different release than the pin or say plainly that
+  the bump resolved to the pin; and a clean template set must `Check`
+  clean whatever release is linked, with no diagnostic carrying a gosx
+  version literal. Each lane identity arrives as `GSXMAIL_GOSX_LANE`
+  from `.github/workflows/ci.yml`, so a workflow typo fails loudly
+  instead of silently changing what a green run proves.
+- **Re-pinned development to `m31labs.dev/gosx v0.50.0`** (go.mod,
+  README): the newest tagged release, with the full suite — compile,
+  lint, goldens, render parity — passing against it. Until a newer
+  release lands, CI's `latest` lane resolves to this same pin and says
+  so rather than claiming extra coverage.
+
 ## v0.1.0 (2026-08-16)
 
 The first release: write email templates as GoSX components and get
