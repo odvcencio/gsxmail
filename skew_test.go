@@ -30,6 +30,24 @@ func TestGosxPinnedVersionMatchesGoMod(t *testing.T) {
 	}
 }
 
+// TestCIUsesPinnedGosxDependency keeps CI from changing the dependency
+// version underneath TestGosxPinnedVersionMatchesGoMod and the rest of the
+// suite. Version upgrades belong in go.mod, where the existing version
+// contract test can check them.
+func TestCIUsesPinnedGosxDependency(t *testing.T) {
+	data, err := os.ReadFile(".github/workflows/ci.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	workflow := string(data)
+	if !strings.Contains(workflow, "gosx: [pinned]") {
+		t.Fatal("CI must test the GoSX version pinned in go.mod")
+	}
+	if strings.Contains(workflow, "m31labs.dev/gosx@latest") {
+		t.Fatal("CI must not replace the GoSX dependency with the latest release")
+	}
+}
+
 // TestGosxSkewDiagnostic is the pure-decision test for
 // gosxSkewDiagnostic: a match returns nil, and a mismatch returns exactly
 // one warn-severity EM194 naming both versions.
