@@ -1,10 +1,8 @@
 # CI (launch-gate M9). Two jobs:
 #
-#   - test: build, vet, gofmt, and race-enabled tests, once against the
-#     m31labs.dev/gosx version go.mod pins ("pinned") and once against
-#     the latest tagged gosx release ("latest") — the same window
-#     skew.go's own checkGosxSkew warns about at Load time, proven here
-#     instead of just documented.
+#   - test: build, vet, gofmt, and race-enabled tests against the
+#     m31labs.dev/gosx version go.mod pins. The version constant is checked
+#     against go.mod by TestGosxPinnedVersionMatchesGoMod.
 #   - size-gate: builds the CLI with the recommended default tags
 #     (grammar_subset, grammar_subset_html; README's "The CLI" section,
 #     m6) and fails if the binary exceeds 30 MB — the same budget
@@ -26,19 +24,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        gosx: [pinned, latest]
+        gosx: [pinned]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-
-      - name: Bump m31labs.dev/gosx to latest
-        if: matrix.gosx == 'latest'
-        run: |
-          go get m31labs.dev/gosx@latest
-          go mod tidy
 
       - name: Build
         run: go build ./...
