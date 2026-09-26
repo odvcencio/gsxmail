@@ -12,7 +12,7 @@ type mappedLine struct {
 	path       string // a short structural path, e.g. "card/row[3]"
 	component  string // "email.Headline", "email.Custom", ...
 	confidence string // "high" | "medium" | "low"
-	note       string // one ASD-STE100 sentence explaining the call
+	note       string // one plain sentence explaining the call
 }
 
 // unmappedLine is one report line for a node Import could not place at
