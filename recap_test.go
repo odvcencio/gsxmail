@@ -66,7 +66,7 @@ func recapFixtureProps() RecapProps {
 		Haul:           haul,
 		HasAutoPicks:   true,
 		AutoPickNote:   "Two picks were on autopick after 11 PM — Ezra Lindqvist is one of them.",
-		BoardURL:       "https://gridiron.draco.quest/board",
+		BoardURL:       "https://gridiron.example.com/board",
 		FooterNote:     "GRIDIRON 2000 · Eight seats. One trophy. Permanent group-chat evidence.",
 	}
 }
