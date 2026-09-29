@@ -28,7 +28,7 @@ func inviteFixtureProps() InviteProps {
 		ShortDate: "SAT · AUG 22",
 		LongDate:  "Saturday, August 22",
 		DraftTime: "7:00 PM ET",
-		LeagueURL: "https://gridiron.draco.quest",
+		LeagueURL: "https://gridiron.example.com",
 		Email:     "manager@example.com",
 	}
 }
@@ -131,7 +131,7 @@ func TestEscapingHTMLContent(t *testing.T) {
 		ShortDate: `<script>alert(1)</script>`,
 		LongDate:  `Tom & Jerry's Draft Night`,
 		DraftTime: "7:00 PM ET",
-		LeagueURL: "https://gridiron.draco.quest",
+		LeagueURL: "https://gridiron.example.com",
 		Email:     "manager@example.com",
 	}
 
@@ -166,7 +166,7 @@ func TestEscapingHrefAttribute(t *testing.T) {
 		ShortDate: "SAT · AUG 22",
 		LongDate:  "Saturday, August 22",
 		DraftTime: "7:00 PM ET",
-		LeagueURL: `https://gridiron.draco.quest/"><script>alert(1)</script>`,
+		LeagueURL: `https://gridiron.example.com/"><script>alert(1)</script>`,
 		Email:     "manager@example.com",
 	}
 
